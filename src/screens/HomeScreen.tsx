@@ -143,8 +143,8 @@ const styles = StyleSheet.create({
   titleSection: {
     alignItems: 'center',
     marginHorizontal: 20,
-    marginTop: Platform.OS === 'android' ? 30 : 20,
-    marginBottom: 20,
+    marginTop: Platform.OS === 'android' ? 15 : 10,
+    marginBottom: 15,
   },
   title: {
     fontSize: 32,
@@ -157,14 +157,14 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#64748b',
     textAlign: 'center',
-    marginBottom: 40,
+    marginBottom: 20,
   },
   weldsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    padding: 20,
-    paddingHorizontal: 20,
+    padding: 15,
+    paddingHorizontal: 15,
     // Debug: add border to see grid container
     // borderWidth: 1,
     // borderColor: 'red',
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingVertical: 10,
     marginHorizontal: 20,
-    marginBottom: 20,
+    marginBottom: 15,
   },
   searchInput: {
     flex: 1,
@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
   },
   sectionHeader: {
     marginHorizontal: 20,
-    marginBottom: 10,
+    marginBottom: 8,
   },
   sectionTitle: {
     fontSize: 20,

@@ -25,19 +25,6 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
         </Text>
       </TouchableOpacity>
 
-      {/* Add Tab - Centered with prominent plus */}
-      <TouchableOpacity 
-        style={[styles.addTab, currentScreen === 'add' && styles.activeAddTab]} 
-        onPress={() => onNavigate('add')}
-      >
-        <Text style={[styles.addIcon, currentScreen === 'add' && styles.activeAddIcon]}>
-          +
-        </Text>
-        <Text style={[styles.addLabel, currentScreen === 'add' && styles.activeAddLabel]}>
-          Add Weld
-        </Text>
-      </TouchableOpacity>
-
       {/* Settings Tab */}
       <TouchableOpacity 
         style={[styles.tab, currentScreen === 'settings' && styles.activeTab]} 
@@ -50,6 +37,19 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
           Settings
         </Text>
       </TouchableOpacity>
+
+      {/* Add Tab - Absolutely positioned at center edge */}
+      <TouchableOpacity 
+        style={[styles.addTab, currentScreen === 'add' && styles.activeAddTab]} 
+        onPress={() => onNavigate('add')}
+      >
+        <Text style={[styles.addIcon, currentScreen === 'add' && styles.activeAddIcon]}>
+          +
+        </Text>
+        <Text style={[styles.addLabel, currentScreen === 'add' && styles.activeAddLabel]}>
+          Add Weld
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -60,33 +60,34 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderTopWidth: 1,
     borderTopColor: '#e2e8f0',
-    paddingBottom: 30,
-    paddingTop: 15,
+    paddingBottom: 21, // Reduced from 30 (30% reduction)
+    paddingTop: 10,    // Reduced from 15 (30% reduction)
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 8,
+    position: 'relative', // Added for absolute positioning of add button
   },
   tab: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
+    paddingVertical: 6, // Reduced from 8 (30% reduction)
   },
   activeTab: {
     // Active state styling
   },
   tabIcon: {
-    fontSize: 24,
-    marginBottom: 4,
+    fontSize: 20, // Reduced from 24 (30% reduction)
+    marginBottom: 3, // Reduced from 4 (30% reduction)
     opacity: 0.6,
   },
   activeTabIcon: {
     opacity: 1,
   },
   tabLabel: {
-    fontSize: 12,
+    fontSize: 11, // Reduced from 12 (30% reduction)
     color: '#64748b',
     fontWeight: '500',
   },
@@ -95,14 +96,16 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   addTab: {
-    flex: 1.2,
+    position: 'absolute',
+    left: '50%',
+    top: -45, // Position at the edge of the bottom bar
+    transform: [{ translateX: -40 }], // Center horizontally (adjust for button width)
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
-    marginHorizontal: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 22,
     backgroundColor: '#667eea',
     borderRadius: 20,
-    paddingVertical: 12,
     shadowColor: '#667eea',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
