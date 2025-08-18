@@ -34,6 +34,14 @@ export const WeldViewScreen: React.FC<WeldViewScreenProps> = ({
         
         <View style={styles.viewSection}>
           <View style={styles.viewRow}>
+            <Text style={styles.viewLabel}>Weld Number:</Text>
+            <Text style={styles.viewValue}>{weld.weldNumber}</Text>
+          </View>
+          <View style={styles.viewRow}>
+            <Text style={styles.viewLabel}>NDE Number:</Text>
+            <Text style={styles.viewValue}>{weld.ndeNumber}</Text>
+          </View>
+          <View style={styles.viewRow}>
             <Text style={styles.viewLabel}>WPS:</Text>
             <Text style={styles.viewValue}>{weld.wps}</Text>
           </View>
@@ -52,10 +60,6 @@ export const WeldViewScreen: React.FC<WeldViewScreenProps> = ({
           <View style={styles.viewRow}>
             <Text style={styles.viewLabel}>Grade/Class:</Text>
             <Text style={styles.viewValue}>{weld.gradeClass}</Text>
-          </View>
-          <View style={styles.viewRow}>
-            <Text style={styles.viewLabel}>Weld Number:</Text>
-            <Text style={styles.viewValue}>{weld.weldNumber}</Text>
           </View>
           <View style={styles.viewRow}>
             <Text style={styles.viewLabel}>Welder:</Text>
@@ -104,10 +108,6 @@ export const WeldViewScreen: React.FC<WeldViewScreenProps> = ({
           <View style={styles.viewRow}>
             <Text style={styles.viewLabel}>Process:</Text>
             <Text style={styles.viewValue}>{weld.process}</Text>
-          </View>
-          <View style={styles.viewRow}>
-            <Text style={styles.viewLabel}>NDE Number:</Text>
-            <Text style={styles.viewValue}>{weld.ndeNumber}</Text>
           </View>
           <View style={styles.viewRow}>
             <Text style={styles.viewLabel}>Amps:</Text>

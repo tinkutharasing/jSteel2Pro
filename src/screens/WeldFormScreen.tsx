@@ -57,7 +57,7 @@ export const WeldFormScreen: React.FC<WeldFormScreenProps> = ({
       >
         <Text style={styles.title}>{isEditMode ? 'Edit Weld' : 'Add New Weld'}</Text>
         <Text style={styles.subtitle}>
-          {isEditMode ? 'Edit Weld Inspection Form' : 'SAW Groove Weld Inspection Form - All 24 Fields'}
+          {isEditMode ? 'Edit Weld Inspection Form' : 'SAW Groove Weld Inspection Form - All 25 Fields'}
         </Text>
         
         <View style={styles.formSection}>
@@ -71,60 +71,59 @@ export const WeldFormScreen: React.FC<WeldFormScreenProps> = ({
               required
             />
             <FormField
-              label="2. WPS *"
-              value={formData.wps || ''}
-              onChangeText={(value) => updateField('wps', value)}
-              placeholder="Enter WPS"
-              required
+              label="2. NDE Number"
+              value={formData.ndeNumber || ''}
+              onChangeText={(value) => updateField('ndeNumber', value)}
+              placeholder="Enter NDE Number"
             />
           </View>
 
           {/* Row 2 */}
           <View style={styles.formRow}>
             <FormField
-              label="3. Date"
+              label="3. WPS *"
+              value={formData.wps || ''}
+              onChangeText={(value) => updateField('wps', value)}
+              placeholder="Enter WPS"
+              required
+            />
+            <FormField
+              label="4. Date"
               value={formData.date || ''}
               onChangeText={(value) => updateField('date', value)}
               placeholder="YYYY-MM-DD"
-            />
-            <FormField
-              label="4. Type Fit"
-              value={formData.typeFit || ''}
-              onChangeText={(value) => updateField('typeFit', value)}
-              placeholder="Enter Type Fit"
             />
           </View>
 
           {/* Row 3 */}
           <View style={styles.formRow}>
             <FormField
-              label="5. Pipe Diameter"
+              label="5. Type Fit"
+              value={formData.typeFit || ''}
+              onChangeText={(value) => updateField('typeFit', value)}
+              placeholder="Enter Type Fit"
+            />
+            <FormField
+              label="6. Pipe Diameter"
               value={formData.pipeDia || ''}
               onChangeText={(value) => updateField('pipeDia', value)}
               placeholder="Enter Pipe Diameter"
             />
+          </View>
+
+          {/* Row 4 */}
+          <View style={styles.formRow}>
             <FormField
-              label="6. Grade/Class"
+              label="7. Grade/Class"
               value={formData.gradeClass || ''}
               onChangeText={(value) => updateField('gradeClass', value)}
               placeholder="Enter Grade/Class"
             />
-          </View>
-
-          {/* Row 4 - Welder Info */}
-          <View style={styles.formRow}>
             <FormField
-              label="7. Welder Name"
+              label="8. Welder Name"
               value={formData.welder || ''}
               onChangeText={(value) => updateField('welder', value)}
               placeholder="Enter Welder Name"
-              required
-            />
-            <FormField
-              label="8. Inspector Name"
-              value={formData.inspector || ''}
-              onChangeText={(value) => updateField('inspector', value)}
-              placeholder="Enter Inspector Name"
               required
             />
           </View>
@@ -132,90 +131,91 @@ export const WeldFormScreen: React.FC<WeldFormScreenProps> = ({
           {/* Row 5 */}
           <View style={styles.formRow}>
             <FormField
-              label="9. First HT"
+              label="9. Inspector Name"
+              value={formData.inspector || ''}
+              onChangeText={(value) => updateField('inspector', value)}
+              placeholder="Enter Inspector Name"
+              required
+            />
+            <FormField
+              label="10. First HT"
               value={formData.firstHT || ''}
               onChangeText={(value) => updateField('firstHT', value)}
               placeholder="Enter First HT"
-            />
-            <FormField
-              label="10. First MFG"
-              value={formData.firstMfg || ''}
-              onChangeText={(value) => updateField('firstMfg', value)}
-              placeholder="Enter First MFG"
             />
           </View>
 
           {/* Row 6 */}
           <View style={styles.formRow}>
             <FormField
-              label="11. First Length"
+              label="11. First MFG"
+              value={formData.firstMfg || ''}
+              onChangeText={(value) => updateField('firstMfg', value)}
+              placeholder="Enter First MFG"
+            />
+            <FormField
+              label="12. First Length"
               value={formData.firstLength || ''}
               onChangeText={(value) => updateField('firstLength', value)}
               placeholder="Enter First Length"
-            />
-            <FormField
-              label="12. JT Number"
-              value={formData.jtNumber || ''}
-              onChangeText={(value) => updateField('jtNumber', value)}
-              placeholder="Enter JT Number"
             />
           </View>
 
           {/* Row 7 */}
           <View style={styles.formRow}>
             <FormField
-              label="13. Second HT"
+              label="13. JT Number"
+              value={formData.jtNumber || ''}
+              onChangeText={(value) => updateField('jtNumber', value)}
+              placeholder="Enter JT Number"
+            />
+            <FormField
+              label="14. Second HT"
               value={formData.secondHT || ''}
               onChangeText={(value) => updateField('secondHT', value)}
               placeholder="Enter Second HT"
-            />
-            <FormField
-              label="14. Second MFG"
-              value={formData.secondMfg || ''}
-              onChangeText={(value) => updateField('secondMfg', value)}
-              placeholder="Enter Second MFG"
             />
           </View>
 
           {/* Row 8 */}
           <View style={styles.formRow}>
             <FormField
-              label="15. Second Length"
+              label="15. Second MFG"
+              value={formData.secondMfg || ''}
+              onChangeText={(value) => updateField('secondMfg', value)}
+              placeholder="Enter Second MFG"
+            />
+            <FormField
+              label="16. Second Length"
               value={formData.secondLength || ''}
               onChangeText={(value) => updateField('secondLength', value)}
               placeholder="Enter Second Length"
-            />
-            <FormField
-              label="16. Pre Heat"
-              value={formData.preHeat || ''}
-              onChangeText={(value) => updateField('preHeat', value)}
-              placeholder="Enter Pre Heat"
             />
           </View>
 
           {/* Row 9 */}
           <View style={styles.formRow}>
             <FormField
-              label="17. VT"
+              label="17. Pre Heat"
+              value={formData.preHeat || ''}
+              onChangeText={(value) => updateField('preHeat', value)}
+              placeholder="Enter Pre Heat"
+            />
+            <FormField
+              label="18. VT"
               value={formData.vt || ''}
               onChangeText={(value) => updateField('vt', value)}
               placeholder="Enter VT"
-            />
-            <FormField
-              label="18. Process"
-              value={formData.process || ''}
-              onChangeText={(value) => updateField('process', value)}
-              placeholder="Enter Process"
             />
           </View>
 
           {/* Row 10 */}
           <View style={styles.formRow}>
             <FormField
-              label="19. NDE Number"
-              value={formData.ndeNumber || ''}
-              onChangeText={(value) => updateField('ndeNumber', value)}
-              placeholder="Enter NDE Number"
+              label="19. Process"
+              value={formData.process || ''}
+              onChangeText={(value) => updateField('process', value)}
+              placeholder="Enter Process"
             />
             <FormField
               label="20. Amps"
@@ -289,13 +289,13 @@ export const WeldFormScreen: React.FC<WeldFormScreenProps> = ({
           {/* Row 13 - Signatures (At the end) */}
           <View style={styles.formRow}>
             <SignatureField
-              label="23. Welder Signature"
+              label="24. Welder Signature"
               value={formData.welderSignature || ''}
               onSignatureCaptured={(signature) => updateField('welderSignature', signature)}
               onClear={() => updateField('welderSignature', '')}
             />
             <SignatureField
-              label="24. Inspector Signature"
+              label="25. Inspector Signature"
               value={formData.inspectorSignature || ''}
               onSignatureCaptured={(signature) => updateField('inspectorSignature', signature)}
               onClear={() => updateField('inspectorSignature', '')}
