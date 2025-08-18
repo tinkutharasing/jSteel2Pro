@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView, Platform } from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons';
 import { WeldFormData } from '../types/Weld';
 import { FormField } from '../components/FormField';
 import { SignatureField } from '../components/SignatureField';
@@ -36,7 +37,8 @@ export const WeldFormScreen: React.FC<WeldFormScreenProps> = ({
       <View style={styles.container}>
         <Text style={styles.errorText}>Error: Form data not loaded</Text>
         <TouchableOpacity style={styles.backButtonContainer} onPress={onBack}>
-          <Text style={styles.backButton}>← Back</Text>
+          <Icon name="chevron-back" size={20} color="#3b82f6" />
+          <Text style={styles.backButton}>Back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -46,7 +48,8 @@ export const WeldFormScreen: React.FC<WeldFormScreenProps> = ({
     <SafeAreaView style={styles.safeContainer}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButtonContainer} onPress={onBack}>
-          <Text style={styles.backButton}>← Back</Text>
+          <Icon name="chevron-back" size={20} color="#3b82f6" />
+          <Text style={styles.backButton}>Back</Text>
         </TouchableOpacity>
       </View>
       
@@ -57,7 +60,7 @@ export const WeldFormScreen: React.FC<WeldFormScreenProps> = ({
       >
         <Text style={styles.title}>{isEditMode ? 'Edit Weld' : 'Add New Weld'}</Text>
         <Text style={styles.subtitle}>
-          {isEditMode ? 'Edit Weld Inspection Form' : 'SAW Groove Weld Inspection Form - All 25 Fields'}
+          {isEditMode ? 'Edit Weld Inspection Form' : 'SAW Groove Weld Inspection Form - 2 Required Fields'}
         </Text>
         
         <View style={styles.formSection}>
@@ -71,21 +74,21 @@ export const WeldFormScreen: React.FC<WeldFormScreenProps> = ({
               required
             />
             <FormField
-              label="2. NDE Number"
+              label="2. NDE Number *"
               value={formData.ndeNumber || ''}
               onChangeText={(value) => updateField('ndeNumber', value)}
               placeholder="Enter NDE Number"
+              required
             />
           </View>
 
           {/* Row 2 */}
           <View style={styles.formRow}>
             <FormField
-              label="3. WPS *"
+              label="3. WPS"
               value={formData.wps || ''}
               onChangeText={(value) => updateField('wps', value)}
               placeholder="Enter WPS"
-              required
             />
             <FormField
               label="4. Date"
@@ -124,7 +127,6 @@ export const WeldFormScreen: React.FC<WeldFormScreenProps> = ({
               value={formData.welder || ''}
               onChangeText={(value) => updateField('welder', value)}
               placeholder="Enter Welder Name"
-              required
             />
           </View>
 
@@ -135,7 +137,6 @@ export const WeldFormScreen: React.FC<WeldFormScreenProps> = ({
               value={formData.inspector || ''}
               onChangeText={(value) => updateField('inspector', value)}
               placeholder="Enter Inspector Name"
-              required
             />
             <FormField
               label="10. First HT"
@@ -244,7 +245,7 @@ export const WeldFormScreen: React.FC<WeldFormScreenProps> = ({
           {/* Row 12 - Status */}
           <View style={styles.formRow}>
             <View style={styles.statusField}>
-              <Text style={styles.statusLabel}>23. Status *</Text>
+              <Text style={styles.statusLabel}>23. Status</Text>
               <View style={styles.statusOptions}>
                 <TouchableOpacity 
                   style={[
@@ -328,58 +329,64 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 20,
-    paddingTop: Platform.OS === 'android' ? 30 : 20,
+    padding: 15,
+    paddingTop: Platform.OS === 'android' ? 20 : 15,
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
   },
   backButtonContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     padding: 8,
     borderRadius: 8,
     backgroundColor: '#f1f5f9',
+    gap: 8,
   },
   backButton: {
     fontSize: 16,
     color: '#3b82f6',
-    fontWeight: '700',
+    fontWeight: '500',
   },
   title: {
-    fontSize: 32,
-    fontWeight: '900',
+    fontSize: 28,
+    fontWeight: '100',
     color: '#0f172a',
     textAlign: 'center',
-    marginTop: Platform.OS === 'android' ? 50 : 30,
-    marginBottom: 15,
+    marginTop: Platform.OS === 'android' ? 20 : 15,
+    marginBottom: 8,
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
   },
   subtitle: {
-    fontSize: 18,
+    fontSize: 16,
     color: '#64748b',
     textAlign: 'center',
-    marginBottom: 40,
+    marginBottom: 20,
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+    lineHeight: 20,
   },
   formSection: {
     backgroundColor: '#ffffff',
-    margin: 20,
-    padding: 25,
+    margin: 15,
+    padding: 20,
     borderRadius: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 16,
     elevation: 8,
-    marginBottom: 50,
+    marginBottom: 40,
   },
   formRow: {
     flexDirection: 'row',
-    gap: 16,
-    marginBottom: 20,
+    gap: 12,
+    marginBottom: 16,
   },
   button: {
     backgroundColor: '#667eea',
-    padding: 20,
+    padding: 16,
     borderRadius: 16,
-    marginTop: 20,
+    marginTop: 16,
     alignItems: 'center',
-    minHeight: 64,
+    minHeight: 56,
   },
   buttonText: {
     color: 'white',

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { SafeAreaView, Alert, KeyboardAvoidingView, Platform, StatusBar, View, Text, StyleSheet, BackHandler, TouchableOpacity } from 'react-native';
+import { SafeAreaView, KeyboardAvoidingView, Platform, StatusBar, View, Text, StyleSheet, BackHandler, TouchableOpacity } from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Weld, WeldFormData, Screen } from './src/types/Weld';
 import { HomeScreen } from './src/screens/HomeScreen';
@@ -410,25 +411,11 @@ export default function App() {
     try {
       const storedWelds = await AsyncStorage.getItem('welds');
       const storedTrash = await AsyncStorage.getItem('trashWelds');
-      
-      Alert.alert(
-        'Database Status',
-        `Current State:
-• Active Welds: ${welds.length}
-• Trash Items: ${trashWelds.length}
-
-Storage Status:
-• Welds in AsyncStorage: ${storedWelds ? 'Yes' : 'No'}
-• Trash in AsyncStorage: ${storedTrash ? 'Yes' : 'No'}
-
-Sample Data Available:
-• Sample Welds: ${SAMPLE_WELDS.length}
-• Sample Trash: ${SAMPLE_TRASH_WELDS.length}`,
-        [{ text: 'OK', style: 'default' }]
-      );
+      const message = `Current State:\n• Active Welds: ${welds.length}\n• Trash Items: ${trashWelds.length}\n\nStorage Status:\n• Welds in AsyncStorage: ${storedWelds ? 'Yes' : 'No'}\n• Trash in AsyncStorage: ${storedTrash ? 'Yes' : 'No'}\n\nSample Data Available:\n• Sample Welds: ${SAMPLE_WELDS.length}\n• Sample Trash: ${SAMPLE_TRASH_WELDS.length}`;
+      showSuccess('Database Status', message);
     } catch (error) {
       console.error('Error checking database status:', error);
-      Alert.alert('Error', 'Failed to check database status');
+      showError('Error', 'Failed to check database status');
     }
   };
 
@@ -478,19 +465,11 @@ Sample Data Available:
 
   const addWeld = () => {
     if (!formData.weldNumber?.trim()) {
-      Alert.alert('Error', 'Weld Number is required');
+      showError('Error', 'Weld Number is required');
       return;
     }
-    if (!formData.wps?.trim()) {
-      Alert.alert('Error', 'WPS is required');
-      return;
-    }
-    if (!formData.welder?.trim()) {
-      Alert.alert('Error', 'Welder name is required');
-      return;
-    }
-    if (!formData.inspector?.trim()) {
-      Alert.alert('Error', 'Inspector name is required');
+    if (!formData.ndeNumber?.trim()) {
+      showError('Error', 'NDE Number is required');
       return;
     }
     
@@ -560,30 +539,22 @@ Sample Data Available:
   };
 
   const deleteWeld = (weld: Weld) => {
-    Alert.alert(
-      'Move to Trash',
-      `Move ${weld.weldNumber} to trash? You can recover it later.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Move to Trash', 
-          style: 'destructive',
-          onPress: () => {
-            // Move to trash instead of permanent deletion
-            const updatedWelds = welds.filter(w => w.id !== weld.id);
-            const updatedTrashWelds = [weld, ...trashWelds];
-            
-            setWelds(updatedWelds);
-            setTrashWelds(updatedTrashWelds);
-            
-            saveWelds(updatedWelds);
-            saveTrashWelds(updatedTrashWelds);
-            
-            Alert.alert('Moved to Trash', `${weld.weldNumber} has been moved to trash. You can recover it later.`);
-          }
-        }
-      ]
-    );
+    showConfirm({
+      title: 'Move to Trash',
+      message: `Move ${weld.weldNumber} to trash? You can recover it later.`,
+      confirmText: 'Move to Trash',
+      cancelText: 'Cancel',
+      onConfirm: () => {
+        const updatedWelds = welds.filter(w => w.id !== weld.id);
+        const updatedTrashWelds = [weld, ...trashWelds];
+        setWelds(updatedWelds);
+        setTrashWelds(updatedTrashWelds);
+        saveWelds(updatedWelds);
+        saveTrashWelds(updatedTrashWelds);
+        hideConfirm();
+        showSuccess('Moved to Trash', `${weld.weldNumber} has been moved to trash. You can recover it later.`);
+      }
+    });
   };
 
   const recoverWeld = async (weld: Weld) => {
@@ -605,23 +576,19 @@ Sample Data Available:
   };
 
   const permanentlyDeleteWeld = (weld: Weld) => {
-    Alert.alert(
-      'Permanently Delete',
-      `Are you sure you want to permanently delete ${weld.weldNumber}? This action cannot be undone.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete Permanently', 
-          style: 'destructive',
-          onPress: () => {
-            const updatedTrashWelds = trashWelds.filter(w => w.id !== weld.id);
-            setTrashWelds(updatedTrashWelds);
-            saveTrashWelds(updatedTrashWelds);
-            Alert.alert('Deleted', `${weld.weldNumber} has been permanently deleted.`);
-          }
-        }
-      ]
-    );
+    showConfirm({
+      title: 'Permanently Delete',
+      message: `Are you sure you want to permanently delete ${weld.weldNumber}? This action cannot be undone.`,
+      confirmText: 'Delete Permanently',
+      cancelText: 'Cancel',
+      onConfirm: () => {
+        const updatedTrashWelds = trashWelds.filter(w => w.id !== weld.id);
+        setTrashWelds(updatedTrashWelds);
+        saveTrashWelds(updatedTrashWelds);
+        hideConfirm();
+        showSuccess('Deleted', `${weld.weldNumber} has been permanently deleted.`);
+      }
+    });
   };
 
   const handleAddWeld = () => {
@@ -677,6 +644,12 @@ Sample Data Available:
       case 'settings':
         return (
           <View style={styles.settingsContainer}>
+            <View style={styles.settingsHeader}>
+              <TouchableOpacity style={styles.settingsBackButton} onPress={handleBack}>
+                <Icon name="chevron-back" size={20} color="#3b82f6" />
+                <Text style={styles.settingsBackButtonText}>Back</Text>
+              </TouchableOpacity>
+            </View>
             <Text style={styles.settingsTitle}>Settings</Text>
             <Text style={styles.settingsSubtitle}>App configuration and preferences</Text>
             <View style={styles.settingsItem}>
@@ -715,16 +688,19 @@ Sample Data Available:
         hidden={Platform.OS === 'android'}
       />
       {renderScreen()}
-      <BottomNavigation 
-        currentScreen={currentScreen === 'view' ? 'home' : currentScreen} 
-        onNavigate={(screen) => {
-          if (screen === 'add') {
-            handleAddWeld();
-          } else {
-            setCurrentScreen(screen);
-          }
-        }} 
-      />
+      {/* Bottom Navigation - Only show on home screen */}
+      {currentScreen === 'home' && (
+        <BottomNavigation
+          currentScreen={currentScreen}
+          onNavigate={(screen) => {
+            if (screen === 'add') {
+              setCurrentScreen('add');
+            } else {
+              setCurrentScreen(screen);
+            }
+          }}
+        />
+      )}
 
       {confirmVisible && (
         <View style={styles.modalBackdrop}>
@@ -787,6 +763,24 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fafc',
     padding: 20,
     paddingTop: 40,
+  },
+  settingsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  settingsBackButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#f1f5f9',
+    gap: 8,
+  },
+  settingsBackButtonText: {
+    fontSize: 16,
+    color: '#3b82f6',
+    fontWeight: '500',
   },
   settingsTitle: {
     fontSize: 32,
@@ -907,15 +901,16 @@ const styles = StyleSheet.create({
   modalButtonTextConfirm: {
     color: '#ffffff',
   },
-  // Success popup specific styles
+  // Success popup specific styles - neutral card with green top border
   successCard: {
-    backgroundColor: '#10b981', // Green background for success
+    borderTopWidth: 4,
+    borderTopColor: '#10b981',
   },
   successTitle: {
-    color: '#ffffff', // White text for success
+    color: '#0f172a',
   },
   successMessage: {
-    color: '#ecfdf5', // Light green text for success
+    color: '#475569',
   },
   successButton: {
     backgroundColor: '#ffffff', // White button for success
@@ -936,15 +931,16 @@ const styles = StyleSheet.create({
   successActions: {
     alignItems: 'center',
   },
-  // Error popup specific styles
+  // Error popup specific styles - neutral card with red top border
   errorCard: {
-    backgroundColor: '#ef4444', // Red background for error
+    borderTopWidth: 4,
+    borderTopColor: '#ef4444',
   },
   errorTitle: {
-    color: '#ffffff', // White text for error
+    color: '#0f172a',
   },
   errorMessage: {
-    color: '#fef3c7', // Light orange text for error
+    color: '#475569',
   },
   errorButton: {
     backgroundColor: '#ffffff', // White button for error

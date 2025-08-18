@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Modal } from 'react-native';
 import SignatureCanvas from 'react-native-signature-canvas';
 
 interface SignatureFieldProps {
@@ -16,12 +16,16 @@ export const SignatureField: React.FC<SignatureFieldProps> = ({
   onClear 
 }) => {
   const [showModal, setShowModal] = useState(false);
+  const [successVisible, setSuccessVisible] = useState(false);
+  const [successTitle] = useState('Success');
+  const [successMessage] = useState('Signature saved successfully!');
   const signatureRef = useRef<any>(null);
 
   const handleSignature = (signature: string) => {
     onSignatureCaptured(signature);
     setShowModal(false);
-    Alert.alert('Success', 'Signature saved successfully!');
+    setSuccessVisible(true);
+    setTimeout(() => setSuccessVisible(false), 2500);
   };
 
   const handleClear = () => {
@@ -126,6 +130,16 @@ export const SignatureField: React.FC<SignatureFieldProps> = ({
           </View>
         </View>
       </Modal>
+
+      {successVisible && (
+        <View style={styles.toastBackdrop} pointerEvents="none">
+          <View style={styles.toastCard}>
+            <View style={styles.toastTopBorder} />
+            <Text style={styles.toastTitle}>{successTitle}</Text>
+            <Text style={styles.toastMessage}>{successMessage}</Text>
+          </View>
+        </View>
+      )}
     </View>
   );
 };
@@ -269,5 +283,50 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  // lightweight success toast (neutral with green top border)
+  toastBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    paddingTop: 24,
+    zIndex: 9999,
+    elevation: 9999,
+  },
+  toastCard: {
+    width: '92%',
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  toastTopBorder: {
+    height: 4,
+    width: '100%',
+    backgroundColor: '#10b981',
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    marginTop: -14,
+    marginBottom: 8,
+  },
+  toastTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0f172a',
+    textAlign: 'center',
+    marginBottom: 2,
+  },
+  toastMessage: {
+    fontSize: 14,
+    color: '#475569',
+    textAlign: 'center',
   },
 });

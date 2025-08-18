@@ -41,15 +41,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       <ScrollView style={styles.container}>
         <View style={styles.headerSpacer} />
         
-        {/* Logo and Title Section */}
-        <View style={styles.logoSection}>
-          <View style={styles.logoContainer}>
-            <Text style={styles.logoText}>j</Text>
-          </View>
-          <View style={styles.titleContainer}>
-            <Text style={styles.title}>jSteel Pro</Text>
-            <Text style={styles.subtitle}>Professional Weld Inspection Management</Text>
-          </View>
+        {/* Title Section */}
+        <View style={styles.titleSection}>
+          <Text style={styles.title}>jSteel Pro</Text>
+          <Text style={styles.subtitle}>Professional Weld Inspection Management</Text>
         </View>
       
       {/* Search Box */}
@@ -145,48 +140,24 @@ const styles = StyleSheet.create({
   headerSpacer: {
     height: Platform.OS === 'android' ? 20 : 0,
   },
-  logoSection: {
-    flexDirection: 'row',
+  titleSection: {
     alignItems: 'center',
     marginHorizontal: 20,
     marginTop: Platform.OS === 'android' ? 30 : 20,
     marginBottom: 20,
   },
-  logoContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#3b82f6',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 15,
-    shadowColor: '#3b82f6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  logoText: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#ffffff',
-  },
-  titleContainer: {
-    flex: 1,
-  },
   title: {
     fontSize: 32,
     fontWeight: '900',
     color: '#0f172a',
-    textAlign: 'left',
+    textAlign: 'center',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 18,
     color: '#64748b',
-    textAlign: 'left',
+    textAlign: 'center',
     marginBottom: 40,
-    marginLeft: 20,
   },
   weldsGrid: {
     flexDirection: 'row',

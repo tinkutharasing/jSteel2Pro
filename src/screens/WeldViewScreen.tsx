@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView, StatusBar, Image, Platform } from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons';
 import { Weld } from '../types/Weld';
 
 interface WeldViewScreenProps {
@@ -24,7 +25,8 @@ export const WeldViewScreen: React.FC<WeldViewScreenProps> = ({
       />
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButtonContainer} onPress={onBack}>
-          <Text style={styles.backButton}>← Back</Text>
+          <Icon name="chevron-back" size={20} color="#3b82f6" />
+          <Text style={styles.backButton}>Back</Text>
         </TouchableOpacity>
       </View>
       
@@ -194,14 +196,17 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
   },
   backButtonContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     padding: 8,
     borderRadius: 8,
     backgroundColor: '#f1f5f9',
+    gap: 8,
   },
   backButton: {
     fontSize: 16,
     color: '#3b82f6',
-    fontWeight: '700',
+    fontWeight: '500',
   },
 
   title: {
