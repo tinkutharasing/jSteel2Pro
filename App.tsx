@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { SafeAreaView, Alert, KeyboardAvoidingView, Platform, StatusBar, View, Text, StyleSheet, BackHandler } from 'react-native';
+import { SafeAreaView, Alert, KeyboardAvoidingView, Platform, StatusBar, View, Text, StyleSheet, BackHandler, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Weld, WeldFormData, Screen } from './src/types/Weld';
 import { HomeScreen } from './src/screens/HomeScreen';
@@ -9,7 +9,9 @@ import { BottomNavigation } from './src/components/BottomNavigation';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('home');
-  const [welds, setWelds] = useState<Weld[]>([
+  
+  // Sample data constant - this will always contain the original sample data
+  const SAMPLE_WELDS: Weld[] = [
     {
       id: '1',
       date: '2024-01-15',
@@ -160,8 +162,9 @@ export default function App() {
       createdAt: '2024-01-19T11:10:00Z',
       updatedAt: '2024-01-19T11:10:00Z'
     }
-  ]);
-  const [trashWelds, setTrashWelds] = useState<Weld[]>([
+  ];
+
+  const SAMPLE_TRASH_WELDS: Weld[] = [
     {
       id: 'trash-1',
       date: '2024-01-10',
@@ -192,7 +195,10 @@ export default function App() {
       createdAt: '2024-01-10T08:00:00Z',
       updatedAt: '2024-01-10T08:00:00Z'
     }
-  ]);
+  ];
+
+  const [welds, setWelds] = useState<Weld[]>([]);
+  const [trashWelds, setTrashWelds] = useState<Weld[]>([]);
   const [selectedWeld, setSelectedWeld] = useState<Weld | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [formData, setFormData] = useState<WeldFormData>({
@@ -223,9 +229,77 @@ export default function App() {
     status: 'pending'
   });
 
+  // Styled confirmation modal state
+  const [confirmVisible, setConfirmVisible] = useState(false);
+  const [confirmTitle, setConfirmTitle] = useState('');
+  const [confirmMessage, setConfirmMessage] = useState('');
+  const [confirmConfirmText, setConfirmConfirmText] = useState('Confirm');
+  const [confirmCancelText, setConfirmCancelText] = useState('Cancel');
+  const confirmActionRef = React.useRef<(() => Promise<void> | void) | null>(null);
+
+  // Success popup state
+  const [successVisible, setSuccessVisible] = useState(false);
+  const [successTitle, setSuccessTitle] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+
+  // Error popup state
+  const [errorVisible, setErrorVisible] = useState(false);
+  const [errorTitle, setErrorTitle] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const showConfirm = (
+    opts: {
+      title: string;
+      message: string;
+      confirmText?: string;
+      cancelText?: string;
+      onConfirm: () => Promise<void> | void;
+    }
+  ) => {
+    setConfirmTitle(opts.title);
+    setConfirmMessage(opts.message);
+    setConfirmConfirmText(opts.confirmText || 'Confirm');
+    setConfirmCancelText(opts.cancelText || 'Cancel');
+    confirmActionRef.current = opts.onConfirm;
+    setConfirmVisible(true);
+  };
+
+  const hideConfirm = () => {
+    setConfirmVisible(false);
+    confirmActionRef.current = null;
+  };
+
+  const showSuccess = (title: string, message: string) => {
+    setSuccessTitle(title);
+    setSuccessMessage(message);
+    setSuccessVisible(true);
+    // Auto-hide after 3 seconds
+    setTimeout(() => setSuccessVisible(false), 3000);
+  };
+
+  const hideSuccess = () => {
+    setSuccessVisible(false);
+  };
+
+  const showError = (title: string, message: string) => {
+    setErrorTitle(title);
+    setErrorMessage(message);
+    setErrorVisible(true);
+    // Auto-hide after 4 seconds for errors
+    setTimeout(() => setErrorVisible(false), 4000);
+  };
+
+  const hideError = () => {
+    setErrorVisible(false);
+  };
+
   useEffect(() => {
-    loadWelds();
-    loadTrashWelds();
+    const initializeApp = async () => {
+      await loadWelds();
+      await loadTrashWelds();
+    };
+    
+    initializeApp();
     
     // Handle back button press
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -240,11 +314,22 @@ export default function App() {
     return () => backHandler.remove();
   }, [currentScreen]);
 
+  // Refresh data when home screen becomes active
+  useEffect(() => {
+    if (currentScreen === 'home') {
+      refreshDataFromStorage();
+    }
+  }, [currentScreen]);
+
   const loadWelds = async () => {
     try {
       const stored = await AsyncStorage.getItem('welds');
       if (stored) {
         setWelds(JSON.parse(stored));
+      } else {
+        // No stored data – do NOT auto-seed; keep empty
+        console.log('No welds found in storage; leaving state empty');
+        setWelds([]);
       }
     } catch (error) {
       console.error('Error loading welds:', error);
@@ -256,9 +341,105 @@ export default function App() {
       const stored = await AsyncStorage.getItem('trashWelds');
       if (stored) {
         setTrashWelds(JSON.parse(stored));
+      } else {
+        // No stored data – do NOT auto-seed; keep empty
+        console.log('No trash welds found in storage; leaving state empty');
+        setTrashWelds([]);
       }
     } catch (error) {
       console.error('Error loading trash welds:', error);
+    }
+  };
+
+  const resetToSampleData = async () => {
+    try {
+      console.log('Resetting to sample data...');
+      await AsyncStorage.removeItem('welds');
+      await AsyncStorage.removeItem('trashWelds');
+      await AsyncStorage.setItem('welds', JSON.stringify(SAMPLE_WELDS));
+      await AsyncStorage.setItem('trashWelds', JSON.stringify(SAMPLE_TRASH_WELDS));
+      setWelds(SAMPLE_WELDS);
+      setTrashWelds(SAMPLE_TRASH_WELDS);
+      console.log('Sample data restored successfully');
+      showSuccess('Success', `Database reset! Restored ${SAMPLE_WELDS.length} welds and ${SAMPLE_TRASH_WELDS.length} trash items.`);
+    } catch (error) {
+      console.error('Error resetting to sample data:', error);
+      showError('Error', 'Failed to reset to sample data');
+    }
+  };
+
+  const clearAllData = async () => {
+    showConfirm({
+      title: 'Clear All Data',
+      message: 'This will remove all welds and trash data. This action cannot be undone.',
+      confirmText: 'Clear All',
+      cancelText: 'Cancel',
+      onConfirm: async () => {
+        try {
+          console.log('Clearing all data...');
+          await AsyncStorage.removeItem('welds');
+          await AsyncStorage.removeItem('trashWelds');
+          setWelds([]);
+          setTrashWelds([]);
+          console.log('All data cleared successfully');
+          hideConfirm();
+          showSuccess('Success', 'All data cleared!');
+        } catch (error) {
+          console.error('Error clearing data:', error);
+          hideConfirm();
+          showError('Error', 'Failed to clear data');
+        }
+      }
+    });
+  };
+
+  const confirmResetToSampleData = () => {
+    showConfirm({
+      title: 'Reset to Sample Data',
+      message: 'This will overwrite current data with 5 sample entries and 1 trash item.',
+      confirmText: 'Reset',
+      cancelText: 'Cancel',
+      onConfirm: async () => {
+        await resetToSampleData();
+        hideConfirm();
+      }
+    });
+  };
+
+  const showDatabaseStatus = async () => {
+    try {
+      const storedWelds = await AsyncStorage.getItem('welds');
+      const storedTrash = await AsyncStorage.getItem('trashWelds');
+      
+      Alert.alert(
+        'Database Status',
+        `Current State:
+• Active Welds: ${welds.length}
+• Trash Items: ${trashWelds.length}
+
+Storage Status:
+• Welds in AsyncStorage: ${storedWelds ? 'Yes' : 'No'}
+• Trash in AsyncStorage: ${storedTrash ? 'Yes' : 'No'}
+
+Sample Data Available:
+• Sample Welds: ${SAMPLE_WELDS.length}
+• Sample Trash: ${SAMPLE_TRASH_WELDS.length}`,
+        [{ text: 'OK', style: 'default' }]
+      );
+    } catch (error) {
+      console.error('Error checking database status:', error);
+      Alert.alert('Error', 'Failed to check database status');
+    }
+  };
+
+  const refreshDataFromStorage = async () => {
+    try {
+      console.log('Refreshing data from storage...');
+      await loadWelds();
+      await loadTrashWelds();
+      console.log('Data refreshed from storage');
+    } catch (error) {
+      console.error('Error refreshing data:', error);
     }
   };
 
@@ -326,14 +507,14 @@ export default function App() {
       );
       setWelds(updatedWelds);
       saveWelds(updatedWelds);
-      Alert.alert('Success', 'Weld updated successfully!');
+      showSuccess('Success', 'Weld updated successfully!');
     } else {
       // Add new weld
       const newWeld = { ...formData, id: Date.now().toString(), status: 'pending' as const, createdAt: new Date().toISOString() };
       const updatedWelds = [newWeld, ...welds];
       setWelds(updatedWelds);
       saveWelds(updatedWelds);
-      Alert.alert('Success', 'Weld added successfully!');
+      showSuccess('Success', 'Weld added successfully!');
     }
     
     setCurrentScreen('home');
@@ -405,31 +586,22 @@ export default function App() {
     );
   };
 
-  const recoverWeld = (weld: Weld) => {
-    Alert.alert(
-      'Recover Weld',
-      `Recover ${weld.weldNumber} from trash?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Recover', 
-          style: 'default',
-          onPress: () => {
-            // Move back from trash to active welds
-            const updatedTrashWelds = trashWelds.filter(w => w.id !== weld.id);
-            const updatedWelds = [weld, ...welds];
-            
-            setTrashWelds(updatedTrashWelds);
-            setWelds(updatedWelds);
-            
-            saveTrashWelds(updatedTrashWelds);
-            saveWelds(updatedWelds);
-            
-            Alert.alert('Recovered', `${weld.weldNumber} has been recovered successfully!`);
-          }
-        }
-      ]
-    );
+  const recoverWeld = async (weld: Weld) => {
+    try {
+      const updatedTrashWelds = trashWelds.filter(w => w.id !== weld.id);
+      const updatedWelds = [weld, ...welds];
+      
+      await saveTrashWelds(updatedTrashWelds);
+      await saveWelds(updatedWelds);
+      
+      setTrashWelds(updatedTrashWelds);
+      setWelds(updatedWelds);
+      
+      showSuccess('Recovered', `${weld.weldNumber} has been recovered successfully!`);
+    } catch (error) {
+      console.error('Error recovering weld:', error);
+      showError('Error', 'Failed to recover weld');
+    }
   };
 
   const permanentlyDeleteWeld = (weld: Weld) => {
@@ -515,6 +687,18 @@ export default function App() {
               <Text style={styles.settingsItemLabel}>Trashed Items</Text>
               <Text style={styles.settingsItemValue}>{trashWelds.length}</Text>
             </View>
+            <View style={styles.settingsItem}>
+              <Text style={styles.settingsItemLabel}>Database Status</Text>
+              <Text style={styles.settingsItemValue}>
+                {welds.length > 0 ? '✅ Active' : '❌ Empty'}
+              </Text>
+            </View>
+            <TouchableOpacity style={styles.resetButton} onPress={confirmResetToSampleData}>
+              <Text style={styles.resetButtonText}>🔄 Reset to Sample Data</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.resetButton, styles.clearButton]} onPress={clearAllData}>
+              <Text style={styles.resetButtonText}>🗑️ Clear All Data</Text>
+            </TouchableOpacity>
           </View>
         );
       default:
@@ -541,6 +725,58 @@ export default function App() {
           }
         }} 
       />
+
+      {confirmVisible && (
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>{confirmTitle}</Text>
+            <Text style={styles.modalMessage}>{confirmMessage}</Text>
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={[styles.modalButton, styles.modalButtonCancel]} onPress={hideConfirm}>
+                <Text style={styles.modalButtonText}>{confirmCancelText}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonConfirm]}
+                onPress={async () => {
+                  if (confirmActionRef.current) {
+                    await confirmActionRef.current();
+                  }
+                }}
+              >
+                <Text style={[styles.modalButtonText, styles.modalButtonTextConfirm]}>{confirmConfirmText}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {successVisible && (
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalCard, styles.successCard]}>
+            <Text style={[styles.modalTitle, styles.successTitle]}>{successTitle}</Text>
+            <Text style={[styles.modalMessage, styles.successMessage]}>{successMessage}</Text>
+            <View style={styles.successActions}>
+              <TouchableOpacity style={styles.successButton} onPress={hideSuccess}>
+                <Text style={styles.successButtonText}>OK</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {errorVisible && (
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalCard, styles.errorCard]}>
+            <Text style={[styles.modalTitle, styles.errorTitle]}>{errorTitle}</Text>
+            <Text style={[styles.modalMessage, styles.errorMessage]}>{errorMessage}</Text>
+            <View style={styles.errorActions}>
+              <TouchableOpacity style={styles.errorButton} onPress={hideError}>
+                <Text style={styles.errorButtonText}>OK</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -586,5 +822,147 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#3b82f6',
     fontWeight: '700',
+  },
+  resetButton: {
+    backgroundColor: '#ef4444',
+    padding: 15,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  resetButtonText: {
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  clearButton: {
+    backgroundColor: '#dc2626', // A darker red for the clear all button
+  },
+  modalBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(15, 23, 42, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    zIndex: 9999,
+    elevation: 9999,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 420,
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#0f172a',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    fontSize: 16,
+    color: '#475569',
+    lineHeight: 22,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  modalButtonCancel: {
+    backgroundColor: '#f1f5f9',
+  },
+  modalButtonConfirm: {
+    backgroundColor: '#ef4444',
+  },
+  modalButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#334155',
+  },
+  modalButtonTextConfirm: {
+    color: '#ffffff',
+  },
+  // Success popup specific styles
+  successCard: {
+    backgroundColor: '#10b981', // Green background for success
+  },
+  successTitle: {
+    color: '#ffffff', // White text for success
+  },
+  successMessage: {
+    color: '#ecfdf5', // Light green text for success
+  },
+  successButton: {
+    backgroundColor: '#ffffff', // White button for success
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 10,
+    alignItems: 'center',
+    minWidth: 100,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  successButtonText: {
+    color: '#10b981', // Green text for success button
+  },
+  successActions: {
+    alignItems: 'center',
+  },
+  // Error popup specific styles
+  errorCard: {
+    backgroundColor: '#ef4444', // Red background for error
+  },
+  errorTitle: {
+    color: '#ffffff', // White text for error
+  },
+  errorMessage: {
+    color: '#fef3c7', // Light orange text for error
+  },
+  errorButton: {
+    backgroundColor: '#ffffff', // White button for error
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 10,
+    alignItems: 'center',
+    minWidth: 100,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  errorButtonText: {
+    color: '#ef4444', // Red text for error button
+  },
+  errorActions: {
+    alignItems: 'center',
   },
 });
