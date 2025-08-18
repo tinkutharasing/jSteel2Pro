@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, TextInput, SafeAreaView, Platform, Image } from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons';
 import { Weld } from '../types/Weld';
 import { WeldCard } from '../components/WeldCard';
 
@@ -12,6 +13,7 @@ interface HomeScreenProps {
   onDeleteWeld: (weld: Weld) => void;
   onRecoverWeld: (weld: Weld) => void;
   onPermanentlyDeleteWeld: (weld: Weld) => void;
+  onNavigate: (screen: 'home' | 'add' | 'view' | 'settings') => void;
 }
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({ 
@@ -22,7 +24,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   onEditWeld,
   onDeleteWeld,
   onRecoverWeld,
-  onPermanentlyDeleteWeld
+  onPermanentlyDeleteWeld,
+  onNavigate
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -43,8 +46,20 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         
         {/* Title Section */}
         <View style={styles.titleSection}>
-          <Text style={styles.title}>jSteel Pro</Text>
-          <Text style={styles.subtitle}>Professional Weld Inspection Management</Text>
+          <View style={styles.titleRow}>
+            <Text style={styles.title}>jSteel Pro</Text>
+            <TouchableOpacity 
+              style={styles.settingsButton}
+              onPress={() => onNavigate('settings')}
+            >
+              <Icon name="settings-outline" size={24} color="#64748b" />
+            </TouchableOpacity>
+          </View>
+        </View>
+        
+        {/* Subtitle - Outside titleSection for left alignment */}
+        <View style={styles.subtitleContainer}>
+          <Text style={styles.subtitle}>Weld Inspection Management</Text>
         </View>
       
       {/* Search Box */}
@@ -146,18 +161,34 @@ const styles = StyleSheet.create({
     marginTop: Platform.OS === 'android' ? 15 : 10,
     marginBottom: 15,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 8,
+  },
+  settingsButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#f1f5f9',
+  },
   title: {
     fontSize: 32,
     fontWeight: '900',
     color: '#0f172a',
-    textAlign: 'center',
-    marginBottom: 8,
+    textAlign: 'left',
+    flex: 1,
+  },
+  subtitleContainer: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    marginTop: -20,
   },
   subtitle: {
-    fontSize: 18,
+    fontSize: 11,
     color: '#64748b',
-    textAlign: 'center',
-    marginBottom: 20,
+    textAlign: 'left',
   },
   weldsGrid: {
     flexDirection: 'row',

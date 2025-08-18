@@ -614,6 +614,7 @@ export default function App() {
             onDeleteWeld={deleteWeld}
             onRecoverWeld={recoverWeld}
             onPermanentlyDeleteWeld={permanentlyDeleteWeld}
+            onNavigate={setCurrentScreen}
           />
         );
       case 'add':

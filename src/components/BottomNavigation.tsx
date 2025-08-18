@@ -12,31 +12,9 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
 }) => {
   return (
     <View style={styles.container}>
-      {/* Home Tab */}
-      <TouchableOpacity 
-        style={[styles.tab, currentScreen === 'home' && styles.activeTab]} 
-        onPress={() => onNavigate('home')}
-      >
-        <Text style={[styles.tabIcon, currentScreen === 'home' && styles.activeTabIcon]}>
-          🏠
-        </Text>
-        <Text style={[styles.tabLabel, currentScreen === 'home' && styles.activeTabLabel]}>
-          Home
-        </Text>
-      </TouchableOpacity>
+      
 
-      {/* Settings Tab */}
-      <TouchableOpacity 
-        style={[styles.tab, currentScreen === 'settings' && styles.activeTab]} 
-        onPress={() => onNavigate('settings')}
-      >
-        <Text style={[styles.tabIcon, currentScreen === 'settings' && styles.activeTabIcon]}>
-          ⚙️
-        </Text>
-        <Text style={[styles.tabLabel, currentScreen === 'settings' && styles.activeTabLabel]}>
-          Settings
-        </Text>
-      </TouchableOpacity>
+
 
       {/* Add Tab - Absolutely positioned at center edge */}
       <TouchableOpacity 
@@ -62,6 +40,7 @@ const styles = StyleSheet.create({
     borderTopColor: '#e2e8f0',
     paddingBottom: 21, // Reduced from 30 (30% reduction)
     paddingTop: 10,    // Reduced from 15 (30% reduction)
+    minHeight: 80,     // Added minimum height
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
