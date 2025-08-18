@@ -210,18 +210,18 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    fontSize: 32,
-    fontWeight: '900',
+    fontSize: 25,
+    fontWeight: '500',
     color: '#0f172a',
     textAlign: 'center',
-    marginTop: 30,
-    marginBottom: 15,
+    marginTop: 15,
+    marginBottom: 0,
   },
   subtitle: {
-    fontSize: 18,
+    fontSize: 15,
     color: '#64748b',
     textAlign: 'center',
-    marginBottom: 40,
+    marginBottom: 10,
   },
   viewSection: {
     backgroundColor: '#ffffff',
