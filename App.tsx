@@ -855,24 +855,10 @@ export default function App() {
           // Set loading state for confirmation button (don't hide dialog yet)
           setConfirmLoading(true);
           
-          // If connected to Google Sheets, mark the weld as deleted
+          // Note: No need to delete from Google Sheets since the weld was already deleted when moved to trash
+          // We use hard delete, so the weld is completely removed from the sheet when trashed
           if (googleSheetsConnected) {
-            console.log(`Marking permanently deleted weld ${weld.weldNumber} as deleted in Google Sheets...`);
-            
-            // Import and use Google Sheets service
-            const { createGoogleSheetsService } = await import('./src/services/GoogleSheetsService');
-            const sheetsService = createGoogleSheetsService(
-              googleSheetsConfig.spreadsheetId,
-              googleSheetsConfig.credentials
-            );
-            
-            // Delete the weld from Google Sheets
-            const success = await sheetsService.deleteWeld(weld.weldNumber);
-            if (success) {
-              console.log(`Successfully deleted permanently deleted weld ${weld.weldNumber} from Google Sheets`);
-            } else {
-              console.error(`Failed to delete permanently deleted weld ${weld.weldNumber} from Google Sheets`);
-            }
+            console.log(`Permanently deleting weld ${weld.weldNumber} (already removed from Google Sheets when trashed)`);
           }
           
           const updatedTrashWelds = trashWelds.filter(w => w.id !== weld.id);
@@ -881,7 +867,7 @@ export default function App() {
           setTrashWelds(updatedTrashWelds);
           saveTrashWelds(updatedTrashWelds);
           
-          showSuccess('Deleted', `${weld.weldNumber} has been permanently deleted and marked as deleted in Google Sheets.`);
+          showSuccess('Deleted', `${weld.weldNumber} has been permanently deleted from the app.`);
           
           // Now hide the confirmation dialog after operation completes
           hideConfirm();
