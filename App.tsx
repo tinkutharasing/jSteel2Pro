@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { SafeAreaView, KeyboardAvoidingView, Platform, StatusBar, View, Text, StyleSheet, BackHandler, TouchableOpacity } from 'react-native';
+import { SafeAreaView, KeyboardAvoidingView, Platform, StatusBar, View, Text, StyleSheet, BackHandler, TouchableOpacity, ScrollView } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Weld, WeldFormData, Screen } from './src/types/Weld';
@@ -7,9 +7,23 @@ import { HomeScreen } from './src/screens/HomeScreen';
 import { WeldFormScreen } from './src/screens/WeldFormScreen';
 import { WeldViewScreen } from './src/screens/WeldViewScreen';
 import { BottomNavigation } from './src/components/BottomNavigation';
+import { GoogleSheetsConfigModal } from './src/components/GoogleSheetsConfigModal';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('home');
+  
+                    // Google Sheets integration state
+                  const [googleSheetsConnected, setGoogleSheetsConnected] = useState(false);
+                  const [googleSheetsConfig, setGoogleSheetsConfig] = useState({
+                    spreadsheetId: '1LB9UNBJNU1hoTZcSi-jUmnzgrh5j2rzGkhInVHDWJGg',
+                    credentials: {
+                      client_email: 'jsteelpro@big-rivers-website-map.iam.gserviceaccount.com',
+                      private_key: 'your_private_key_here',
+                      private_key_id: 'your_private_key_id_here',
+                      api_key: 'your_api_key_here'
+                    },
+                  });
+  const [googleSheetsModalVisible, setGoogleSheetsModalVisible] = useState(false);
   
   // Sample data constant - this will always contain the original sample data
   const SAMPLE_WELDS: Weld[] = [
@@ -263,11 +277,21 @@ export default function App() {
     setConfirmCancelText(opts.cancelText || 'Cancel');
     confirmActionRef.current = opts.onConfirm;
     setConfirmVisible(true);
+    
+    // Safety timeout to auto-hide after 30 seconds
+    setTimeout(() => {
+      if (confirmVisible) {
+        console.log('Safety timeout: Auto-hiding confirmation dialog');
+        hideConfirm();
+      }
+    }, 30000);
   };
 
   const hideConfirm = () => {
+    console.log('hideConfirm called, current confirmVisible state:', confirmVisible);
     setConfirmVisible(false);
     confirmActionRef.current = null;
+    console.log('hideConfirm completed, confirmVisible set to false');
   };
 
   const showSuccess = (title: string, message: string) => {
@@ -294,10 +318,16 @@ export default function App() {
     setErrorVisible(false);
   };
 
+  // Debug confirmation dialog state changes
+  useEffect(() => {
+    console.log('Confirmation dialog state changed:', { confirmVisible, confirmTitle, confirmMessage });
+  }, [confirmVisible, confirmTitle, confirmMessage]);
+
   useEffect(() => {
     const initializeApp = async () => {
       await loadWelds();
       await loadTrashWelds();
+      await loadGoogleSheetsConfig();
     };
     
     initializeApp();
@@ -349,6 +379,27 @@ export default function App() {
       }
     } catch (error) {
       console.error('Error loading trash welds:', error);
+    }
+  };
+
+  // Load Google Sheets configuration from AsyncStorage
+  const loadGoogleSheetsConfig = async () => {
+    try {
+      console.log('Loading Google Sheets config from AsyncStorage...');
+      const configData = await AsyncStorage.getItem('googleSheetsConfig');
+      console.log('Raw config data from AsyncStorage:', configData);
+      
+      if (configData) {
+        const config = JSON.parse(configData);
+        console.log('Parsed config:', config);
+        setGoogleSheetsConfig(config);
+        setGoogleSheetsConnected(true);
+        console.log('Config loaded and state updated');
+      } else {
+        console.log('No config found in AsyncStorage');
+      }
+    } catch (error) {
+      console.log('Failed to load Google Sheets config:', error);
     }
   };
 
@@ -434,6 +485,11 @@ export default function App() {
     try {
       await AsyncStorage.setItem('welds', JSON.stringify(newWelds));
       setWelds(newWelds);
+      
+      // Auto-sync to Google Sheets if connected
+      if (googleSheetsConnected) {
+        autoSyncToGoogleSheets(newWelds);
+      }
     } catch (error) {
       console.error('Error saving welds:', error);
     }
@@ -474,6 +530,15 @@ export default function App() {
     }
     
     if (isEditMode && selectedWeld) {
+      // Check for duplicate weld number when editing (excluding current weld)
+      const existingWeld = welds.find(weld => 
+        weld.weldNumber === formData.weldNumber && weld.id !== selectedWeld.id
+      );
+      if (existingWeld) {
+        showError('Duplicate Weld Number', `Weld number ${formData.weldNumber} already exists in another entry. Please use a unique weld number.`);
+        return;
+      }
+      
       // Update existing weld
       const updatedWelds = welds.map(weld => 
         weld.id === selectedWeld.id 
@@ -488,6 +553,13 @@ export default function App() {
       saveWelds(updatedWelds);
       showSuccess('Success', 'Weld updated successfully!');
     } else {
+      // Check for duplicate weld number locally
+      const existingWeld = welds.find(weld => weld.weldNumber === formData.weldNumber);
+      if (existingWeld) {
+        showError('Duplicate Weld Number', `Weld number ${formData.weldNumber} already exists. Please use a unique weld number.`);
+        return;
+      }
+      
       // Add new weld
       const newWeld = { ...formData, id: Date.now().toString(), status: 'pending' as const, createdAt: new Date().toISOString() };
       const updatedWelds = [newWeld, ...welds];
@@ -601,6 +673,483 @@ export default function App() {
     resetForm();
   };
 
+  // Google Sheets integration functions
+  const openGoogleSheetsSettings = useCallback(() => {
+    setGoogleSheetsModalVisible(true);
+  }, []);
+
+  const closeGoogleSheetsModal = useCallback(() => {
+    setGoogleSheetsModalVisible(false);
+  }, []);
+
+  const saveGoogleSheetsConfig = useCallback(async (config: { spreadsheetId: string; credentials: any }) => {
+    try {
+      console.log('Saving Google Sheets config:', config);
+      
+      // Save to AsyncStorage for persistence
+      await AsyncStorage.setItem('googleSheetsConfig', JSON.stringify(config));
+      console.log('Config saved to AsyncStorage');
+      
+      // Update state
+      setGoogleSheetsConfig(config);
+      setGoogleSheetsConnected(true);
+      console.log('State updated, connected:', true);
+      
+      showSuccess('Configuration Saved', 'Google Sheets connection has been configured successfully!');
+    } catch (error) {
+      console.error('Failed to save Google Sheets config:', error);
+      showError('Configuration Error', 'Failed to save Google Sheets configuration');
+    }
+  }, []);
+
+  const syncToGoogleSheets = useCallback(async () => {
+    if (!googleSheetsConnected) {
+      showError('Not Connected', 'Please connect to Google Sheets first');
+      return;
+    }
+    
+    try {
+      showSuccess('Sync Started', 'Syncing data to Google Sheets...');
+      
+      // Import and use Google Sheets service
+      const { createGoogleSheetsService } = await import('./src/services/GoogleSheetsService');
+      const sheetsService = createGoogleSheetsService(
+        googleSheetsConfig.spreadsheetId,
+        googleSheetsConfig.credentials
+      );
+      
+      // Ensure sheet is properly initialized before syncing
+      console.log('Ensuring sheet is properly initialized...');
+      
+      // First, get existing welds from Google Sheets to check for duplicates
+      console.log('Checking existing welds in Google Sheets...');
+      const existingSheetWelds = await sheetsService.syncWeldsFromSheet();
+      const existingWeldMap = new Map();
+      
+      // Create a map of existing weld numbers to their IDs for quick lookup
+      existingSheetWelds.forEach(sheetWeld => {
+        existingWeldMap.set(sheetWeld.weldNumber, sheetWeld.id);
+      });
+      
+      console.log(`Found ${existingSheetWelds.length} existing welds in Google Sheets`);
+      
+      let successCount = 0;
+      let failCount = 0;
+      let addedCount = 0;
+      let updatedCount = 0;
+      
+      // Sync each weld
+      for (const weld of welds) {
+        try {
+          // Check if this weld already exists in Google Sheets
+          const existingWeldId = existingWeldMap.get(weld.weldNumber);
+          
+          if (existingWeldId) {
+            // Weld exists, update it
+            console.log(`Weld ${weld.weldNumber} already exists in Google Sheets, updating...`);
+            const updateResult = await sheetsService.updateWeld(weld);
+            if (updateResult.success) {
+              successCount++;
+              updatedCount++;
+              console.log(`Updated existing weld: ${weld.weldNumber}`);
+            } else {
+              failCount++;
+              console.error(`Failed to update existing weld ${weld.weldNumber}:`, updateResult.message);
+            }
+          } else {
+            // Weld doesn't exist, add it
+            console.log(`Weld ${weld.weldNumber} is new, adding to Google Sheets...`);
+            const result = await sheetsService.addWeld(weld);
+            if (result.success) {
+              successCount++;
+              addedCount++;
+              console.log(`Added new weld: ${weld.weldNumber}`);
+            } else {
+              failCount++;
+              console.error(`Failed to add new weld ${weld.weldNumber}:`, result.message);
+            }
+          }
+        } catch (error) {
+          failCount++;
+          console.error(`Failed to sync weld ${weld.weldNumber}:`, error);
+        }
+      }
+      
+      if (failCount === 0) {
+        const message = `Successfully synced ${successCount} welds to Google Sheets! (${addedCount} added, ${updatedCount} updated)`;
+        showSuccess('Sync Complete', message);
+      } else {
+        const message = `Synced ${successCount} welds (${addedCount} added, ${updatedCount} updated), ${failCount} failed`;
+        showSuccess('Sync Partial', message);
+      }
+    } catch (error) {
+      console.error('Sync error:', error);
+      showError('Sync Failed', 'Failed to sync data to Google Sheets');
+    }
+  }, [googleSheetsConnected, googleSheetsConfig, welds]);
+
+  const autoSyncToGoogleSheets = useCallback(async (weldsToSync: Weld[]) => {
+    if (!googleSheetsConnected) {
+      return; // Silent return for auto-sync
+    }
+    
+    try {
+      console.log('Auto-syncing updated welds to Google Sheets...');
+      
+      // Import and use Google Sheets service
+      const { createGoogleSheetsService } = await import('./src/services/GoogleSheetsService');
+      const sheetsService = createGoogleSheetsService(
+        googleSheetsConfig.spreadsheetId,
+        googleSheetsConfig.credentials
+      );
+      
+      // First, get existing welds from Google Sheets to check for duplicates
+      console.log('Auto-sync: Checking existing welds in Google Sheets...');
+      const existingSheetWelds = await sheetsService.syncWeldsFromSheet();
+      const existingWeldMap = new Map();
+      
+      // Create a map of existing weld numbers to their IDs for quick lookup
+      existingSheetWelds.forEach(sheetWeld => {
+        existingWeldMap.set(sheetWeld.weldNumber, sheetWeld.id);
+      });
+      
+      console.log(`Auto-sync: Found ${existingSheetWelds.length} existing welds in Google Sheets`);
+      
+      let successCount = 0;
+      let failCount = 0;
+      let addedCount = 0;
+      let updatedCount = 0;
+      
+      // Sync each weld
+      for (const weld of weldsToSync) {
+        try {
+          // Check if this weld already exists in Google Sheets
+          const existingWeldId = existingWeldMap.get(weld.weldNumber);
+          
+          if (existingWeldId) {
+            // Weld exists, update it
+            console.log(`Auto-sync: Weld ${weld.weldNumber} already exists, updating...`);
+            const updateResult = await sheetsService.updateWeld(weld);
+            if (updateResult.success) {
+              successCount++;
+              updatedCount++;
+              console.log(`Auto-sync: Updated existing weld: ${weld.weldNumber}`);
+            } else {
+              failCount++;
+              console.error(`Auto-sync: Failed to update existing weld ${weld.weldNumber}:`, updateResult.message);
+            }
+          } else {
+            // Weld doesn't exist, add it
+            console.log(`Auto-sync: Weld ${weld.weldNumber} is new, adding...`);
+            const result = await sheetsService.addWeld(weld);
+            if (result.success) {
+              successCount++;
+              addedCount++;
+              console.log(`Auto-sync: Added new weld: ${weld.weldNumber}`);
+            } else {
+              failCount++;
+              console.error(`Auto-sync: Failed to add new weld ${weld.weldNumber}:`, result.message);
+            }
+          }
+        } catch (error) {
+          failCount++;
+          console.error(`Auto-sync: Failed to sync weld ${weld.weldNumber}:`, error);
+        }
+      }
+      
+      if (failCount === 0) {
+        console.log(`Auto-sync complete: ${successCount} welds synced successfully (${addedCount} added, ${updatedCount} updated)`);
+      } else {
+        console.log(`Auto-sync partial: ${successCount} welds synced (${addedCount} added, ${updatedCount} updated), ${failCount} failed`);
+      }
+    } catch (error) {
+      console.error('Auto-sync error:', error);
+    }
+  }, [googleSheetsConnected, googleSheetsConfig]);
+
+  const syncChangedWeldsToGoogleSheets = useCallback(async (changedWelds: Weld[]) => {
+    if (!googleSheetsConnected || changedWelds.length === 0) {
+      return;
+    }
+    
+    try {
+      console.log(`Syncing ${changedWelds.length} changed welds to Google Sheets...`);
+      
+      // Import and use Google Sheets service
+      const { createGoogleSheetsService } = await import('./src/services/GoogleSheetsService');
+      const sheetsService = createGoogleSheetsService(
+        googleSheetsConfig.spreadsheetId,
+        googleSheetsConfig.credentials
+      );
+      
+      // First, get existing welds from Google Sheets to check for duplicates
+      console.log('Changed welds sync: Checking existing welds in Google Sheets...');
+      const existingSheetWelds = await sheetsService.syncWeldsFromSheet();
+      const existingWeldMap = new Map();
+      
+      // Create a map of existing weld numbers to their IDs for quick lookup
+      existingSheetWelds.forEach(sheetWeld => {
+        existingWeldMap.set(sheetWeld.weldNumber, sheetWeld.id);
+      });
+      
+      console.log(`Changed welds sync: Found ${existingSheetWelds.length} existing welds in Google Sheets`);
+      
+      let successCount = 0;
+      let failCount = 0;
+      let addedCount = 0;
+      let updatedCount = 0;
+      
+      // Sync only changed welds
+      for (const weld of changedWelds) {
+        try {
+          // Check if this weld already exists in Google Sheets
+          const existingWeldId = existingWeldMap.get(weld.weldNumber);
+          
+          if (existingWeldId) {
+            // Weld exists, update it
+            console.log(`Changed welds sync: Weld ${weld.weldNumber} already exists, updating...`);
+            const updateResult = await sheetsService.updateWeld(weld);
+            if (updateResult.success) {
+              successCount++;
+              updatedCount++;
+              console.log(`Changed weld synced: ${weld.weldNumber}`);
+            } else {
+              failCount++;
+              console.error(`Failed to sync changed weld ${weld.weldNumber}:`, updateResult.message);
+            }
+          } else {
+            // Weld doesn't exist, add it
+            console.log(`Changed welds sync: Weld ${weld.weldNumber} is new, adding...`);
+            const result = await sheetsService.addWeld(weld);
+            if (result.success) {
+              successCount++;
+              addedCount++;
+              console.log(`Changed weld synced: ${weld.weldNumber}`);
+            } else {
+              failCount++;
+              console.error(`Failed to sync changed weld ${weld.weldNumber}:`, result.message);
+            }
+          }
+        } catch (error) {
+          failCount++;
+          console.error(`Failed to sync changed weld ${weld.weldNumber}:`, error);
+        }
+      }
+      
+      if (failCount === 0) {
+        console.log(`Changed welds sync complete: ${successCount} welds synced successfully (${addedCount} added, ${updatedCount} updated)`);
+      } else {
+        console.log(`Changed welds sync partial: ${successCount} welds synced (${addedCount} added, ${updatedCount} updated), ${failCount} failed`);
+      }
+    } catch (error) {
+      console.error('Changed welds sync error:', error);
+    }
+  }, [googleSheetsConnected, googleSheetsConfig]);
+
+  const syncFromGoogleSheets = useCallback(async () => {
+    if (!googleSheetsConnected) {
+      showError('Not Connected', 'Please connect to Google Sheets first');
+      return;
+    }
+    
+    try {
+      showSuccess('Sync Started', 'Syncing data from Google Sheets...');
+      
+      // Import and use Google Sheets service
+      const { createGoogleSheetsService } = await import('./src/services/GoogleSheetsService');
+      const sheetsService = createGoogleSheetsService(
+        googleSheetsConfig.spreadsheetId,
+        googleSheetsConfig.credentials
+      );
+      
+      // Sync from sheets
+      const sheetWelds = await sheetsService.syncWeldsFromSheet();
+      
+      if (sheetWelds && sheetWelds.length > 0) {
+        // Update local welds with data from sheets
+        setWelds(sheetWelds);
+        await AsyncStorage.setItem('welds', JSON.stringify(sheetWelds));
+        showSuccess('Sync Complete', `Synced ${sheetWelds.length} welds from Google Sheets!`);
+      } else {
+        // Check if sheet is empty or just has no valid data
+        const stats = await sheetsService.getSheetStats();
+        if (stats.total === 0) {
+          showSuccess('Sync Complete', 'Google Sheet is empty. Use "Initialize Sheet Headers" to set up the sheet structure.');
+        } else {
+          showSuccess('Sync Complete', 'No valid weld data found in Google Sheets. The sheet may contain empty rows or invalid data.');
+        }
+      }
+    } catch (error) {
+      console.error('Sync error:', error);
+      showError('Sync Failed', 'Failed to sync data from Google Sheets');
+    }
+  }, [googleSheetsConnected, googleSheetsConfig]);
+
+  const initializeGoogleSheet = useCallback(async () => {
+    if (!googleSheetsConnected) {
+      showError('Not Connected', 'Please connect to Google Sheets first');
+      return;
+    }
+    
+    try {
+      showSuccess('Initializing...', 'Setting up sheet headers...');
+      
+      // Import and use Google Sheets service
+      const { createGoogleSheetsService } = await import('./src/services/GoogleSheetsService');
+      const sheetsService = createGoogleSheetsService(
+        googleSheetsConfig.spreadsheetId,
+        googleSheetsConfig.credentials
+      );
+      
+      const success = await sheetsService.initializeSheet();
+      
+      if (success) {
+        showSuccess('Sheet Initialized', 'Google Sheet has been set up with proper headers!');
+      } else {
+        showError('Initialization Failed', 'Failed to initialize the Google Sheet');
+      }
+    } catch (error) {
+      console.error('Sheet initialization error:', error);
+      showError('Initialization Failed', 'Failed to initialize the Google Sheet');
+    }
+  }, [googleSheetsConnected, googleSheetsConfig]);
+
+  const forceInitializeGoogleSheet = useCallback(async () => {
+    if (!googleSheetsConnected) {
+      showError('Not Connected', 'Please connect to Google Sheets first');
+      return;
+    }
+    
+    showConfirm({
+      title: 'Force Initialize Sheet',
+      message: 'This will completely clear the sheet and create new headers. All existing data will be lost. Continue?',
+      confirmText: 'Force Initialize',
+      cancelText: 'Cancel',
+      onConfirm: async () => {
+        try {
+          showSuccess('Force Initializing...', 'Clearing sheet and creating headers...');
+          
+          // Import and use Google Sheets service
+          const { createGoogleSheetsService } = await import('./src/services/GoogleSheetsService');
+          const sheetsService = createGoogleSheetsService(
+            googleSheetsConfig.spreadsheetId,
+            googleSheetsConfig.credentials
+          );
+          
+          const success = await sheetsService.forceInitializeSheet();
+          
+          if (success) {
+            showSuccess('Sheet Force-Initialized', 'Google Sheet has been completely reset with new headers!');
+          } else {
+            showError('Force Initialization Failed', 'Failed to force-initialize the Google Sheet');
+          }
+        } catch (error) {
+          console.error('Sheet force-initialization error:', error);
+          showError('Force Initialization Failed', 'Failed to force-initialize the Google Sheet');
+        }
+        hideConfirm();
+      }
+    });
+  }, [googleSheetsConnected, googleSheetsConfig]);
+
+  const clearGoogleSheet = useCallback(async () => {
+    if (!googleSheetsConnected) {
+      showError('Not Connected', 'Please connect to Google Sheets first');
+      return;
+    }
+    
+    showConfirm({
+      title: 'Clear Sheet Data',
+      message: 'This will remove all weld data from Google Sheets but keep the headers. This action cannot be undone.',
+      confirmText: 'Clear Data',
+      cancelText: 'Cancel',
+      onConfirm: async () => {
+        try {
+          console.log('Starting to clear Google Sheet...');
+          showSuccess('Clearing...', 'Removing sheet data...');
+          
+          // Import and use Google Sheets service
+          const { createGoogleSheetsService } = await import('./src/services/GoogleSheetsService');
+          const sheetsService = createGoogleSheetsService(
+            googleSheetsConfig.spreadsheetId,
+            googleSheetsConfig.credentials
+          );
+          
+          console.log('Google Sheets service created, calling clearSheet...');
+          const success = await sheetsService.clearSheet();
+          console.log('clearSheet result:', success);
+          
+          if (success) {
+            showSuccess('Sheet Cleared', 'All data has been removed from Google Sheets. Headers are preserved.');
+          } else {
+            showError('Clear Failed', 'Failed to clear the Google Sheet. Check console for details.');
+          }
+        } catch (error) {
+          console.error('Sheet clear error:', error);
+          showError('Clear Failed', `Failed to clear the Google Sheet: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        } finally {
+          console.log('Hiding confirmation dialog...');
+          hideConfirm();
+        }
+      }
+    });
+  }, [googleSheetsConnected, googleSheetsConfig]);
+
+  const debugGoogleSheet = useCallback(async () => {
+    if (!googleSheetsConnected) {
+      showError('Not Connected', 'Please connect to Google Sheets first');
+      return;
+    }
+    
+    try {
+      showSuccess('Debugging...', 'Checking sheet state...');
+      
+      // Import and use Google Sheets service
+      const { createGoogleSheetsService } = await import('./src/services/GoogleSheetsService');
+      const sheetsService = createGoogleSheetsService(
+        googleSheetsConfig.spreadsheetId,
+        googleSheetsConfig.credentials
+      );
+      
+      const debugInfo = await sheetsService.debugSheet();
+      
+      if (debugInfo) {
+        const debugMessage = `Sheet Debug Info:
+• Total Rows: ${debugInfo.totalRows}
+• Total Columns: ${debugInfo.totalColumns}
+• First Cell Value: "${debugInfo.firstCellValue}"
+• First Cell Type: ${debugInfo.firstCellType}
+• Sheet Name: ${debugInfo.sheetName}
+• Last Row: ${debugInfo.lastRow}
+• Last Column: ${debugInfo.lastColumn}`;
+        
+        showSuccess('Sheet Debug Info', debugMessage);
+      } else {
+        showError('Debug Failed', 'Failed to get sheet debug information');
+      }
+    } catch (error) {
+      console.error('Sheet debug error:', error);
+      showError('Debug Failed', 'Failed to debug the Google Sheet');
+    }
+  }, [googleSheetsConnected, googleSheetsConfig]);
+
+  // Debug function to check AsyncStorage
+  const checkAsyncStorage = useCallback(async () => {
+    try {
+      const configData = await AsyncStorage.getItem('googleSheetsConfig');
+      console.log('Current AsyncStorage config:', configData);
+      
+      if (configData) {
+        const config = JSON.parse(configData);
+        showSuccess('AsyncStorage Check', `Found config:\nID: ${config.spreadsheetId}\nEmail: ${config.credentials?.client_email}\nParsed: ${JSON.stringify(config, null, 2)}`);
+      } else {
+        showSuccess('AsyncStorage Check', 'No Google Sheets config found in AsyncStorage');
+      }
+    } catch (error) {
+      showError('AsyncStorage Check', `Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }, []);
+
   const renderScreen = () => {
     switch (currentScreen) {
       case 'home':
@@ -651,28 +1200,103 @@ export default function App() {
                 <Text style={styles.settingsBackButtonText}>Back</Text>
               </TouchableOpacity>
             </View>
-            <Text style={styles.settingsTitle}>Settings</Text>
-            <Text style={styles.settingsSubtitle}>App configuration and preferences</Text>
-            <View style={styles.settingsItem}>
-              <Text style={styles.settingsItemLabel}>Total Welds</Text>
-              <Text style={styles.settingsItemValue}>{welds.length}</Text>
-            </View>
-            <View style={styles.settingsItem}>
-              <Text style={styles.settingsItemLabel}>Trashed Items</Text>
-              <Text style={styles.settingsItemValue}>{trashWelds.length}</Text>
-            </View>
-            <View style={styles.settingsItem}>
-              <Text style={styles.settingsItemLabel}>Database Status</Text>
-              <Text style={styles.settingsItemValue}>
-                {welds.length > 0 ? '✅ Active' : '❌ Empty'}
-              </Text>
-            </View>
-            <TouchableOpacity style={styles.resetButton} onPress={confirmResetToSampleData}>
-              <Text style={styles.resetButtonText}>🔄 Reset to Sample Data</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.resetButton, styles.clearButton]} onPress={clearAllData}>
-              <Text style={styles.resetButtonText}>🗑️ Clear All Data</Text>
-            </TouchableOpacity>
+            <ScrollView style={styles.settingsContent} showsVerticalScrollIndicator={false}>
+              <Text style={styles.settingsTitle}>Settings</Text>
+              <Text style={styles.settingsSubtitle}>App configuration and preferences</Text>
+              <View style={styles.settingsItem}>
+                <Text style={styles.settingsItemLabel}>Total Welds</Text>
+                <Text style={styles.settingsItemValue}>{welds.length}</Text>
+              </View>
+              <View style={styles.settingsItem}>
+                <Text style={styles.settingsItemLabel}>Trashed Items</Text>
+                <Text style={styles.settingsItemValue}>{trashWelds.length}</Text>
+              </View>
+              <View style={styles.settingsItem}>
+                <Text style={styles.settingsItemLabel}>Database Status</Text>
+                <Text style={styles.settingsItemValue}>
+                  {welds.length > 0 ? '✅ Active' : '❌ Empty'}
+                </Text>
+              </View>
+              <TouchableOpacity style={styles.resetButton} onPress={confirmResetToSampleData}>
+                <Text style={styles.resetButtonText}>🔄 Reset to Sample Data</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.resetButton, styles.clearButton]} onPress={clearAllData}>
+                <Text style={styles.resetButtonText}>🗑️ Clear All Data</Text>
+              </TouchableOpacity>
+
+              {/* Google Sheets Integration Section */}
+              <View style={styles.settingsSection}>
+                <Text style={styles.settingsSectionTitle}>📊 Google Sheets Integration</Text>
+                <Text style={styles.settingsSectionSubtitle}>Sync your weld data with Google Sheets</Text>
+                
+                <View style={styles.settingsItem}>
+                  <Text style={styles.settingsItemLabel}>Connection Status</Text>
+                  <Text style={styles.settingsItemValue}>
+                    {googleSheetsConnected ? '✅ Connected' : '❌ Not Connected'}
+                  </Text>
+                </View>
+                
+                <TouchableOpacity style={styles.googleSheetsButton} onPress={openGoogleSheetsSettings}>
+                  <Text style={styles.googleSheetsButtonText}>
+                    {googleSheetsConnected ? '⚙️ Configure Sheets' : '🔗 Connect to Sheets'}
+                  </Text>
+                </TouchableOpacity>
+                
+                              {googleSheetsConnected && (
+                <>
+                  <TouchableOpacity style={styles.syncButton} onPress={syncToGoogleSheets}>
+                    <Text style={styles.syncButtonText}>🔄 Sync to Google Sheets</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.syncFromButton} onPress={syncFromGoogleSheets}>
+                    <Text style={styles.syncFromButtonText}>⬇️ Sync from Google Sheets</Text>
+                  </TouchableOpacity>
+                  
+                  {/* Sheet Management Buttons */}
+                  <View style={styles.sheetManagementSection}>
+                    <Text style={styles.sheetManagementTitle}>📋 Sheet Management</Text>
+                    <TouchableOpacity style={styles.initializeButton} onPress={initializeGoogleSheet}>
+                      <Text style={styles.initializeButtonText}>📝 Initialize Sheet Headers</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.forceInitializeButton} onPress={forceInitializeGoogleSheet}>
+                      <Text style={styles.forceInitializeButtonText}>⚡ Force Initialize Headers</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.clearButton} onPress={clearGoogleSheet}>
+                      <Text style={styles.clearButtonText}>🗑️ Clear Sheet Data</Text>
+                    </TouchableOpacity>
+                  </View>
+                  
+                  {/* Auto-Sync Settings */}
+                  <View style={styles.autoSyncSection}>
+                    <Text style={styles.autoSyncTitle}>🔄 Auto-Sync Settings</Text>
+                    <Text style={styles.autoSyncSubtitle}>Automatically sync changes to Google Sheets</Text>
+                    
+                    <View style={styles.settingsItem}>
+                      <Text style={styles.settingsItemLabel}>Auto-Sync Status</Text>
+                      <Text style={styles.settingsItemValue}>
+                        {googleSheetsConnected ? '✅ Enabled' : '❌ Disabled'}
+                      </Text>
+                    </View>
+                    
+                    <TouchableOpacity style={styles.syncChangedButton} onPress={() => syncChangedWeldsToGoogleSheets(welds)}>
+                      <Text style={styles.syncChangedButtonText}>🔄 Sync Changed Welds</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+              
+              {/* Debug Info */}
+              <View style={styles.debugInfo}>
+                <Text style={styles.debugText}>Debug: ID = {googleSheetsConfig.spreadsheetId || 'None'}</Text>
+                <Text style={styles.debugText}>Debug: Connected = {googleSheetsConnected ? 'Yes' : 'No'}</Text>
+                                  <TouchableOpacity style={styles.debugButton} onPress={checkAsyncStorage}>
+                    <Text style={styles.debugButtonText}>🔍 Check AsyncStorage</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.debugButton} onPress={debugGoogleSheet}>
+                    <Text style={styles.debugButtonText}>🐛 Debug Sheet State</Text>
+                  </TouchableOpacity>
+              </View>
+              </View>
+            </ScrollView>
           </View>
         );
       default:
@@ -715,14 +1339,19 @@ export default function App() {
               <TouchableOpacity
                 style={[styles.modalButton, styles.modalButtonConfirm]}
                 onPress={async () => {
+                  console.log('Confirm button pressed, calling onConfirm...');
                   if (confirmActionRef.current) {
                     await confirmActionRef.current();
+                  } else {
+                    console.log('No confirm action found, hiding dialog...');
+                    hideConfirm();
                   }
                 }}
               >
-                <Text style={[styles.modalButtonText, styles.modalButtonTextConfirm]}>{confirmConfirmText}</Text>
+                <Text style={styles.modalButtonText}>{confirmConfirmText}</Text>
               </TouchableOpacity>
             </View>
+            
           </View>
         </View>
       )}
@@ -754,6 +1383,14 @@ export default function App() {
           </View>
         </View>
       )}
+
+      {/* Google Sheets Configuration Modal */}
+      <GoogleSheetsConfigModal
+        visible={googleSheetsModalVisible}
+        onClose={closeGoogleSheetsModal}
+        onSave={saveGoogleSheetsConfig}
+        currentConfig={googleSheetsConfig}
+      />
     </SafeAreaView>
   );
 }
@@ -762,6 +1399,9 @@ const styles = StyleSheet.create({
   settingsContainer: {
     flex: 1,
     backgroundColor: '#f8fafc',
+  },
+  settingsContent: {
+    flex: 1,
     padding: 20,
     paddingTop: 40,
   },
@@ -837,6 +1477,211 @@ const styles = StyleSheet.create({
   },
   clearButton: {
     backgroundColor: '#dc2626', // A darker red for the clear all button
+    padding: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginBottom: 12,
+    shadowColor: '#dc2626',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  settingsSection: {
+    backgroundColor: '#ffffff',
+    padding: 20,
+    borderRadius: 16,
+    marginTop: 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  settingsSectionTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#0f172a',
+    marginBottom: 8,
+  },
+  settingsSectionSubtitle: {
+    fontSize: 16,
+    color: '#64748b',
+    marginBottom: 20,
+  },
+  googleSheetsButton: {
+    backgroundColor: '#3b82f6',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginBottom: 16,
+    shadowColor: '#3b82f6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  googleSheetsButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  syncButton: {
+    backgroundColor: '#10b981',
+    padding: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginBottom: 12,
+    shadowColor: '#10b981',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  syncButtonText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  syncFromButton: {
+    backgroundColor: '#f59e0b',
+    padding: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginBottom: 12,
+    shadowColor: '#f59e0b',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  syncFromButtonText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  debugInfo: {
+    backgroundColor: '#f1f5f9',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 12,
+    marginBottom: 16,
+  },
+  debugText: {
+    fontSize: 12,
+    color: '#64748b',
+    fontFamily: 'monospace',
+    marginBottom: 4,
+  },
+  debugButton: {
+    backgroundColor: '#6366f1',
+    padding: 8,
+    borderRadius: 6,
+    marginTop: 8,
+    alignItems: 'center',
+  },
+  debugButtonText: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  sheetManagementSection: {
+    backgroundColor: '#ffffff',
+    padding: 20,
+    borderRadius: 16,
+    marginTop: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  sheetManagementTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#0f172a',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  initializeButton: {
+    backgroundColor: '#8b5cf6',
+    padding: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginBottom: 12,
+    shadowColor: '#8b5cf6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  initializeButtonText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  forceInitializeButton: {
+    backgroundColor: '#f59e0b',
+    padding: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginBottom: 12,
+    shadowColor: '#f59e0b',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  forceInitializeButtonText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  clearButtonText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  autoSyncSection: {
+    backgroundColor: '#ffffff',
+    padding: 20,
+    borderRadius: 16,
+    marginTop: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  autoSyncTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#0f172a',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  autoSyncSubtitle: {
+    fontSize: 16,
+    color: '#64748b',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  syncChangedButton: {
+    backgroundColor: '#06b6d4',
+    padding: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 16,
+    shadowColor: '#06b6d4',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  syncChangedButtonText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '600',
   },
   modalBackdrop: {
     position: 'absolute',
@@ -961,5 +1806,19 @@ const styles = StyleSheet.create({
   },
   errorActions: {
     alignItems: 'center',
+  },
+  fallbackCloseButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: '#f1f5f9',
+    padding: 8,
+    borderRadius: 8,
+    zIndex: 1,
+  },
+  fallbackCloseButtonText: {
+    fontSize: 14,
+    color: '#3b82f6',
+    fontWeight: '600',
   },
 });

@@ -86,7 +86,146 @@ You've successfully run and modified your React Native App. :partying_face:
 
 If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
 
-# Learn More
+# Google Sheets Integration
+
+jSteel Pro includes automatic Google Sheets synchronization for all weld data. This feature allows you to:
+
+- **Automatically sync** new welds to Google Sheets
+- **Track deleted welds** (marked as "Deleted" instead of removed)
+- **Maintain audit trails** with timestamps
+- **Access data** from any device with internet connection
+
+## Prerequisites
+
+- Google account with access to Google Sheets
+- Google Cloud Project (free tier available)
+
+## Setup Instructions
+
+### Step 1: Create Google Cloud Project
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Click "Select a project" → "New Project"
+3. Enter project name (e.g., "jsteel-pro-sheets")
+4. Click "Create"
+
+### Step 2: Enable Google Sheets API
+
+1. In your project, go to "APIs & Services" → "Library"
+2. Search for "Google Sheets API"
+3. Click on "Google Sheets API"
+4. Click "Enable"
+
+### Step 3: Create Service Account
+
+1. Go to "APIs & Services" → "Credentials"
+2. Click "Create Credentials" → "Service Account"
+3. Fill in service account details:
+   - **Name**: `jsteel-pro-sheets-service`
+   - **Description**: `Service account for jSteel Pro app`
+4. Click "Create and Continue"
+5. Skip role assignment (click "Continue")
+6. Click "Done"
+
+### Step 4: Generate JSON Key
+
+1. Click on your newly created service account
+2. Go to "Keys" tab
+3. Click "Add Key" → "Create new key"
+4. Choose "JSON" format
+5. Click "Create"
+6. **Download the JSON file** (keep it secure!)
+
+### Step 5: Prepare Google Sheet
+
+1. Create a new Google Sheet or use existing one
+2. Set up headers in row 1 (see CSV template below)
+3. **Share the sheet** with your service account email:
+   - Click "Share" (top right)
+   - Add service account email (from JSON file)
+   - Give "Editor" access
+   - Uncheck "Notify people" (optional)
+
+### Step 6: Configure in App
+
+1. Open jSteel Pro app
+2. Go to **Settings** (gear icon next to title)
+3. Click **"🔗 Connect to Sheets"**
+4. Enter configuration:
+   - **Spreadsheet ID**: From your sheet URL
+   - **Service Account Email**: From JSON file
+   - **Private Key**: Copy entire private key from JSON file
+
+## CSV Template
+
+Use this template to set up your Google Sheet headers:
+
+```csv
+ID,Date,Weld Number,NDE Number,Type Fit,WPS,Pipe Dia,Grade/Class,Welder,Inspector,First HT,First MFG,First Length,JT Number,Second HT,Second MFG,Second Length,Pre Heat,VT,Process,Amps,Volts,IPM,Status,Welder Signature,Inspector Signature,Weld Sketch,Defect Sketch,Sheet Status,Created At,Updated At
+```
+
+## Column Mapping
+
+| Column | Field | Description |
+|--------|-------|-------------|
+| A | ID | Unique weld identifier |
+| B | Date | Weld date (YYYY-MM-DD) |
+| C | Weld Number | Weld reference number |
+| D | NDE Number | NDE inspection reference |
+| E | Type Fit | Fitting type description |
+| F | WPS | Welding procedure specification |
+| G | Pipe Dia | Pipe diameter |
+| H | Grade/Class | Material grade/class |
+| I | Welder | Welder name |
+| J | Inspector | Inspector name |
+| K | First HT | First heat treatment code |
+| L | First MFG | First manufacturer |
+| M | First Length | First length measurement |
+| N | JT Number | Joint number |
+| O | Second HT | Second heat treatment code |
+| P | Second MFG | Second manufacturer |
+| Q | Second Length | Second length measurement |
+| R | Pre Heat | Pre-heating required (YES/NO) |
+| S | VT | Visual testing method |
+| T | Process | Welding process |
+| U | Amps | Amperage values (semicolon-separated) |
+| V | Volts | Voltage values (semicolon-separated) |
+| W | IPM | Inches per minute |
+| X | Status | Weld status (pending/approved/rejected) |
+| Y | Welder Signature | Signature indicator (Yes/No) |
+| Z | Inspector Signature | Signature indicator (Yes/No) |
+| AA | Weld Sketch | Drawing indicator |
+| AB | Defect Sketch | Drawing indicator |
+| AC | Sheet Status | Active/Deleted status |
+| AD | Created At | Creation timestamp |
+| AE | Updated At | Last update timestamp |
+
+## Troubleshooting
+
+### Common Issues
+
+1. **"Not Connected" Error**
+   - Verify service account email is correct
+   - Check private key is copied completely
+   - Ensure sheet is shared with service account
+
+2. **"Permission Denied" Error**
+   - Verify sheet sharing permissions
+   - Check service account has "Editor" access
+   - Ensure Google Sheets API is enabled
+
+3. **"Invalid Spreadsheet ID" Error**
+   - Copy ID from sheet URL: `docs.google.com/spreadsheets/d/SPREADSHEET_ID/edit`
+   - Remove any extra characters or spaces
+
+### Security Notes
+
+- **Never commit** JSON credentials to version control
+- **Keep private key** secure and confidential
+- **Use service account** instead of personal account
+- **Limit permissions** to only necessary access
+
+## Learn More
 
 To learn more about React Native, take a look at the following resources:
 
