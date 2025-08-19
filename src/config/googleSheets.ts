@@ -39,7 +39,7 @@ export const GOOGLE_SHEETS_CONFIG = {
     INSPECTOR_SIGNATURE: 'Z',
     WELD_SKETCH: 'AA',
     DEFECT_SKETCH: 'AB',
-    SHEET_STATUS: 'AC', // Active/Deleted status in sheet
+    SHEET_STATUS: 'AC', // Always Active (hard delete)
     CREATED_AT: 'AD',
     UPDATED_AT: 'AE',
   },
@@ -47,7 +47,7 @@ export const GOOGLE_SHEETS_CONFIG = {
   // Status values
   STATUS: {
     ACTIVE: 'Active',
-    DELETED: 'Deleted',
+    // DELETED status removed - using hard delete instead
   },
 };
 

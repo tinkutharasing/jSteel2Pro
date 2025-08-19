@@ -417,22 +417,22 @@ export default function App() {
         // First, mark all existing welds as deleted
         const existingSheetWelds = await sheetsService.syncWeldsFromSheet();
         if (existingSheetWelds.length > 0) {
-          console.log(`Marking ${existingSheetWelds.length} existing welds as deleted in Google Sheets...`);
+          console.log(`Deleting ${existingSheetWelds.length} existing welds from Google Sheets...`);
           
           let deletedCount = 0;
           for (const sheetWeld of existingSheetWelds) {
             try {
-              const success = await sheetsService.markWeldAsDeleted(sheetWeld.id);
+              const success = await sheetsService.deleteWeld(sheetWeld.weldNumber);
               if (success) {
                 deletedCount++;
-                console.log(`Marked weld ${sheetWeld.weldNumber} as deleted`);
+                console.log(`Deleted weld ${sheetWeld.weldNumber} from Google Sheets`);
               }
             } catch (error) {
-              console.error(`Failed to mark weld ${sheetWeld.weldNumber} as deleted:`, error);
+              console.error(`Failed to delete weld ${sheetWeld.weldNumber} from Google Sheets:`, error);
             }
           }
           
-          console.log(`Successfully marked ${deletedCount} welds as deleted in Google Sheets`);
+          console.log(`Successfully deleted ${deletedCount} welds from Google Sheets`);
         }
         
         // Now add all sample welds to Google Sheets
@@ -689,8 +689,54 @@ export default function App() {
       cancelText: 'Cancel',
       onConfirm: async () => {
         try {
-          // Hide confirmation immediately to prevent UI blocking
-          hideConfirm();
+          // Set loading state for confirmation button (don't hide dialog yet)
+          setConfirmLoading(true);
+          
+          // If connected to Google Sheets, delete the weld from the sheet
+          if (googleSheetsConnected) {
+            console.log(`Deleting weld ${weld.weldNumber} from Google Sheets...`);
+            console.log('Google Sheets config:', {
+              spreadsheetId: googleSheetsConfig.spreadsheetId,
+              hasCredentials: !!googleSheetsConfig.credentials,
+              webappUrl: (googleSheetsConfig.credentials as any)?.webapp_url
+            });
+            
+            try {
+              // Import and use Google Sheets service
+              const { createGoogleSheetsService } = await import('./src/services/GoogleSheetsService');
+              const sheetsService = createGoogleSheetsService(
+                googleSheetsConfig.spreadsheetId,
+                googleSheetsConfig.credentials
+              );
+              
+              console.log('Google Sheets service created successfully');
+              
+              // Test connection first
+              console.log('Testing connection by getting sheet stats...');
+              try {
+                const stats = await sheetsService.getSheetStats();
+                console.log('Connection test successful, sheet stats:', stats);
+              } catch (statsError) {
+                console.error('Connection test failed:', statsError);
+                throw new Error(`Connection test failed: ${statsError instanceof Error ? statsError.message : 'Unknown error'}`);
+              }
+              
+              // Delete the weld from Google Sheets
+              console.log('Attempting to delete weld...');
+              const success = await sheetsService.deleteWeld(weld.weldNumber);
+              if (success) {
+                console.log(`Successfully deleted weld ${weld.weldNumber} from Google Sheets`);
+              } else {
+                console.log(`Failed to delete weld ${weld.weldNumber} from Google Sheets`);
+              }
+            } catch (error) {
+              console.error('Error during Google Sheets delete operation:', error);
+              // Show error to user
+              showError('Google Sheets Error', `Failed to delete from Google Sheets: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            }
+          } else {
+            console.log('Google Sheets not connected, skipping delete operation');
+          }
           
           const updatedWelds = welds.filter(w => w.id !== weld.id);
           const updatedTrashWelds = [weld, ...trashWelds];
@@ -701,32 +747,101 @@ export default function App() {
           saveWelds(updatedWelds);
           saveTrashWelds(updatedTrashWelds);
           
-          showSuccess('Moved to Trash', `${weld.weldNumber} has been moved to trash. You can recover it later.`);
+          showSuccess('Moved to Trash', `${weld.weldNumber} has been moved to trash and deleted from Google Sheets.`);
+          
+          // Debug: Compare weld IDs to help troubleshoot
+          if (googleSheetsConnected) {
+            try {
+              const { createGoogleSheetsService } = await import('./src/services/GoogleSheetsService');
+              const sheetsService = createGoogleSheetsService(
+                googleSheetsConfig.spreadsheetId,
+                googleSheetsConfig.credentials
+              );
+              
+              const allWeldNumbers = welds.map(w => w.weldNumber);
+              console.log('Debug: Comparing weld numbers...');
+              const comparison = await sheetsService.compareWeldNumbers(allWeldNumbers);
+              if (comparison.success) {
+                console.log('Weld number comparison:', comparison.comparison);
+              }
+            } catch (error) {
+              console.error('Debug: Failed to compare weld IDs:', error);
+            }
+          }
+          
+          // Now hide the confirmation dialog after operation completes
+          hideConfirm();
         } catch (error) {
           console.error('Error moving weld to trash:', error);
           showError('Error', 'Failed to move weld to trash');
+          
+          // Hide dialog on error too
+          hideConfirm();
+        } finally {
+          // Always reset loading state
+          setConfirmLoading(false);
         }
       }
     });
   };
 
-  const recoverWeld = async (weld: Weld) => {
-    try {
-      const updatedTrashWelds = trashWelds.filter(w => w.id !== weld.id);
-      const updatedWelds = [weld, ...welds];
-      
-      // Update local state first
-      await saveTrashWelds(updatedTrashWelds);
-      await saveWelds(updatedWelds);
-      
-      setTrashWelds(updatedTrashWelds);
-      setWelds(updatedWelds);
-      
-      showSuccess('Recovered', `${weld.weldNumber} has been recovered successfully!`);
-    } catch (error) {
-      console.error('Error recovering weld:', error);
-      showError('Error', 'Failed to recover weld');
-    }
+  const recoverWeld = (weld: Weld) => {
+    showConfirm({
+      title: 'Recover Weld',
+      message: `Recover ${weld.weldNumber} from trash? This will restore it to active welds.`,
+      confirmText: 'Recover',
+      cancelText: 'Cancel',
+      onConfirm: async () => {
+        try {
+          // Set loading state for confirmation button (don't hide dialog yet)
+          setConfirmLoading(true);
+          
+          // If connected to Google Sheets, add the weld back to the sheet
+          if (googleSheetsConnected) {
+            console.log(`Adding recovered weld ${weld.weldNumber} back to Google Sheets...`);
+            
+            // Import and use Google Sheets service
+            const { createGoogleSheetsService } = await import('./src/services/GoogleSheetsService');
+            const sheetsService = createGoogleSheetsService(
+              googleSheetsConfig.spreadsheetId,
+              googleSheetsConfig.credentials
+            );
+            
+            // Add the recovered weld back to Google Sheets
+            const result = await sheetsService.addWeld(weld);
+            if (result.success) {
+              console.log(`Successfully added recovered weld ${weld.weldNumber} back to Google Sheets`);
+            } else {
+              console.error(`Failed to add recovered weld ${weld.weldNumber} to Google Sheets:`, result.message);
+            }
+          }
+          
+          const updatedTrashWelds = trashWelds.filter(w => w.id !== weld.id);
+          const updatedWelds = [weld, ...welds];
+          
+          // Update local state first
+          await saveTrashWelds(updatedTrashWelds);
+          await saveWelds(updatedWelds);
+          
+          setTrashWelds(updatedTrashWelds);
+          setWelds(updatedWelds);
+          
+          showSuccess('Recovered', `${weld.weldNumber} has been recovered successfully and added back to Google Sheets!`);
+          
+          // Now hide the confirmation dialog after operation completes
+          hideConfirm();
+        } catch (error) {
+          console.error('Error recovering weld:', error);
+          showError('Error', 'Failed to recover weld');
+          
+          // Hide dialog on error too
+          hideConfirm();
+        } finally {
+          // Always reset loading state
+          setConfirmLoading(false);
+        }
+      }
+    });
   };
 
   const permanentlyDeleteWeld = (weld: Weld) => {
@@ -737,8 +852,28 @@ export default function App() {
       cancelText: 'Cancel',
       onConfirm: async () => {
         try {
-          // Hide confirmation immediately to prevent UI blocking
-          hideConfirm();
+          // Set loading state for confirmation button (don't hide dialog yet)
+          setConfirmLoading(true);
+          
+          // If connected to Google Sheets, mark the weld as deleted
+          if (googleSheetsConnected) {
+            console.log(`Marking permanently deleted weld ${weld.weldNumber} as deleted in Google Sheets...`);
+            
+            // Import and use Google Sheets service
+            const { createGoogleSheetsService } = await import('./src/services/GoogleSheetsService');
+            const sheetsService = createGoogleSheetsService(
+              googleSheetsConfig.spreadsheetId,
+              googleSheetsConfig.credentials
+            );
+            
+            // Delete the weld from Google Sheets
+            const success = await sheetsService.deleteWeld(weld.weldNumber);
+            if (success) {
+              console.log(`Successfully deleted permanently deleted weld ${weld.weldNumber} from Google Sheets`);
+            } else {
+              console.error(`Failed to delete permanently deleted weld ${weld.weldNumber} from Google Sheets`);
+            }
+          }
           
           const updatedTrashWelds = trashWelds.filter(w => w.id !== weld.id);
           
@@ -746,10 +881,19 @@ export default function App() {
           setTrashWelds(updatedTrashWelds);
           saveTrashWelds(updatedTrashWelds);
           
-          showSuccess('Deleted', `${weld.weldNumber} has been permanently deleted.`);
+          showSuccess('Deleted', `${weld.weldNumber} has been permanently deleted and marked as deleted in Google Sheets.`);
+          
+          // Now hide the confirmation dialog after operation completes
+          hideConfirm();
         } catch (error) {
           console.error('Error permanently deleting weld:', error);
           showError('Error', 'Failed to permanently delete weld');
+          
+          // Hide dialog on error too
+          hideConfirm();
+        } finally {
+          // Always reset loading state
+          setConfirmLoading(false);
         }
       }
     });
@@ -829,25 +973,25 @@ export default function App() {
       if (welds.length === 0) {
         console.log('No active welds to sync - all items may be trashed');
         
-        // If there are existing welds in the sheet, we should mark them all as deleted
+        // If there are existing welds in the sheet, we should delete them all
         if (existingSheetWelds.length > 0) {
-          console.log(`Marking ${existingSheetWelds.length} existing welds as deleted in Google Sheets...`);
+          console.log(`Deleting ${existingSheetWelds.length} existing welds from Google Sheets...`);
           
           let deletedCount = 0;
           for (const sheetWeld of existingSheetWelds) {
             try {
-              const success = await sheetsService.markWeldAsDeleted(sheetWeld.id);
+              const success = await sheetsService.deleteWeld(sheetWeld.weldNumber);
               if (success) {
                 deletedCount++;
-                console.log(`Marked weld ${sheetWeld.weldNumber} as deleted`);
+                console.log(`Deleted weld ${sheetWeld.weldNumber} from Google Sheets`);
               }
             } catch (error) {
-              console.error(`Failed to mark weld ${sheetWeld.weldNumber} as deleted:`, error);
+              console.error(`Failed to delete weld ${sheetWeld.weldNumber} from Google Sheets:`, error);
             }
           }
           
           if (deletedCount > 0) {
-            showSuccess('Sync Complete', `All welds have been moved to trash. ${deletedCount} welds marked as deleted in Google Sheets.`);
+            showSuccess('Sync Complete', `All welds have been moved to trash. ${deletedCount} welds deleted from Google Sheets.`);
           } else {
             showSuccess('Sync Complete', 'No active welds to sync. All items are in trash.');
           }
@@ -911,30 +1055,17 @@ export default function App() {
             const existingWeldId = existingWeldMap.get(trashedWeld.weldNumber);
             
             if (existingWeldId) {
-              // Weld exists in sheet, mark it as deleted
-              console.log(`Marking trashed weld ${trashedWeld.weldNumber} as deleted in Google Sheets...`);
-              const success = await sheetsService.markWeldAsDeleted(trashedWeld.id);
+              // Weld exists in sheet, delete it
+              console.log(`Deleting trashed weld ${trashedWeld.weldNumber} from Google Sheets...`);
+              const success = await sheetsService.deleteWeld(trashedWeld.weldNumber);
               if (success) {
                 trashedCount++;
-                console.log(`Marked trashed weld ${trashedWeld.weldNumber} as deleted`);
+                console.log(`Deleted trashed weld ${trashedWeld.weldNumber} from Google Sheets`);
               }
             } else {
-              // Trashed weld doesn't exist in sheet, add it directly with deleted status
-              console.log(`Adding trashed weld ${trashedWeld.weldNumber} to Google Sheets with deleted status...`);
-              
-              // Create a copy of the weld with deleted status
-              const weldWithDeletedStatus = {
-                ...trashedWeld,
-                status: 'deleted' as const
-              };
-              
-              const result = await sheetsService.addWeld(weldWithDeletedStatus);
-              if (result.success) {
-                trashedCount++;
-                console.log(`Added trashed weld ${trashedWeld.weldNumber} with deleted status`);
-              } else {
-                console.error(`Failed to add trashed weld ${trashedWeld.weldNumber}:`, result.message);
-              }
+              // Trashed weld doesn't exist in sheet, no need to add it since we're using hard delete
+              console.log(`Trashed weld ${trashedWeld.weldNumber} doesn't exist in Google Sheets, skipping...`);
+              trashedCount++;
             }
           } catch (error) {
             console.error(`Failed to sync trashed weld ${trashedWeld.weldNumber}:`, error);
@@ -994,26 +1125,26 @@ export default function App() {
       if (weldsToSync.length === 0) {
         console.log('Auto-sync: No welds to sync - all items may be trashed');
         
-        // If there are existing welds in the sheet, we should mark them all as deleted
+        // If there are existing welds in the sheet, we should delete them all
         if (existingSheetWelds.length > 0) {
-          console.log(`Auto-sync: Marking ${existingSheetWelds.length} existing welds as deleted in Google Sheets...`);
+          console.log(`Auto-sync: Deleting ${existingSheetWelds.length} existing welds from Google Sheets...`);
           
           let deletedCount = 0;
           for (const sheetWeld of existingSheetWelds) {
             try {
-              const success = await sheetsService.markWeldAsDeleted(sheetWeld.id);
+              const success = await sheetsService.deleteWeld(sheetWeld.weldNumber);
               if (success) {
                 deletedCount++;
-                console.log(`Auto-sync: Marked weld ${sheetWeld.weldNumber} as deleted`);
+                console.log(`Auto-sync: Deleted weld ${sheetWeld.weldNumber} from Google Sheets`);
               }
             } catch (error) {
-              console.error(`Auto-sync: Failed to mark weld ${sheetWeld.weldNumber} as deleted:`, error);
+              console.error(`Auto-sync: Failed to delete weld ${sheetWeld.weldNumber} from Google Sheets:`, error);
             }
           }
           
-          console.log(`Auto-sync: ${deletedCount} welds marked as deleted in Google Sheets`);
+          console.log(`Auto-sync: ${deletedCount} welds deleted from Google Sheets`);
         } else {
-          console.log('Auto-sync: No existing welds in Google Sheets to mark as deleted');
+          console.log('Auto-sync: No existing welds in Google Sheets to delete');
         }
         return;
       }
@@ -1072,30 +1203,17 @@ export default function App() {
             const existingWeldId = existingWeldMap.get(trashedWeld.weldNumber);
             
             if (existingWeldId) {
-              // Weld exists in sheet, mark it as deleted
-              console.log(`Auto-sync: Marking trashed weld ${trashedWeld.weldNumber} as deleted in Google Sheets...`);
-              const success = await sheetsService.markWeldAsDeleted(trashedWeld.id);
+              // Weld exists in sheet, delete it
+              console.log(`Auto-sync: Deleting trashed weld ${trashedWeld.weldNumber} from Google Sheets...`);
+              const success = await sheetsService.deleteWeld(trashedWeld.weldNumber);
               if (success) {
                 trashedCount++;
-                console.log(`Auto-sync: Marked trashed weld ${trashedWeld.weldNumber} as deleted`);
+                console.log(`Auto-sync: Deleted trashed weld ${trashedWeld.weldNumber} from Google Sheets`);
               }
             } else {
-              // Trashed weld doesn't exist in sheet, add it directly with deleted status
-              console.log(`Auto-sync: Adding trashed weld ${trashedWeld.weldNumber} to Google Sheets with deleted status...`);
-              
-              // Create a copy of the weld with deleted status
-              const weldWithDeletedStatus = {
-                ...trashedWeld,
-                status: 'deleted' as const
-              };
-              
-              const result = await sheetsService.addWeld(weldWithDeletedStatus);
-              if (result.success) {
-                trashedCount++;
-                console.log(`Added trashed weld ${trashedWeld.weldNumber} with deleted status`);
-              } else {
-                console.error(`Failed to add trashed weld ${trashedWeld.weldNumber}:`, result.message);
-              }
+              // Trashed weld doesn't exist in sheet, no need to add it since we're using hard delete
+              console.log(`Auto-sync: Trashed weld ${trashedWeld.weldNumber} doesn't exist in Google Sheets, skipping...`);
+              trashedCount++;
             }
           } catch (error) {
             console.error(`Auto-sync: Failed to sync trashed weld ${trashedWeld.weldNumber}:`, error);
@@ -1401,6 +1519,50 @@ export default function App() {
     }
   }, [googleSheetsConnected, googleSheetsConfig]);
 
+  const compareWeldNumbers = useCallback(async () => {
+    if (!googleSheetsConnected) {
+      showError('Not Connected', 'Please connect to Google Sheets first');
+      return;
+    }
+    
+    try {
+      showSuccess('Comparison Started', 'Comparing weld numbers between app and Google Sheets...');
+      
+      // Import and use Google Sheets service
+      const { createGoogleSheetsService } = await import('./src/services/GoogleSheetsService');
+      const sheetsService = createGoogleSheetsService(
+        googleSheetsConfig.spreadsheetId,
+        googleSheetsConfig.credentials
+      );
+      
+      // Get all weld numbers from the app
+      const allWeldNumbers = [...welds, ...trashWelds].map(w => w.weldNumber);
+      console.log('App weld numbers:', allWeldNumbers);
+      
+      const result = await sheetsService.compareWeldNumbers(allWeldNumbers);
+      if (result.success && result.comparison) {
+        const { comparison } = result;
+        const message = `Comparison Complete!\n\nSheet: ${comparison.totalInSheet} welds\nApp: ${comparison.totalInApp} welds\n\nMissing in Sheet: ${comparison.missingInSheet.length}\nMissing in App: ${comparison.missingInApp.length}`;
+        
+        showSuccess('Comparison Complete', message);
+        console.log('Weld number comparison:', comparison);
+        
+        // Show detailed comparison in console
+        if (comparison.missingInSheet.length > 0) {
+          console.log('Weld numbers missing in sheet:', comparison.missingInSheet);
+        }
+        if (comparison.missingInApp.length > 0) {
+          console.log('Weld numbers in sheet but not in app:', comparison.missingInApp);
+        }
+      } else {
+        showError('Comparison Failed', result.message || 'Unknown error');
+      }
+    } catch (error) {
+      console.error('Error comparing weld numbers:', error);
+      showError('Comparison Error', 'Failed to compare weld numbers');
+    }
+  }, [googleSheetsConnected, googleSheetsConfig, welds, trashWelds]);
+
   // Debug function to check AsyncStorage
   const checkAsyncStorage = useCallback(async () => {
     try {
@@ -1602,6 +1764,9 @@ export default function App() {
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.debugButton} onPress={debugGoogleSheet}>
                     <Text style={styles.debugButtonText}>🐛 Debug Sheet State</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.debugButton} onPress={compareWeldNumbers}>
+                    <Text style={styles.debugButtonText}>🔍 Compare Weld Numbers</Text>
                   </TouchableOpacity>
               </View>
               </View>

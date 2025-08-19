@@ -5,7 +5,7 @@
  * FEATURES:
  * - Prevents duplicate weld numbers from being added to the sheet
  * - Weld Number is used as the unique identifier
- * - Soft delete functionality (marks entries as deleted instead of removing them)
+ * - Hard delete functionality (completely removes entries when trashed)
  * - Comprehensive duplicate checking for both add and update operations
  * 
  * Setup Instructions:
@@ -23,9 +23,8 @@ const SHEET_NAME = 'Sheet1'; // Change if your sheet has a different name
 
 // Define the header row for the sheet
 const HEADER_ROW = [
-  'ID',
-  'Date',
   'Weld Number',
+  'Date',
   'NDE Number',
   'Type/Fit',
   'WPS',
@@ -76,8 +75,8 @@ function doPost(e) {
         return getWelds();
       case 'updateWeld':
         return updateWeld(requestData.weld);
-      case 'markDeleted':
-        return markWeldAsDeleted(requestData.weldId);
+      case 'deleteWeld':
+        return deleteWeld(requestData.weldNumber);
       case 'getStats':
         return getSheetStats();
       case 'checkWeldNumber':
@@ -92,6 +91,8 @@ function doPost(e) {
         return clearSheet();
       case 'debugSheet':
         return debugSheet();
+      case 'compareWeldNumbers':
+        return compareWeldNumbers(requestData.appWeldNumbers);
       default:
         return createResponse(false, 'Unknown action: ' + action);
     }
@@ -109,6 +110,7 @@ function doPost(e) {
  * - Only allows one active entry per weld number
  * - Returns detailed error information if duplicate is found
  * - Suggests using updateWeld for existing entries
+ * - Handles restored items (items that were previously deleted and are being added back)
  */
 function addWeld(weld) {
   try {
@@ -122,7 +124,7 @@ function addWeld(weld) {
     if (existingData.length === 0 || 
         existingData[0].length === 0 || 
         !existingData[0][0] || 
-        existingData[0][0] !== 'ID' ||
+        existingData[0][0] !== 'Weld Number' ||
         existingData[0][0].toString().trim() === '') {
       console.log('Sheet is empty or missing headers, initializing...');
       const initResult = initializeSheet();
@@ -135,35 +137,35 @@ function addWeld(weld) {
     
     // Check for duplicate weld number
     let isDuplicate = false;
-    let existingWeldId = null;
     
     // Skip header row and check for duplicates
     for (let i = 1; i < existingData.length; i++) {
       const row = existingData[i];
-      const existingWeldNumber = row[2]; // Weld Number is in column C (index 2)
-      const existingStatus = row[28]; // Status is in column AC (index 28)
+      const existingWeldNumber = row[0]; // Weld Number is in column A (index 0)
       
-      // Check if weld number already exists and is active
-      if (existingWeldNumber === weld.weldNumber && existingStatus === 'Active') {
+      // Handle type mismatches by converting to strings and trimming
+      const existingWeldNumberStr = String(existingWeldNumber).trim();
+      const weldNumberStr = String(weld.weldNumber).trim();
+      
+      // Check if weld number already exists (since we no longer have soft delete status)
+      if (existingWeldNumberStr === weldNumberStr) {
         isDuplicate = true;
-        existingWeldId = row[0]; // Store the existing weld ID
         break;
       }
     }
     
     if (isDuplicate) {
-      console.log('Duplicate weld number found:', weld.weldNumber, 'Existing ID:', existingWeldId);
+      console.log('Duplicate weld number found:', weld.weldNumber);
       return createResponse(false, `Weld number ${weld.weldNumber} already exists in the sheet. Use updateWeld to modify existing entries.`, { 
         isDuplicate: true, 
-        existingWeldId: existingWeldId 
+        existingWeldNumber: weld.weldNumber 
       });
     }
     
     // Prepare the row data
     const rowData = [
-      weld.id,
+      weld.weldNumber, // Weld Number in column A (index 0)
       weld.date,
-      weld.weldNumber,
       weld.ndeNumber,
       weld.typeFit || '',
       weld.wps || '',
@@ -189,7 +191,7 @@ function addWeld(weld) {
       weld.inspectorSignature ? 'Yes' : 'No',
       '', // Weld Sketch
       '', // Defect Sketch
-      weld.status === 'deleted' ? 'Deleted' : 'Active', // Sheet Status - use weld status or default to Active
+      'Active', // Sheet Status - always Active for new/restored items
       new Date().toISOString(), // Created At
       new Date().toISOString(), // Updated At
     ];
@@ -224,39 +226,39 @@ function getWelds() {
       const row = data[i];
       
       // Skip completely empty rows or rows with no essential data
-      if (!row || row.length === 0 || !row[0] || !row[2]) {
+      if (!row || row.length === 0 || !row[0]) {
         continue; // Skip this row
       }
       
-      // Only process welds with valid data (both active and deleted)
-      if (row[0] && row[2]) { // ID and Weld Number must exist
+      // Only process welds with valid data (all items are now active since we use hard delete)
+      if (row[0]) { // Weld Number must exist
         const weld = {
-          id: row[0],
+          id: row[0], // Use Weld Number as the ID
+          weldNumber: row[0], // Weld Number is now in column A
           date: row[1] || '',
-          weldNumber: row[2],
-          ndeNumber: row[3] || '',
-          typeFit: row[4] || '',
-          wps: row[5] || '',
-          pipeDia: row[6] || '',
-          gradeClass: row[7] || '',
-          welder: row[8] || '',
-          inspector: row[9] || '',
-          firstHT: row[10] || '',
-          firstMfg: row[11] || '',
-          firstLength: row[12] || '',
-          jtNumber: row[13] || '',
-          secondHT: row[14] || '',
-          secondMfg: row[15] || '',
-          secondLength: row[16] || '',
-          preHeat: row[17] || '',
-          vt: row[18] || '',
-          process: row[19] || '',
-          amps: row[20] || '',
-          volts: row[21] || '',
-          ipm: row[22] || '',
-          status: row[23] || 'pending',
-          welderSignature: row[24] === 'Yes',
-          inspectorSignature: row[25] === 'Yes',
+          ndeNumber: row[2] || '',
+          typeFit: row[3] || '',
+          wps: row[4] || '',
+          pipeDia: row[5] || '',
+          gradeClass: row[6] || '',
+          welder: row[7] || '',
+          inspector: row[8] || '',
+          firstHT: row[9] || '',
+          firstMfg: row[10] || '',
+          firstLength: row[11] || '',
+          jtNumber: row[12] || '',
+          secondHT: row[13] || '',
+          secondMfg: row[14] || '',
+          secondLength: row[15] || '',
+          preHeat: row[16] || '',
+          vt: row[17] || '',
+          process: row[18] || '',
+          amps: row[19] || '',
+          volts: row[20] || '',
+          ipm: row[21] || '',
+          status: row[22] || 'pending',
+          welderSignature: row[23] === 'Yes',
+          inspectorSignature: row[24] === 'Yes',
         };
         welds.push(weld);
       }
@@ -280,20 +282,9 @@ function getSheetStats() {
     const data = sheet.getDataRange().getValues();
     
     let total = Math.max(0, data.length - 1); // Subtract header
-    let active = 0;
-    let deleted = 0;
+    let active = total; // All items are now active since we use hard delete
     
-    // Count active and deleted items
-    for (let i = 1; i < data.length; i++) {
-      const status = data[i][28]; // Status column
-      if (status === 'Active') {
-        active++;
-      } else if (status === 'Deleted') {
-        deleted++;
-      }
-    }
-    
-    const stats = { total, active, deleted };
+    const stats = { total, active, deleted: 0 }; // No more deleted items
     return createResponse(true, 'Stats retrieved successfully', { stats });
     
   } catch (error) {
@@ -315,46 +306,63 @@ function updateWeld(weld) {
     const sheet = SpreadsheetApp.openById(SHEET_ID).getSheetByName(SHEET_NAME);
     const data = sheet.getDataRange().getValues();
     
-    // Find the row with this weld ID
+    console.log('UpdateWeld called with weld ID:', weld.id);
+    console.log('Sheet has', data.length, 'rows');
+            console.log('First few rows:', data.slice(0, 3).map(row => ({ id: row[0], weldNumber: row[0] })));
+    
+    // Find the row with this weld number
     let rowIndex = -1;
     for (let i = 1; i < data.length; i++) {
-      if (data[i][0] === weld.id) {
+      const sheetWeldNumber = data[i][0]; // Weld Number is in column A (index 0)
+      const requestedWeldNumber = weld.weldNumber;
+      
+      console.log(`Checking row ${i}: Weld Number="${sheetWeldNumber}" vs requested="${requestedWeldNumber}" (type: ${typeof sheetWeldNumber} vs ${typeof requestedWeldNumber})`);
+      
+      // Handle type mismatches by converting both to strings and trimming
+      const sheetWeldNumberStr = String(sheetWeldNumber).trim();
+      const requestedWeldNumberStr = String(requestedWeldNumber).trim();
+      
+      console.log(`Normalized: sheet="${sheetWeldNumberStr}" vs requested="${requestedWeldNumberStr}"`);
+      
+      if (sheetWeldNumberStr === requestedWeldNumberStr) {
         rowIndex = i + 1; // Sheet rows are 1-indexed
+        console.log('Found weld at row:', rowIndex);
         break;
       }
     }
     
     if (rowIndex === -1) {
-      return createResponse(false, 'Weld not found');
+      console.log('Weld not found. Available Weld Numbers:', data.slice(1).map(row => row[0]));
+      return createResponse(false, `Weld not found. Requested Weld Number: ${weld.weldNumber}. Available Weld Numbers: ${data.slice(1).map(row => row[0]).join(', ')}`);
     }
     
     // Check if the new weld number conflicts with another existing weld (excluding the current one being updated)
     const newWeldNumber = weld.weldNumber;
-    const currentWeldId = weld.id;
+    const currentWeldNumber = weld.weldNumber;
     
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
-      const existingWeldNumber = row[2]; // Weld Number is in column C (index 2)
-      const existingWeldId = row[0]; // Weld ID is in column A (index 0)
-      const existingStatus = row[28]; // Status is in column AC (index 28)
+      const existingWeldNumber = row[0]; // Weld Number is in column A (index 0)
       
-      // Check if weld number already exists in another active weld
-      if (existingWeldNumber === newWeldNumber && 
-          existingWeldId !== currentWeldId && 
-          existingStatus === 'Active') {
-        console.log('Weld number conflict during update:', newWeldNumber, 'Existing ID:', existingWeldId);
+      // Handle type mismatches by converting to strings and trimming
+      const existingWeldNumberStr = String(existingWeldNumber).trim();
+      const newWeldNumberStr = String(newWeldNumber).trim();
+      const currentWeldNumberStr = String(currentWeldNumber).trim();
+      
+      // Check if weld number already exists in another weld (excluding current one)
+      if (existingWeldNumberStr === newWeldNumberStr && existingWeldNumberStr !== currentWeldNumberStr) {
+        console.log('Weld number conflict during update:', newWeldNumber, 'Existing Weld Number:', existingWeldNumber);
         return createResponse(false, `Weld number ${newWeldNumber} already exists in another entry. Please use a unique weld number.`, { 
           isDuplicate: true, 
-          existingWeldId: existingWeldId 
+          existingWeldNumber: existingWeldNumber 
         });
       }
     }
     
     // Update the row
     const rowData = [
-      weld.id,
+      weld.weldNumber, // Weld Number in column A
       weld.date,
-      weld.weldNumber,
       weld.ndeNumber,
       weld.typeFit || '',
       weld.wps || '',
@@ -378,10 +386,10 @@ function updateWeld(weld) {
       weld.status || '',
       weld.welderSignature ? 'Yes' : 'No',
       weld.inspectorSignature ? 'Yes' : 'No',
-      data[rowIndex - 1][26], // Keep existing weld sketch
-      data[rowIndex - 1][27], // Keep existing defect sketch
-      'Active', // Sheet Status
-      data[rowIndex - 1][29], // Keep original created timestamp
+      data[rowIndex - 1][24], // Keep existing weld sketch
+      data[rowIndex - 1][25], // Keep existing defect sketch
+      'Active', // Sheet Status - always Active
+      data[rowIndex - 1][27], // Keep original created timestamp
       new Date().toISOString(), // Update timestamp
     ];
     
@@ -398,34 +406,52 @@ function updateWeld(weld) {
 }
 
 /**
- * Mark a weld as deleted (soft delete)
+ * Delete a weld completely from the sheet (hard delete)
  */
-function markWeldAsDeleted(weldId) {
+function deleteWeld(weldNumber) {
   try {
     const sheet = SpreadsheetApp.openById(SHEET_ID).getSheetByName(SHEET_NAME);
     const data = sheet.getDataRange().getValues();
     
-    // Find the row with this weld ID
+    console.log('DeleteWeld called with weld number:', weldNumber);
+    console.log('Sheet has', data.length, 'rows');
+    console.log('First few rows:', data.slice(0, 3).map(row => ({ id: row[0], weldNumber: row[0] })));
+    
+    // Find the row with this weld number
     let rowIndex = -1;
     for (let i = 1; i < data.length; i++) {
-      if (data[i][0] === weldId) {
+      const sheetWeldNumber = data[i][0]; // Weld Number is in column A (index 0)
+      const requestedWeldNumber = weldNumber;
+      
+      console.log(`Checking row ${i}: Weld Number="${sheetWeldNumber}" vs requested="${requestedWeldNumber}" (type: ${typeof sheetWeldNumber} vs ${typeof requestedWeldNumber})`);
+      
+      // Handle type mismatches by converting both to strings and trimming
+      const sheetWeldNumberStr = String(sheetWeldNumber).trim();
+      const requestedWeldNumberStr = String(requestedWeldNumber).trim();
+      
+      console.log(`Normalized: sheet="${sheetWeldNumberStr}" vs requested="${requestedWeldNumberStr}"`);
+      
+      if (sheetWeldNumberStr === requestedWeldNumberStr) {
         rowIndex = i + 1; // Sheet rows are 1-indexed
+        console.log('Found weld at row:', rowIndex);
         break;
       }
     }
     
     if (rowIndex === -1) {
-      return createResponse(false, 'Weld not found');
+      console.log('Weld not found. Available Weld Numbers:', data.slice(1).map(row => row[0]));
+      return createResponse(false, `Weld not found. Requested Weld Number: ${weldNumber}. Available Weld Numbers: ${data.slice(1).map(row => row[0]).join(', ')}`);
     }
     
-    // Update only the status column (column 29, index 28)
-    sheet.getRange(rowIndex, 29).setValue('Deleted');
+    // Delete the entire row
+    sheet.deleteRow(rowIndex);
     
-    return createResponse(true, 'Weld marked as deleted successfully');
+    console.log('Weld deleted successfully:', weldNumber);
+    return createResponse(true, 'Weld deleted successfully');
     
   } catch (error) {
-    console.error('Error marking weld as deleted:', error);
-    return createResponse(false, 'Failed to mark weld as deleted: ' + error.message);
+    console.error('Error deleting weld:', error);
+    return createResponse(false, 'Failed to delete weld: ' + error.message);
   }
 }
 
@@ -466,7 +492,7 @@ function initializeSheet() {
     if (data.length === 0 || 
         data[0].length === 0 || 
         !data[0][0] || 
-        data[0][0] !== 'ID' ||
+        data[0][0] !== 'Weld Number' ||
         data[0][0].toString().trim() === '') {
       
       console.log('Initializing sheet with headers...');
@@ -493,11 +519,12 @@ function initializeSheet() {
       const newData = sheet.getDataRange().getValues();
       console.log('Verification - Sheet now has:', newData.length, 'rows');
       
-      if (newData.length === 1 && newData[0][0] === 'ID') {
+      if (newData.length === 1 && newData[0][0] === 'Weld Number') {
         console.log('Sheet initialized with headers successfully');
         return createResponse(true, 'Sheet initialized with headers successfully');
       } else {
         console.log('Warning: Initialization may not have worked as expected');
+        console.log('First column value:', newData[0][0]);
         return createResponse(false, 'Sheet initialization completed but verification failed');
       }
     } else {
@@ -542,11 +569,12 @@ function forceInitializeSheet() {
     const newData = sheet.getDataRange().getValues();
     console.log('Verification - Sheet now has:', newData.length, 'rows');
     
-    if (newData.length === 1 && newData[0][0] === 'ID') {
+    if (newData.length === 1 && newData[0][0] === 'Weld Number') {
       console.log('Sheet force-initialized with headers successfully');
       return createResponse(true, 'Sheet force-initialized with headers successfully');
     } else {
       console.log('Warning: Force initialization may not have worked as expected');
+      console.log('First column value:', newData[0][0]);
       return createResponse(false, 'Sheet force-initialization completed but verification failed');
     }
     
@@ -573,7 +601,12 @@ function debugSheet() {
       sheetName: sheet.getName(),
       sheetId: sheet.getSheetId(),
       lastRow: sheet.getLastRow(),
-      lastColumn: sheet.getLastColumn()
+      lastColumn: sheet.getLastColumn(),
+      // Add detailed data for debugging
+      allData: data.length > 1 ? data.slice(1).map(row => ({
+        weldNumber: row[0], // Weld Number is now in column A
+        date: row[1]
+      })) : []
     };
     
     console.log('Sheet debug info:', debugInfo);
@@ -615,10 +648,10 @@ function clearSheet() {
 /**
  * Check if a weld number already exists in the sheet
  * @param {string} weldNumber - The weld number to check
- * @param {string} excludeWeldId - Optional weld ID to exclude from the check (for updates)
- * @returns {Object} - Object with isDuplicate flag and existingWeldId if found
+ * @param {string} excludeWeldNumber - Optional weld number to exclude from the check (for updates)
+ * @returns {Object} - Object with isDuplicate flag and existingWeldNumber if found
  */
-function checkWeldNumberExists(weldNumber, excludeWeldId = null) {
+function checkWeldNumberExists(weldNumber, excludeWeldNumber = null) {
   try {
     const sheet = SpreadsheetApp.openById(SHEET_ID).getSheetByName(SHEET_NAME);
     const data = sheet.getDataRange().getValues();
@@ -626,41 +659,42 @@ function checkWeldNumberExists(weldNumber, excludeWeldId = null) {
     // Skip header row and check for duplicates
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
-      const existingWeldNumber = row[2]; // Weld Number is in column C (index 2)
-      const existingWeldId = row[0]; // Weld ID is in column A (index 0)
-      const existingStatus = row[28]; // Status is in column AC (index 28)
+      const existingWeldNumber = row[0]; // Weld Number is now in column A (index 0)
       
-      // Check if weld number already exists and is active
-      if (existingWeldNumber === weldNumber && 
-          existingStatus === 'Active' && 
-          existingWeldId !== excludeWeldId) {
+      // Handle type mismatches by converting to strings and trimming
+      const existingWeldNumberStr = String(existingWeldNumber).trim();
+      const weldNumberStr = String(weldNumber).trim();
+      const excludeWeldNumberStr = excludeWeldNumber ? String(excludeWeldNumber).trim() : null;
+      
+      // Check if weld number already exists (since we no longer have soft delete status)
+      if (existingWeldNumberStr === weldNumberStr && existingWeldNumberStr !== excludeWeldNumberStr) {
         return {
           isDuplicate: true,
-          existingWeldId: existingWeldId
+          existingWeldNumber: existingWeldNumber
         };
       }
     }
     
     return {
       isDuplicate: false,
-      existingWeldId: null
+      existingWeldNumber: null
     };
     
   } catch (error) {
     console.error('Error checking weld number existence:', error);
     return {
       isDuplicate: false,
-      existingWeldId: null
+      existingWeldNumber: null
     };
     }
   }
 
 /**
- * Check if a weld exists by ID
- * @param {string} weldId - The ID of the weld to check
+ * Check if a weld exists by Weld Number
+ * @param {string} weldNumber - The Weld Number to check
  * @returns {Object} - Object with exists flag and weld data if found
  */
-function checkWeldExistsById(weldId) {
+function checkWeldExistsById(weldNumber) {
   try {
     const sheet = SpreadsheetApp.openById(SHEET_ID).getSheetByName(SHEET_NAME);
     const data = sheet.getDataRange().getValues();
@@ -668,36 +702,42 @@ function checkWeldExistsById(weldId) {
     // Skip header row and find the weld
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
-      if (row[0] === weldId) { // ID is in column A (index 0)
+      const sheetWeldNumber = row[0]; // Weld Number is in column A (index 0)
+      
+      // Handle type mismatches by converting both to strings and trimming
+      const sheetWeldNumberStr = String(sheetWeldNumber).trim();
+      const requestedWeldNumberStr = String(weldNumber).trim();
+      
+      if (sheetWeldNumberStr === requestedWeldNumberStr) { // Weld Number is in column A (index 0)
         return createResponse(true, 'Weld found', {
           exists: true,
           weld: {
-            id: row[0],
+            id: row[0], // ID is in column A (index 0)
+            weldNumber: row[0], // Weld Number is in column A (index 0)
             date: row[1] || '',
-            weldNumber: row[2],
-            ndeNumber: row[3] || '',
-            typeFit: row[4] || '',
-            wps: row[5] || '',
-            pipeDia: row[6] || '',
-            gradeClass: row[7] || '',
-            welder: row[8] || '',
-            inspector: row[9] || '',
-            firstHT: row[10] || '',
-            firstMfg: row[11] || '',
-            firstLength: row[12] || '',
-            jtNumber: row[13] || '',
-            secondHT: row[14] || '',
-            secondMfg: row[15] || '',
-            secondLength: row[16] || '',
-            preHeat: row[17] || '',
-            vt: row[18] || '',
-            process: row[19] || '',
-            amps: row[20] || '',
-            volts: row[21] || '',
-            ipm: row[22] || '',
-            status: row[23] || 'pending',
-            welderSignature: row[24] === 'Yes',
-            inspectorSignature: row[25] === 'Yes',
+            ndeNumber: row[2] || '',
+            typeFit: row[3] || '',
+            wps: row[4] || '',
+            pipeDia: row[5] || '',
+            gradeClass: row[6] || '',
+            welder: row[7] || '',
+            inspector: row[8] || '',
+            firstHT: row[9] || '',
+            firstMfg: row[10] || '',
+            firstLength: row[11] || '',
+            jtNumber: row[12] || '',
+            secondHT: row[13] || '',
+            secondMfg: row[14] || '',
+            secondLength: row[15] || '',
+            preHeat: row[16] || '',
+            vt: row[17] || '',
+            process: row[18] || '',
+            amps: row[19] || '',
+            volts: row[20] || '',
+            ipm: row[21] || '',
+            status: row[22] || 'pending',
+            welderSignature: row[23] === 'Yes',
+            inspectorSignature: row[24] === 'Yes',
           }
         });
       }
@@ -706,8 +746,56 @@ function checkWeldExistsById(weldId) {
     return createResponse(true, 'Weld not found', { exists: false, weld: null });
     
   } catch (error) {
-    console.error('Error checking weld existence by ID:', error);
+    console.error('Error checking weld existence by Weld Number:', error);
     return createResponse(false, 'Failed to check weld existence: ' + error.message);
+  }
+}
+
+/**
+ * Compare weld numbers from the app with what's in the sheet
+ */
+function compareWeldNumbers(appWeldNumbers) {
+  try {
+    const sheet = SpreadsheetApp.openById(SHEET_ID).getSheetByName(SHEET_NAME);
+    const data = sheet.getDataRange().getValues();
+    
+    if (data.length <= 1) {
+      return createResponse(true, 'Sheet is empty (only headers)', { 
+        sheetWeldNumbers: [],
+        appWeldNumbers: appWeldNumbers || [],
+        missingInSheet: appWeldNumbers || [],
+        missingInApp: []
+      });
+    }
+    
+    // Get all weld numbers from the sheet (skip header row)
+    const sheetWeldNumbers = data.slice(1).map(row => row[0]).filter(weldNumber => weldNumber);
+    
+    console.log('Comparing weld numbers:');
+    console.log('Sheet has:', sheetWeldNumbers);
+    console.log('App has:', appWeldNumbers);
+    
+    // Find weld numbers that are missing in the sheet
+    const missingInSheet = appWeldNumbers.filter(appWeldNumber => !sheetWeldNumbers.includes(appWeldNumber));
+    
+    // Find weld numbers that are in the sheet but not in the app
+    const missingInApp = sheetWeldNumbers.filter(sheetWeldNumber => !appWeldNumbers.includes(sheetWeldNumber));
+    
+    const comparison = {
+      sheetWeldNumbers,
+      appWeldNumbers: appWeldNumbers || [],
+      missingInSheet,
+      missingInApp,
+      totalInSheet: sheetWeldNumbers.length,
+      totalInApp: appWeldNumbers ? appWeldNumbers.length : 0
+    };
+    
+    console.log('Comparison result:', comparison);
+    return createResponse(true, 'Weld number comparison completed', { comparison });
+    
+  } catch (error) {
+    console.error('Error comparing weld numbers:', error);
+    return createResponse(false, 'Failed to compare weld numbers: ' + error.message);
   }
 }
 

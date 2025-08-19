@@ -125,21 +125,21 @@ export class GoogleSheetsService {
   }
 
   /**
-   * Mark a weld as deleted in Google Sheets (soft delete)
+   * Delete a weld from Google Sheets (hard delete)
    */
-  async markWeldAsDeleted(weldId: string): Promise<boolean> {
+  async deleteWeld(weldId: string): Promise<boolean> {
     try {
-      const result = await this.makeRequest('markDeleted', { weldId });
+      const result = await this.makeRequest('deleteWeld', { weldId });
       
       if (result.success) {
-        console.log('Weld marked as deleted in Google Sheets successfully');
+        console.log('Weld deleted from Google Sheets successfully');
         return true;
       } else {
-        console.error('Failed to mark weld as deleted:', result.message || 'Unknown error');
+        console.error('Failed to delete weld:', result.message || 'Unknown error');
         return false;
       }
     } catch (error) {
-      console.error('Error marking weld as deleted in Google Sheets:', error);
+      console.error('Error deleting weld from Google Sheets:', error);
       return false;
     }
   }

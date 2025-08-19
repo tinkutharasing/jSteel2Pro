@@ -196,7 +196,7 @@ ID,Date,Weld Number,NDE Number,Type Fit,WPS,Pipe Dia,Grade/Class,Welder,Inspecto
 | Z | Inspector Signature | Signature indicator (Yes/No) |
 | AA | Weld Sketch | Drawing indicator |
 | AB | Defect Sketch | Drawing indicator |
-| AC | Sheet Status | Active/Deleted status |
+| AC | Sheet Status | Always Active (hard delete) |
 | AD | Created At | Creation timestamp |
 | AE | Updated At | Last update timestamp |
 

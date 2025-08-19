@@ -301,24 +301,24 @@ export class GoogleSheetsService {
   }
 
   /**
-   * Mark a weld as deleted in Google Sheets (soft delete)
+   * Delete a weld from Google Sheets (hard delete)
    */
-  async markWeldAsDeleted(weldId: string): Promise<boolean> {
+  async deleteWeld(weldNumber: string): Promise<boolean> {
     try {
-      const result = await this.makeRequest('markDeleted', { weldId });
+      const result = await this.makeRequest('deleteWeld', { weldNumber });
       
       if (result.success) {
-        console.log('Weld marked as deleted in Google Sheets successfully');
+        console.log('Weld deleted from Google Sheets successfully');
         return true;
       } else {
-        console.error('Failed to mark weld as deleted:', result.message || 'Unknown error');
+        console.error('Failed to delete weld:', result.message || 'Unknown error');
         return false;
       }
     } catch (error) {
-      console.error('Error marking weld as deleted in Google Sheets:', error);
-      return false;
+        console.error('Error deleting weld from Google Sheets:', error);
+        return false;
+      }
     }
-  }
 
   /**
    * Sync all welds from Google Sheets to the app
@@ -384,6 +384,38 @@ export class GoogleSheetsService {
     } catch (error) {
       console.error('Error checking weld by ID:', error);
       return { exists: false };
+    }
+  }
+
+  /**
+   * Compare weld numbers between the app and Google Sheets
+   */
+  async compareWeldNumbers(appWeldNumbers: string[]): Promise<{ 
+    comparison?: any; 
+    success: boolean; 
+    message?: string 
+  }> {
+    try {
+      const result = await this.makeRequest('compareWeldNumbers', { appWeldNumbers });
+      
+      if (result.success) {
+        return {
+          success: true,
+          comparison: result.comparison
+        };
+      } else {
+        console.error('Failed to compare weld numbers:', result.message);
+        return { 
+          success: false, 
+          message: result.message 
+        };
+      }
+    } catch (error) {
+      console.error('Error comparing weld numbers:', error);
+      return { 
+        success: false, 
+        message: error instanceof Error ? error.message : 'Unknown error' 
+      };
     }
   }
 
