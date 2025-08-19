@@ -24,6 +24,7 @@ export default function App() {
                     },
                   });
   const [googleSheetsModalVisible, setGoogleSheetsModalVisible] = useState(false);
+  const [syncEnabled, setSyncEnabled] = useState(true); // New state for sync toggle
   
   // Sample data constant - this will always contain the original sample data
   const SAMPLE_WELDS: Weld[] = [
@@ -383,7 +384,9 @@ export default function App() {
     try {
       console.log('Loading Google Sheets config from AsyncStorage...');
       const configData = await AsyncStorage.getItem('googleSheetsConfig');
+      const syncData = await AsyncStorage.getItem('syncEnabled');
       console.log('Raw config data from AsyncStorage:', configData);
+      console.log('Raw sync data from AsyncStorage:', syncData);
       
       if (configData) {
         const config = JSON.parse(configData);
@@ -394,8 +397,24 @@ export default function App() {
       } else {
         console.log('No config found in AsyncStorage');
       }
+      
+      if (syncData !== null) {
+        setSyncEnabled(JSON.parse(syncData));
+        console.log('Sync setting loaded:', JSON.parse(syncData));
+      }
     } catch (error) {
       console.log('Failed to load Google Sheets config:', error);
+    }
+  };
+
+  // Save sync enabled setting to AsyncStorage
+  const saveSyncSetting = async (enabled: boolean) => {
+    try {
+      await AsyncStorage.setItem('syncEnabled', JSON.stringify(enabled));
+      setSyncEnabled(enabled);
+      console.log('Sync setting saved:', enabled);
+    } catch (error) {
+      console.error('Failed to save sync setting:', error);
     }
   };
 
@@ -403,8 +422,8 @@ export default function App() {
     try {
       console.log('Resetting to sample data...');
       
-      // If connected to Google Sheets, clear existing data and add sample welds
-      if (googleSheetsConnected) {
+      // If connected to Google Sheets and sync enabled, clear existing data and add sample welds
+      if (googleSheetsConnected && syncEnabled) {
         console.log('Syncing reset to sample data action to Google Sheets...');
         
         // Import and use Google Sheets service
@@ -463,7 +482,11 @@ export default function App() {
       setWelds(SAMPLE_WELDS);
       setTrashWelds([]);
       console.log('Sample data restored successfully');
-      showSuccess('Success', `Database reset! Restored ${SAMPLE_WELDS.length} welds and synced to Google Sheets.`);
+      if (googleSheetsConnected && syncEnabled) {
+        showSuccess('Success', `Database reset! Restored ${SAMPLE_WELDS.length} welds and synced to Google Sheets.`);
+      } else {
+        showSuccess('Success', `Database reset! Restored ${SAMPLE_WELDS.length} welds locally.`);
+      }
     } catch (error) {
       console.error('Error resetting to sample data:', error);
       showError('Error', 'Failed to reset to sample data');
@@ -480,8 +503,8 @@ export default function App() {
         try {
           console.log('Clearing all data...');
           
-          // If connected to Google Sheets, completely clear the sheet
-          if (googleSheetsConnected) {
+          // If connected to Google Sheets and sync enabled, completely clear the sheet
+          if (googleSheetsConnected && syncEnabled) {
             console.log('Clearing all data from Google Sheets...');
             
             // Import and use Google Sheets service
@@ -506,7 +529,11 @@ export default function App() {
           setTrashWelds([]);
           console.log('All data cleared successfully');
           hideConfirm();
-          showSuccess('Success', 'All data cleared from app and Google Sheets!');
+          if (googleSheetsConnected && syncEnabled) {
+            showSuccess('Success', 'All data cleared from app and Google Sheets!');
+          } else {
+            showSuccess('Success', 'All data cleared from app!');
+          }
         } catch (error) {
           console.error('Error clearing data:', error);
           hideConfirm();
@@ -557,9 +584,12 @@ export default function App() {
       await AsyncStorage.setItem('welds', JSON.stringify(newWelds));
       setWelds(newWelds);
       
-      // Auto-sync to Google Sheets if connected
-      if (googleSheetsConnected) {
-        autoSyncToGoogleSheets(newWelds);
+      // Auto-sync to Google Sheets if connected and sync enabled
+      if (googleSheetsConnected && syncEnabled) {
+        // Use setTimeout to make the sync non-blocking
+        setTimeout(() => {
+          autoSyncToGoogleSheets(newWelds);
+        }, 0);
       }
     } catch (error) {
       console.error('Error saving welds:', error);
@@ -692,8 +722,8 @@ export default function App() {
           // Set loading state for confirmation button (don't hide dialog yet)
           setConfirmLoading(true);
           
-          // If connected to Google Sheets, delete the weld from the sheet
-          if (googleSheetsConnected) {
+          // If connected to Google Sheets and sync enabled, delete the weld from the sheet
+          if (googleSheetsConnected && syncEnabled) {
             console.log(`Deleting weld ${weld.weldNumber} from Google Sheets...`);
             console.log('Google Sheets config:', {
               spreadsheetId: googleSheetsConfig.spreadsheetId,
@@ -744,13 +774,23 @@ export default function App() {
           // Update local state first
           setWelds(updatedWelds);
           setTrashWelds(updatedTrashWelds);
-          saveWelds(updatedWelds);
-          saveTrashWelds(updatedTrashWelds);
           
-          showSuccess('Moved to Trash', `${weld.weldNumber} has been moved to trash and deleted from Google Sheets.`);
+          // Save welds without triggering auto-sync (since we're just moving to trash)
+          try {
+            await AsyncStorage.setItem('welds', JSON.stringify(updatedWelds));
+            await AsyncStorage.setItem('trashWelds', JSON.stringify(updatedTrashWelds));
+          } catch (error) {
+            console.error('Error saving to AsyncStorage:', error);
+          }
           
-          // Debug: Compare weld IDs to help troubleshoot
-          if (googleSheetsConnected) {
+          if (googleSheetsConnected && syncEnabled) {
+            showSuccess('Moved to Trash', `${weld.weldNumber} has been moved to trash and deleted from Google Sheets.`);
+          } else {
+            showSuccess('Moved to Trash', `${weld.weldNumber} has been moved to trash locally.`);
+          }
+          
+          // Debug: Compare weld IDs to help troubleshoot (only when sync enabled)
+          if (googleSheetsConnected && syncEnabled) {
             try {
               const { createGoogleSheetsService } = await import('./src/services/GoogleSheetsService');
               const sheetsService = createGoogleSheetsService(
@@ -796,8 +836,8 @@ export default function App() {
           // Set loading state for confirmation button (don't hide dialog yet)
           setConfirmLoading(true);
           
-          // If connected to Google Sheets, add the weld back to the sheet
-          if (googleSheetsConnected) {
+          // If connected to Google Sheets and sync enabled, add the weld back to the sheet
+          if (googleSheetsConnected && syncEnabled) {
             console.log(`Adding recovered weld ${weld.weldNumber} back to Google Sheets...`);
             
             // Import and use Google Sheets service
@@ -826,7 +866,11 @@ export default function App() {
           setTrashWelds(updatedTrashWelds);
           setWelds(updatedWelds);
           
-          showSuccess('Recovered', `${weld.weldNumber} has been recovered successfully and added back to Google Sheets!`);
+          if (googleSheetsConnected && syncEnabled) {
+            showSuccess('Recovered', `${weld.weldNumber} has been recovered successfully and added back to Google Sheets!`);
+          } else {
+            showSuccess('Recovered', `${weld.weldNumber} has been recovered successfully!`);
+          }
           
           // Now hide the confirmation dialog after operation completes
           hideConfirm();
@@ -925,8 +969,8 @@ export default function App() {
   }, []);
 
   const syncToGoogleSheets = useCallback(async () => {
-    if (!googleSheetsConnected) {
-      showError('Not Connected', 'Please connect to Google Sheets first');
+    if (!googleSheetsConnected || !syncEnabled) {
+      showError('Not Connected', 'Please connect to Google Sheets first or enable sync in settings');
       return;
     }
     
@@ -1078,11 +1122,11 @@ export default function App() {
       console.error('Sync error:', error);
       showError('Sync Failed', 'Failed to sync data to Google Sheets');
     }
-  }, [googleSheetsConnected, googleSheetsConfig, welds, trashWelds]);
+  }, [googleSheetsConnected, googleSheetsConfig, welds, trashWelds, syncEnabled]);
 
   const autoSyncToGoogleSheets = useCallback(async (weldsToSync: Weld[]) => {
-    if (!googleSheetsConnected) {
-      return; // Silent return for auto-sync
+    if (!googleSheetsConnected || !syncEnabled) {
+      return; // Silent return for auto-sync if not connected or sync disabled
     }
     
     try {
@@ -1217,10 +1261,10 @@ export default function App() {
     } catch (error) {
       console.error('Auto-sync error:', error);
     }
-  }, [googleSheetsConnected, googleSheetsConfig, trashWelds]);
+  }, [googleSheetsConnected, googleSheetsConfig, trashWelds, syncEnabled]);
 
   const syncChangedWeldsToGoogleSheets = useCallback(async (changedWelds: Weld[]) => {
-    if (!googleSheetsConnected || changedWelds.length === 0) {
+    if (!googleSheetsConnected || !syncEnabled || changedWelds.length === 0) {
       return;
     }
     
@@ -1296,11 +1340,11 @@ export default function App() {
     } catch (error) {
       console.error('Changed welds sync error:', error);
     }
-  }, [googleSheetsConnected, googleSheetsConfig]);
+  }, [googleSheetsConnected, googleSheetsConfig, syncEnabled]);
 
   const syncFromGoogleSheets = useCallback(async () => {
-    if (!googleSheetsConnected) {
-      showError('Not Connected', 'Please connect to Google Sheets first');
+    if (!googleSheetsConnected || !syncEnabled) {
+      showError('Not Connected', 'Please connect to Google Sheets first or enable sync in settings');
       return;
     }
     
@@ -1335,11 +1379,11 @@ export default function App() {
       console.error('Sync error:', error);
       showError('Sync Failed', 'Failed to sync data from Google Sheets');
     }
-  }, [googleSheetsConnected, googleSheetsConfig]);
+  }, [googleSheetsConnected, googleSheetsConfig, syncEnabled]);
 
   const initializeGoogleSheet = useCallback(async () => {
-    if (!googleSheetsConnected) {
-      showError('Not Connected', 'Please connect to Google Sheets first');
+    if (!googleSheetsConnected || !syncEnabled) {
+      showError('Not Connected', 'Please connect to Google Sheets first or enable sync in settings');
       return;
     }
     
@@ -1367,8 +1411,8 @@ export default function App() {
   }, [googleSheetsConnected, googleSheetsConfig]);
 
   const forceInitializeGoogleSheet = useCallback(async () => {
-    if (!googleSheetsConnected) {
-      showError('Not Connected', 'Please connect to Google Sheets first');
+    if (!googleSheetsConnected || !syncEnabled) {
+      showError('Not Connected', 'Please connect to Google Sheets first or enable sync in settings');
       return;
     }
     
@@ -1416,8 +1460,8 @@ export default function App() {
   }, [googleSheetsConnected, googleSheetsConfig]);
 
   const clearGoogleSheet = useCallback(async () => {
-    if (!googleSheetsConnected) {
-      showError('Not Connected', 'Please connect to Google Sheets first');
+    if (!googleSheetsConnected || !syncEnabled) {
+      showError('Not Connected', 'Please connect to Google Sheets first or enable sync in settings');
       return;
     }
     
@@ -1468,8 +1512,8 @@ export default function App() {
   }, [googleSheetsConnected, googleSheetsConfig]);
 
   const debugGoogleSheet = useCallback(async () => {
-    if (!googleSheetsConnected) {
-      showError('Not Connected', 'Please connect to Google Sheets first');
+    if (!googleSheetsConnected || !syncEnabled) {
+      showError('Not Connected', 'Please connect to Google Sheets first or enable sync in settings');
       return;
     }
     
@@ -1506,8 +1550,8 @@ export default function App() {
   }, [googleSheetsConnected, googleSheetsConfig]);
 
   const compareWeldNumbers = useCallback(async () => {
-    if (!googleSheetsConnected) {
-      showError('Not Connected', 'Please connect to Google Sheets first');
+    if (!googleSheetsConnected || !syncEnabled) {
+      showError('Not Connected', 'Please connect to Google Sheets first or enable sync in settings');
       return;
     }
     
@@ -1547,7 +1591,7 @@ export default function App() {
       console.error('Error comparing weld numbers:', error);
       showError('Comparison Error', 'Failed to compare weld numbers');
     }
-  }, [googleSheetsConnected, googleSheetsConfig, welds, trashWelds]);
+  }, [googleSheetsConnected, googleSheetsConfig, welds, trashWelds, syncEnabled]);
 
   // Debug function to check AsyncStorage
   const checkAsyncStorage = useCallback(async () => {
@@ -1684,6 +1728,15 @@ export default function App() {
                   </Text>
                 </View>
                 
+                {googleSheetsConnected && (
+                  <View style={styles.settingsItem}>
+                    <Text style={styles.settingsItemLabel}>Sync Status</Text>
+                    <Text style={styles.settingsItemValue}>
+                      {syncEnabled ? '🔄 Active' : '⏸️ Paused'}
+                    </Text>
+                  </View>
+                )}
+                
                 <TouchableOpacity style={styles.googleSheetsButton} onPress={openGoogleSheetsSettings}>
                   <Text style={styles.googleSheetsButtonText}>
                     {googleSheetsConnected ? '⚙️ Configure Sheets' : '🔗 Connect to Sheets'}
@@ -1730,11 +1783,31 @@ export default function App() {
                     <View style={styles.settingsItem}>
                       <Text style={styles.settingsItemLabel}>Auto-Sync Status</Text>
                       <Text style={styles.settingsItemValue}>
-                        {googleSheetsConnected ? '✅ Enabled' : '❌ Disabled'}
+                        {!googleSheetsConnected ? '❌ Not Connected' : 
+                         !syncEnabled ? '⏸️ Sync Disabled' : '✅ Enabled'}
                       </Text>
                     </View>
                     
-                    <TouchableOpacity style={styles.syncChangedButton} onPress={() => syncChangedWeldsToGoogleSheets(welds)}>
+                    {/* Sync Toggle Checkbox */}
+                    <View style={styles.settingsItem}>
+                      <Text style={styles.settingsItemLabel}>Enable Google Sheets Sync</Text>
+                      <TouchableOpacity 
+                        style={[styles.checkbox, syncEnabled && styles.checkboxChecked]}
+                        onPress={() => saveSyncSetting(!syncEnabled)}
+                      >
+                        {syncEnabled && <Text style={styles.checkboxText}>✓</Text>}
+                      </TouchableOpacity>
+                    </View>
+                    
+                    <Text style={styles.syncNote}>
+                      💡 Disable sync for faster performance when working offline. Enable when you need to sync data.
+                    </Text>
+                    
+                    <TouchableOpacity 
+                      style={[styles.syncChangedButton, !syncEnabled && styles.disabledButton]} 
+                      onPress={() => syncChangedWeldsToGoogleSheets(welds)}
+                      disabled={!syncEnabled}
+                    >
                       <Text style={styles.syncChangedButtonText}>🔄 Sync Changed Welds</Text>
                     </TouchableOpacity>
                   </View>
@@ -2377,6 +2450,41 @@ const styles = StyleSheet.create({
     color: '#3b82f6',
     fontWeight: '700',
     textAlign: 'center',
+  },
+  // Checkbox styles
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#d1d5db',
+    backgroundColor: '#ffffff',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: '#3b82f6',
+    borderColor: '#3b82f6',
+  },
+  checkboxText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  // Sync note style
+  syncNote: {
+    fontSize: 14,
+    color: '#6b7280',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    marginTop: 12,
+    marginBottom: 16,
+    paddingHorizontal: 20,
+  },
+  // Disabled button style
+  disabledButton: {
+    opacity: 0.5,
+    backgroundColor: '#9ca3af',
   },
 
 });
