@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { SafeAreaView, KeyboardAvoidingView, Platform, StatusBar, View, Text, StyleSheet, BackHandler, TouchableOpacity, ScrollView } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -179,40 +179,10 @@ export default function App() {
     }
   ];
 
-  const SAMPLE_TRASH_WELDS: Weld[] = [
-    {
-      id: 'trash-1',
-      date: '2024-01-10',
-      typeFit: 'Pipe to Flange',
-      wps: 'WPS-3',
-      pipeDia: '12 inch',
-      gradeClass: 'X42-x42',
-      weldNumber: 'Z9999',
-      welder: 'Tom Wilson',
-      welderSignature: '',
-      inspector: 'Alice Cooper',
-      inspectorSignature: '',
-      firstHT: 'ACCD',
-      firstMfg: 'OldSteel',
-      firstLength: '18.5 feet',
-      jtNumber: 'JT-OLD',
-      secondHT: '0E123A',
-      secondMfg: 'LegacyCorp',
-      secondLength: '12.0 feet',
-      preHeat: 'NO',
-      vt: 'SMAW',
-      process: 'SMAW',
-      ndeNumber: 'NDE-001',
-      amps: '150,165,180',
-      volts: '20,22,24',
-      ipm: '4-inch',
-      status: 'rejected',
-      createdAt: '2024-01-10T08:00:00Z',
-      updatedAt: '2024-01-10T08:00:00Z'
-    }
-  ];
-
   const [welds, setWelds] = useState<Weld[]>([]);
+
+
+
   const [trashWelds, setTrashWelds] = useState<Weld[]>([]);
   const [selectedWeld, setSelectedWeld] = useState<Weld | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -244,23 +214,29 @@ export default function App() {
     status: 'pending'
   });
 
-  // Styled confirmation modal state
+  // Confirmation popup state
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [confirmTitle, setConfirmTitle] = useState('');
   const [confirmMessage, setConfirmMessage] = useState('');
   const [confirmConfirmText, setConfirmConfirmText] = useState('Confirm');
   const [confirmCancelText, setConfirmCancelText] = useState('Cancel');
-  const confirmActionRef = React.useRef<(() => Promise<void> | void) | null>(null);
+  const [confirmLoading, setConfirmLoading] = useState(false); // Loading state
+  const confirmActionRef = useRef<(() => Promise<void> | void) | null>(null);
+  const confirmVisibleRef = useRef(false); // Ref to track confirmation state
 
   // Success popup state
   const [successVisible, setSuccessVisible] = useState(false);
   const [successTitle, setSuccessTitle] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [successAnimation, setSuccessAnimation] = useState(false); // Animation state
 
   // Error popup state
   const [errorVisible, setErrorVisible] = useState(false);
   const [errorTitle, setErrorTitle] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [errorAnimation, setErrorAnimation] = useState(false); // Animation state
+
+
 
   const showConfirm = (
     opts: {
@@ -275,22 +251,30 @@ export default function App() {
     setConfirmMessage(opts.message);
     setConfirmConfirmText(opts.confirmText || 'Confirm');
     setConfirmCancelText(opts.cancelText || 'Cancel');
+    setConfirmLoading(false); // Reset loading state
     confirmActionRef.current = opts.onConfirm;
     setConfirmVisible(true);
-    
-    // Safety timeout to auto-hide after 30 seconds
-    setTimeout(() => {
-      if (confirmVisible) {
-        console.log('Safety timeout: Auto-hiding confirmation dialog');
-        hideConfirm();
-      }
-    }, 30000);
+    confirmVisibleRef.current = true; // Set ref to true
   };
 
   const hideConfirm = () => {
     console.log('hideConfirm called, current confirmVisible state:', confirmVisible);
+    
+    // Force the state update to be synchronous
     setConfirmVisible(false);
+    setConfirmLoading(false); // Reset loading state
     confirmActionRef.current = null;
+    confirmVisibleRef.current = false; // Reset ref
+    
+    // Double-check the state was updated
+    setTimeout(() => {
+      if (confirmVisibleRef.current) { // Check ref
+        console.log('State update failed, forcing hide...');
+        setConfirmVisible(false);
+        setConfirmLoading(false);
+      }
+    }, 100);
+    
     console.log('hideConfirm completed, confirmVisible set to false');
   };
 
@@ -298,24 +282,36 @@ export default function App() {
     setSuccessTitle(title);
     setSuccessMessage(message);
     setSuccessVisible(true);
+    setSuccessAnimation(true); // Start animation
+    
     // Auto-hide after 3 seconds
-    setTimeout(() => setSuccessVisible(false), 3000);
+    setTimeout(() => {
+      setSuccessAnimation(false); // End animation
+      setTimeout(() => setSuccessVisible(false), 300); // Hide after animation
+    }, 3000);
   };
 
   const hideSuccess = () => {
-    setSuccessVisible(false);
+    setSuccessAnimation(false);
+    setTimeout(() => setSuccessVisible(false), 300);
   };
 
   const showError = (title: string, message: string) => {
     setErrorTitle(title);
     setErrorMessage(message);
     setErrorVisible(true);
+    setErrorAnimation(true); // Start animation
+    
     // Auto-hide after 4 seconds for errors
-    setTimeout(() => setErrorVisible(false), 4000);
+    setTimeout(() => {
+      setErrorAnimation(false); // End animation
+      setTimeout(() => setErrorVisible(false), 300); // Hide after animation
+    }, 4000);
   };
 
   const hideError = () => {
-    setErrorVisible(false);
+    setErrorAnimation(false);
+    setTimeout(() => setErrorVisible(false), 300);
   };
 
   // Debug confirmation dialog state changes
@@ -406,14 +402,68 @@ export default function App() {
   const resetToSampleData = async () => {
     try {
       console.log('Resetting to sample data...');
+      
+      // If connected to Google Sheets, clear existing data and add sample welds
+      if (googleSheetsConnected) {
+        console.log('Syncing reset to sample data action to Google Sheets...');
+        
+        // Import and use Google Sheets service
+        const { createGoogleSheetsService } = await import('./src/services/GoogleSheetsService');
+        const sheetsService = createGoogleSheetsService(
+          googleSheetsConfig.spreadsheetId,
+          googleSheetsConfig.credentials
+        );
+        
+        // First, mark all existing welds as deleted
+        const existingSheetWelds = await sheetsService.syncWeldsFromSheet();
+        if (existingSheetWelds.length > 0) {
+          console.log(`Marking ${existingSheetWelds.length} existing welds as deleted in Google Sheets...`);
+          
+          let deletedCount = 0;
+          for (const sheetWeld of existingSheetWelds) {
+            try {
+              const success = await sheetsService.markWeldAsDeleted(sheetWeld.id);
+              if (success) {
+                deletedCount++;
+                console.log(`Marked weld ${sheetWeld.weldNumber} as deleted`);
+              }
+            } catch (error) {
+              console.error(`Failed to mark weld ${sheetWeld.weldNumber} as deleted:`, error);
+            }
+          }
+          
+          console.log(`Successfully marked ${deletedCount} welds as deleted in Google Sheets`);
+        }
+        
+        // Now add all sample welds to Google Sheets
+        console.log(`Adding ${SAMPLE_WELDS.length} sample welds to Google Sheets...`);
+        
+        let addedCount = 0;
+        for (const sampleWeld of SAMPLE_WELDS) {
+          try {
+            const result = await sheetsService.addWeld(sampleWeld);
+            if (result.success) {
+              addedCount++;
+              console.log(`Added sample weld ${sampleWeld.weldNumber} to Google Sheets`);
+            } else {
+              console.error(`Failed to add sample weld ${sampleWeld.weldNumber}:`, result.message);
+            }
+          } catch (error) {
+            console.error(`Failed to add sample weld ${sampleWeld.weldNumber}:`, error);
+          }
+        }
+        
+        console.log(`Successfully added ${addedCount} sample welds to Google Sheets`);
+      }
+      
       await AsyncStorage.removeItem('welds');
       await AsyncStorage.removeItem('trashWelds');
       await AsyncStorage.setItem('welds', JSON.stringify(SAMPLE_WELDS));
-      await AsyncStorage.setItem('trashWelds', JSON.stringify(SAMPLE_TRASH_WELDS));
+      await AsyncStorage.setItem('trashWelds', JSON.stringify([]));
       setWelds(SAMPLE_WELDS);
-      setTrashWelds(SAMPLE_TRASH_WELDS);
+      setTrashWelds([]);
       console.log('Sample data restored successfully');
-      showSuccess('Success', `Database reset! Restored ${SAMPLE_WELDS.length} welds and ${SAMPLE_TRASH_WELDS.length} trash items.`);
+      showSuccess('Success', `Database reset! Restored ${SAMPLE_WELDS.length} welds and synced to Google Sheets.`);
     } catch (error) {
       console.error('Error resetting to sample data:', error);
       showError('Error', 'Failed to reset to sample data');
@@ -429,13 +479,34 @@ export default function App() {
       onConfirm: async () => {
         try {
           console.log('Clearing all data...');
+          
+          // If connected to Google Sheets, completely clear the sheet
+          if (googleSheetsConnected) {
+            console.log('Clearing all data from Google Sheets...');
+            
+            // Import and use Google Sheets service
+            const { createGoogleSheetsService } = await import('./src/services/GoogleSheetsService');
+            const sheetsService = createGoogleSheetsService(
+              googleSheetsConfig.spreadsheetId,
+              googleSheetsConfig.credentials
+            );
+            
+            // Clear the entire sheet data (this will remove all rows except headers)
+            const clearResult = await sheetsService.clearSheet();
+            if (clearResult) {
+              console.log('Successfully cleared all data from Google Sheets');
+            } else {
+              console.error('Failed to clear Google Sheets');
+            }
+          }
+          
           await AsyncStorage.removeItem('welds');
           await AsyncStorage.removeItem('trashWelds');
           setWelds([]);
           setTrashWelds([]);
           console.log('All data cleared successfully');
           hideConfirm();
-          showSuccess('Success', 'All data cleared!');
+          showSuccess('Success', 'All data cleared from app and Google Sheets!');
         } catch (error) {
           console.error('Error clearing data:', error);
           hideConfirm();
@@ -448,7 +519,7 @@ export default function App() {
   const confirmResetToSampleData = () => {
     showConfirm({
       title: 'Reset to Sample Data',
-      message: 'This will overwrite current data with 5 sample entries and 1 trash item.',
+      message: 'This will overwrite current data with 5 sample entries.',
       confirmText: 'Reset',
       cancelText: 'Cancel',
       onConfirm: async () => {
@@ -462,7 +533,7 @@ export default function App() {
     try {
       const storedWelds = await AsyncStorage.getItem('welds');
       const storedTrash = await AsyncStorage.getItem('trashWelds');
-      const message = `Current State:\n• Active Welds: ${welds.length}\n• Trash Items: ${trashWelds.length}\n\nStorage Status:\n• Welds in AsyncStorage: ${storedWelds ? 'Yes' : 'No'}\n• Trash in AsyncStorage: ${storedTrash ? 'Yes' : 'No'}\n\nSample Data Available:\n• Sample Welds: ${SAMPLE_WELDS.length}\n• Sample Trash: ${SAMPLE_TRASH_WELDS.length}`;
+      const message = `Current State:\n• Active Welds: ${welds.length}\n• Trash Items: ${trashWelds.length}\n\nStorage Status:\n• Welds in AsyncStorage: ${storedWelds ? 'Yes' : 'No'}\n• Trash in AsyncStorage: ${storedTrash ? 'Yes' : 'No'}\n\nSample Data Available:\n• Sample Welds: ${SAMPLE_WELDS.length}`;
       showSuccess('Database Status', message);
     } catch (error) {
       console.error('Error checking database status:', error);
@@ -616,15 +687,25 @@ export default function App() {
       message: `Move ${weld.weldNumber} to trash? You can recover it later.`,
       confirmText: 'Move to Trash',
       cancelText: 'Cancel',
-      onConfirm: () => {
-        const updatedWelds = welds.filter(w => w.id !== weld.id);
-        const updatedTrashWelds = [weld, ...trashWelds];
-        setWelds(updatedWelds);
-        setTrashWelds(updatedTrashWelds);
-        saveWelds(updatedWelds);
-        saveTrashWelds(updatedTrashWelds);
-        hideConfirm();
-        showSuccess('Moved to Trash', `${weld.weldNumber} has been moved to trash. You can recover it later.`);
+      onConfirm: async () => {
+        try {
+          // Hide confirmation immediately to prevent UI blocking
+          hideConfirm();
+          
+          const updatedWelds = welds.filter(w => w.id !== weld.id);
+          const updatedTrashWelds = [weld, ...trashWelds];
+          
+          // Update local state first
+          setWelds(updatedWelds);
+          setTrashWelds(updatedTrashWelds);
+          saveWelds(updatedWelds);
+          saveTrashWelds(updatedTrashWelds);
+          
+          showSuccess('Moved to Trash', `${weld.weldNumber} has been moved to trash. You can recover it later.`);
+        } catch (error) {
+          console.error('Error moving weld to trash:', error);
+          showError('Error', 'Failed to move weld to trash');
+        }
       }
     });
   };
@@ -634,6 +715,7 @@ export default function App() {
       const updatedTrashWelds = trashWelds.filter(w => w.id !== weld.id);
       const updatedWelds = [weld, ...welds];
       
+      // Update local state first
       await saveTrashWelds(updatedTrashWelds);
       await saveWelds(updatedWelds);
       
@@ -653,12 +735,22 @@ export default function App() {
       message: `Are you sure you want to permanently delete ${weld.weldNumber}? This action cannot be undone.`,
       confirmText: 'Delete Permanently',
       cancelText: 'Cancel',
-      onConfirm: () => {
-        const updatedTrashWelds = trashWelds.filter(w => w.id !== weld.id);
-        setTrashWelds(updatedTrashWelds);
-        saveTrashWelds(updatedTrashWelds);
-        hideConfirm();
-        showSuccess('Deleted', `${weld.weldNumber} has been permanently deleted.`);
+      onConfirm: async () => {
+        try {
+          // Hide confirmation immediately to prevent UI blocking
+          hideConfirm();
+          
+          const updatedTrashWelds = trashWelds.filter(w => w.id !== weld.id);
+          
+          // Update local state first
+          setTrashWelds(updatedTrashWelds);
+          saveTrashWelds(updatedTrashWelds);
+          
+          showSuccess('Deleted', `${weld.weldNumber} has been permanently deleted.`);
+        } catch (error) {
+          console.error('Error permanently deleting weld:', error);
+          showError('Error', 'Failed to permanently delete weld');
+        }
       }
     });
   };
@@ -733,12 +825,45 @@ export default function App() {
       
       console.log(`Found ${existingSheetWelds.length} existing welds in Google Sheets`);
       
+      // Handle case when there are no active welds to sync
+      if (welds.length === 0) {
+        console.log('No active welds to sync - all items may be trashed');
+        
+        // If there are existing welds in the sheet, we should mark them all as deleted
+        if (existingSheetWelds.length > 0) {
+          console.log(`Marking ${existingSheetWelds.length} existing welds as deleted in Google Sheets...`);
+          
+          let deletedCount = 0;
+          for (const sheetWeld of existingSheetWelds) {
+            try {
+              const success = await sheetsService.markWeldAsDeleted(sheetWeld.id);
+              if (success) {
+                deletedCount++;
+                console.log(`Marked weld ${sheetWeld.weldNumber} as deleted`);
+              }
+            } catch (error) {
+              console.error(`Failed to mark weld ${sheetWeld.weldNumber} as deleted:`, error);
+            }
+          }
+          
+          if (deletedCount > 0) {
+            showSuccess('Sync Complete', `All welds have been moved to trash. ${deletedCount} welds marked as deleted in Google Sheets.`);
+          } else {
+            showSuccess('Sync Complete', 'No active welds to sync. All items are in trash.');
+          }
+        } else {
+          showSuccess('Sync Complete', 'No active welds to sync. All items are in trash.');
+        }
+        return;
+      }
+      
       let successCount = 0;
       let failCount = 0;
       let addedCount = 0;
       let updatedCount = 0;
+      let trashedCount = 0; // Track trashed items synced
       
-      // Sync each weld
+      // Sync each active weld
       for (const weld of welds) {
         try {
           // Check if this weld already exists in Google Sheets
@@ -775,18 +900,68 @@ export default function App() {
         }
       }
       
+      // Now sync trashed items to Google Sheets
+      if (trashWelds.length > 0) {
+        console.log(`Syncing ${trashWelds.length} trashed items to Google Sheets...`);
+        
+        trashedCount = 0;
+        for (const trashedWeld of trashWelds) {
+          try {
+            // Check if this trashed weld already exists in Google Sheets
+            const existingWeldId = existingWeldMap.get(trashedWeld.weldNumber);
+            
+            if (existingWeldId) {
+              // Weld exists in sheet, mark it as deleted
+              console.log(`Marking trashed weld ${trashedWeld.weldNumber} as deleted in Google Sheets...`);
+              const success = await sheetsService.markWeldAsDeleted(trashedWeld.id);
+              if (success) {
+                trashedCount++;
+                console.log(`Marked trashed weld ${trashedWeld.weldNumber} as deleted`);
+              }
+            } else {
+              // Trashed weld doesn't exist in sheet, add it directly with deleted status
+              console.log(`Adding trashed weld ${trashedWeld.weldNumber} to Google Sheets with deleted status...`);
+              
+              // Create a copy of the weld with deleted status
+              const weldWithDeletedStatus = {
+                ...trashedWeld,
+                status: 'deleted' as const
+              };
+              
+              const result = await sheetsService.addWeld(weldWithDeletedStatus);
+              if (result.success) {
+                trashedCount++;
+                console.log(`Added trashed weld ${trashedWeld.weldNumber} with deleted status`);
+              } else {
+                console.error(`Failed to add trashed weld ${trashedWeld.weldNumber}:`, result.message);
+              }
+            }
+          } catch (error) {
+            console.error(`Failed to sync trashed weld ${trashedWeld.weldNumber}:`, error);
+          }
+        }
+        
+        console.log(`Successfully synced ${trashedCount} trashed items to Google Sheets`);
+      }
+      
       if (failCount === 0) {
-        const message = `Successfully synced ${successCount} welds to Google Sheets! (${addedCount} added, ${updatedCount} updated)`;
+        let message = `Successfully synced ${successCount} welds to Google Sheets! (${addedCount} added, ${updatedCount} updated)`;
+        if (trashedCount > 0) {
+          message += `\nAlso synced ${trashedCount} trashed items as deleted.`;
+        }
         showSuccess('Sync Complete', message);
       } else {
-        const message = `Synced ${successCount} welds (${addedCount} added, ${updatedCount} updated), ${failCount} failed`;
+        let message = `Synced ${successCount} welds (${addedCount} added, ${updatedCount} updated), ${failCount} failed`;
+        if (trashedCount > 0) {
+          message += `\nAlso synced ${trashedCount} trashed items as deleted.`;
+        }
         showSuccess('Sync Partial', message);
       }
     } catch (error) {
       console.error('Sync error:', error);
       showError('Sync Failed', 'Failed to sync data to Google Sheets');
     }
-  }, [googleSheetsConnected, googleSheetsConfig, welds]);
+  }, [googleSheetsConnected, googleSheetsConfig, welds, trashWelds]);
 
   const autoSyncToGoogleSheets = useCallback(async (weldsToSync: Weld[]) => {
     if (!googleSheetsConnected) {
@@ -815,12 +990,41 @@ export default function App() {
       
       console.log(`Auto-sync: Found ${existingSheetWelds.length} existing welds in Google Sheets`);
       
+      // Handle case when there are no welds to sync
+      if (weldsToSync.length === 0) {
+        console.log('Auto-sync: No welds to sync - all items may be trashed');
+        
+        // If there are existing welds in the sheet, we should mark them all as deleted
+        if (existingSheetWelds.length > 0) {
+          console.log(`Auto-sync: Marking ${existingSheetWelds.length} existing welds as deleted in Google Sheets...`);
+          
+          let deletedCount = 0;
+          for (const sheetWeld of existingSheetWelds) {
+            try {
+              const success = await sheetsService.markWeldAsDeleted(sheetWeld.id);
+              if (success) {
+                deletedCount++;
+                console.log(`Auto-sync: Marked weld ${sheetWeld.weldNumber} as deleted`);
+              }
+            } catch (error) {
+              console.error(`Auto-sync: Failed to mark weld ${sheetWeld.weldNumber} as deleted:`, error);
+            }
+          }
+          
+          console.log(`Auto-sync: ${deletedCount} welds marked as deleted in Google Sheets`);
+        } else {
+          console.log('Auto-sync: No existing welds in Google Sheets to mark as deleted');
+        }
+        return;
+      }
+      
       let successCount = 0;
       let failCount = 0;
       let addedCount = 0;
       let updatedCount = 0;
+      let trashedCount = 0; // Track trashed items synced
       
-      // Sync each weld
+      // Sync each active weld
       for (const weld of weldsToSync) {
         try {
           // Check if this weld already exists in Google Sheets
@@ -857,6 +1061,50 @@ export default function App() {
         }
       }
       
+      // Now sync trashed items to Google Sheets
+      if (trashWelds.length > 0) {
+        console.log(`Auto-sync: Syncing ${trashWelds.length} trashed items to Google Sheets...`);
+        
+        trashedCount = 0;
+        for (const trashedWeld of trashWelds) {
+          try {
+            // Check if this trashed weld already exists in Google Sheets
+            const existingWeldId = existingWeldMap.get(trashedWeld.weldNumber);
+            
+            if (existingWeldId) {
+              // Weld exists in sheet, mark it as deleted
+              console.log(`Auto-sync: Marking trashed weld ${trashedWeld.weldNumber} as deleted in Google Sheets...`);
+              const success = await sheetsService.markWeldAsDeleted(trashedWeld.id);
+              if (success) {
+                trashedCount++;
+                console.log(`Auto-sync: Marked trashed weld ${trashedWeld.weldNumber} as deleted`);
+              }
+            } else {
+              // Trashed weld doesn't exist in sheet, add it directly with deleted status
+              console.log(`Auto-sync: Adding trashed weld ${trashedWeld.weldNumber} to Google Sheets with deleted status...`);
+              
+              // Create a copy of the weld with deleted status
+              const weldWithDeletedStatus = {
+                ...trashedWeld,
+                status: 'deleted' as const
+              };
+              
+              const result = await sheetsService.addWeld(weldWithDeletedStatus);
+              if (result.success) {
+                trashedCount++;
+                console.log(`Added trashed weld ${trashedWeld.weldNumber} with deleted status`);
+              } else {
+                console.error(`Failed to add trashed weld ${trashedWeld.weldNumber}:`, result.message);
+              }
+            }
+          } catch (error) {
+            console.error(`Auto-sync: Failed to sync trashed weld ${trashedWeld.weldNumber}:`, error);
+          }
+        }
+        
+        console.log(`Auto-sync: Successfully synced ${trashedCount} trashed items to Google Sheets`);
+      }
+      
       if (failCount === 0) {
         console.log(`Auto-sync complete: ${successCount} welds synced successfully (${addedCount} added, ${updatedCount} updated)`);
       } else {
@@ -865,7 +1113,7 @@ export default function App() {
     } catch (error) {
       console.error('Auto-sync error:', error);
     }
-  }, [googleSheetsConnected, googleSheetsConfig]);
+  }, [googleSheetsConnected, googleSheetsConfig, trashWelds]);
 
   const syncChangedWeldsToGoogleSheets = useCallback(async (changedWelds: Weld[]) => {
     if (!googleSheetsConnected || changedWelds.length === 0) {
@@ -1027,6 +1275,9 @@ export default function App() {
       cancelText: 'Cancel',
       onConfirm: async () => {
         try {
+          // Set loading state for confirmation button (don't hide dialog yet)
+          setConfirmLoading(true);
+          
           showSuccess('Force Initializing...', 'Clearing sheet and creating headers...');
           
           // Import and use Google Sheets service
@@ -1043,11 +1294,19 @@ export default function App() {
           } else {
             showError('Force Initialization Failed', 'Failed to force-initialize the Google Sheet');
           }
+          
+          // Now hide the confirmation dialog after operation completes
+          hideConfirm();
         } catch (error) {
           console.error('Sheet force-initialization error:', error);
           showError('Force Initialization Failed', 'Failed to force-initialize the Google Sheet');
+          
+          // Hide dialog on error too
+          hideConfirm();
+        } finally {
+          // Always reset loading state
+          setConfirmLoading(false);
         }
-        hideConfirm();
       }
     });
   }, [googleSheetsConnected, googleSheetsConfig]);
@@ -1065,6 +1324,9 @@ export default function App() {
       cancelText: 'Cancel',
       onConfirm: async () => {
         try {
+          // Set loading state for confirmation button (don't hide dialog yet)
+          setConfirmLoading(true);
+          
           console.log('Starting to clear Google Sheet...');
           showSuccess('Clearing...', 'Removing sheet data...');
           
@@ -1084,12 +1346,18 @@ export default function App() {
           } else {
             showError('Clear Failed', 'Failed to clear the Google Sheet. Check console for details.');
           }
+          
+          // Now hide the confirmation dialog after operation completes
+          hideConfirm();
         } catch (error) {
           console.error('Sheet clear error:', error);
           showError('Clear Failed', `Failed to clear the Google Sheet: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        } finally {
-          console.log('Hiding confirmation dialog...');
+          
+          // Hide dialog on error too
           hideConfirm();
+        } finally {
+          // Always reset loading state
+          setConfirmLoading(false);
         }
       }
     });
@@ -1150,6 +1418,32 @@ export default function App() {
     }
   }, []);
 
+  // Utility function to convert app status to Google Sheets status
+  const convertStatusToSheet = (status: string): string => {
+    switch (status) {
+      case 'deleted':
+        return 'Deleted';
+      case 'pending':
+      case 'approved':
+      case 'rejected':
+        return 'Active';
+      default:
+        return 'Active';
+    }
+  };
+
+  // Utility function to convert Google Sheets status to app status
+  const convertStatusFromSheet = (status: string): string => {
+    switch (status) {
+      case 'Deleted':
+        return 'deleted';
+      case 'Active':
+        return 'pending'; // Default to pending for active items
+      default:
+        return 'pending';
+    }
+  };
+
   const renderScreen = () => {
     switch (currentScreen) {
       case 'home':
@@ -1203,14 +1497,20 @@ export default function App() {
             <ScrollView style={styles.settingsContent} showsVerticalScrollIndicator={false}>
               <Text style={styles.settingsTitle}>Settings</Text>
               <Text style={styles.settingsSubtitle}>App configuration and preferences</Text>
-              <View style={styles.settingsItem}>
-                <Text style={styles.settingsItemLabel}>Total Welds</Text>
-                <Text style={styles.settingsItemValue}>{welds.length}</Text>
+              
+              {/* Stats Row - 2 columns */}
+              <View style={styles.statsRow}>
+                <View style={styles.statsColumn}>
+                  <Text style={styles.statsLabel}>Total Welds</Text>
+                  <Text style={styles.statsValue}>{welds.length}</Text>
+                </View>
+                <View style={styles.statsColumn}>
+                  <Text style={styles.statsLabel}>Trashed Items</Text>
+                  <Text style={styles.statsValue}>{trashWelds.length}</Text>
+                </View>
               </View>
-              <View style={styles.settingsItem}>
-                <Text style={styles.settingsItemLabel}>Trashed Items</Text>
-                <Text style={styles.settingsItemValue}>{trashWelds.length}</Text>
-              </View>
+              
+              {/* Database Status - Single column */}
               <View style={styles.settingsItem}>
                 <Text style={styles.settingsItemLabel}>Database Status</Text>
                 <Text style={styles.settingsItemValue}>
@@ -1254,13 +1554,22 @@ export default function App() {
                   {/* Sheet Management Buttons */}
                   <View style={styles.sheetManagementSection}>
                     <Text style={styles.sheetManagementTitle}>📋 Sheet Management</Text>
-                    <TouchableOpacity style={styles.initializeButton} onPress={initializeGoogleSheet}>
+                    <TouchableOpacity 
+                      style={styles.initializeButton} 
+                      onPress={initializeGoogleSheet}
+                    >
                       <Text style={styles.initializeButtonText}>📝 Initialize Sheet Headers</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.forceInitializeButton} onPress={forceInitializeGoogleSheet}>
+                    <TouchableOpacity 
+                      style={styles.forceInitializeButton} 
+                      onPress={forceInitializeGoogleSheet}
+                    >
                       <Text style={styles.forceInitializeButtonText}>⚡ Force Initialize Headers</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.clearButton} onPress={clearGoogleSheet}>
+                    <TouchableOpacity 
+                      style={styles.clearButton} 
+                      onPress={clearGoogleSheet}
+                    >
                       <Text style={styles.clearButtonText}>🗑️ Clear Sheet Data</Text>
                     </TouchableOpacity>
                   </View>
@@ -1333,53 +1642,74 @@ export default function App() {
             <Text style={styles.modalTitle}>{confirmTitle}</Text>
             <Text style={styles.modalMessage}>{confirmMessage}</Text>
             <View style={styles.modalActions}>
-              <TouchableOpacity style={[styles.modalButton, styles.modalButtonCancel]} onPress={hideConfirm}>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.modalButtonCancel]} 
+                onPress={hideConfirm}
+                disabled={confirmLoading}
+              >
                 <Text style={styles.modalButtonText}>{confirmCancelText}</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.modalButton, styles.modalButtonConfirm]}
+                style={[
+                  styles.modalButton, 
+                  styles.modalButtonConfirm,
+                  confirmLoading && styles.modalButtonDisabled
+                ]}
                 onPress={async () => {
+                  if (confirmLoading) return; // Prevent multiple clicks
+                  
                   console.log('Confirm button pressed, calling onConfirm...');
+                  setConfirmLoading(true); // Set loading state
+                  
                   if (confirmActionRef.current) {
-                    await confirmActionRef.current();
+                    try {
+                      await confirmActionRef.current();
+                    } catch (error) {
+                      console.error('Error in confirm action:', error);
+                      setConfirmLoading(false); // Reset loading on error
+                    }
                   } else {
                     console.log('No confirm action found, hiding dialog...');
                     hideConfirm();
                   }
                 }}
+                disabled={confirmLoading}
               >
-                <Text style={styles.modalButtonText}>{confirmConfirmText}</Text>
+                <Text style={styles.modalButtonText}>
+                  {confirmLoading ? '⏳ Processing...' : confirmConfirmText}
+                </Text>
               </TouchableOpacity>
             </View>
-            
           </View>
         </View>
       )}
 
       {successVisible && (
-        <View style={styles.modalBackdrop}>
-          <View style={[styles.modalCard, styles.successCard]}>
-            <Text style={[styles.modalTitle, styles.successTitle]}>{successTitle}</Text>
-            <Text style={[styles.modalMessage, styles.successMessage]}>{successMessage}</Text>
-            <View style={styles.successActions}>
-              <TouchableOpacity style={styles.successButton} onPress={hideSuccess}>
-                <Text style={styles.successButtonText}>OK</Text>
-              </TouchableOpacity>
-            </View>
+        <View style={[
+          styles.pushNotification,
+          {
+            transform: [{ translateY: successAnimation ? 0 : -100 }],
+            opacity: successAnimation ? 1 : 0,
+          }
+        ]}>
+          <View style={styles.pushNotificationContent}>
+            <Text style={styles.pushNotificationTitle}>{successTitle}</Text>
+            <Text style={styles.pushNotificationMessage}>{successMessage}</Text>
           </View>
         </View>
       )}
 
       {errorVisible && (
-        <View style={styles.modalBackdrop}>
-          <View style={[styles.modalCard, styles.errorCard]}>
-            <Text style={[styles.modalTitle, styles.errorTitle]}>{errorTitle}</Text>
-            <Text style={[styles.modalMessage, styles.errorMessage]}>{errorMessage}</Text>
-            <View style={styles.errorActions}>
-              <TouchableOpacity style={styles.errorButton} onPress={hideError}>
-                <Text style={styles.errorButtonText}>OK</Text>
-              </TouchableOpacity>
-            </View>
+        <View style={[
+          styles.pushNotificationError,
+          {
+            transform: [{ translateY: errorAnimation ? 0 : -100 }],
+            opacity: errorAnimation ? 1 : 0,
+          }
+        ]}>
+          <View style={styles.pushNotificationContent}>
+            <Text style={styles.pushNotificationTitle}>{errorTitle}</Text>
+            <Text style={styles.pushNotificationMessage}>{errorMessage}</Text>
           </View>
         </View>
       )}
@@ -1733,6 +2063,10 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
   },
+  modalButtonDisabled: {
+    opacity: 0.7,
+    backgroundColor: '#9ca3af',
+  },
   modalButtonCancel: {
     backgroundColor: '#f1f5f9',
   },
@@ -1753,28 +2087,30 @@ const styles = StyleSheet.create({
     borderTopColor: '#10b981',
   },
   successTitle: {
-    color: '#0f172a',
+    color: '#10b981',
   },
   successMessage: {
-    color: '#475569',
+    color: '#059669',
   },
   successButton: {
-    backgroundColor: '#ffffff', // White button for success
+    backgroundColor: '#10b981',
     paddingVertical: 12,
-    paddingHorizontal: 24,
     borderRadius: 10,
     alignItems: 'center',
-    minWidth: 100,
-    shadowColor: '#000',
+    marginTop: 16,
+    shadowColor: '#10b981',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
     elevation: 3,
   },
   successButtonText: {
-    color: '#10b981', // Green text for success button
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
   },
   successActions: {
+    marginTop: 16,
     alignItems: 'center',
   },
   // Error popup specific styles - neutral card with red top border
@@ -1783,42 +2119,113 @@ const styles = StyleSheet.create({
     borderTopColor: '#ef4444',
   },
   errorTitle: {
-    color: '#0f172a',
+    color: '#ef4444',
   },
   errorMessage: {
-    color: '#475569',
+    color: '#dc2626',
   },
   errorButton: {
-    backgroundColor: '#ffffff', // White button for error
+    backgroundColor: '#ef4444',
     paddingVertical: 12,
-    paddingHorizontal: 24,
     borderRadius: 10,
     alignItems: 'center',
-    minWidth: 100,
+    marginTop: 16,
+    shadowColor: '#ef4444',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  errorButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  errorActions: {
+    marginTop: 16,
+    alignItems: 'center',
+  },
+  pushNotification: {
+    position: 'absolute',
+    top: 20,
+    left: 15,
+    right: 15,
+    backgroundColor: '#10b981', // Green background
+    padding: 15,
+    zIndex: 9998, // Below modal, but above other content
+    elevation: 9998,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+  },
+  pushNotificationContent: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
+    backgroundColor: '#ffffff',
+    padding: 12,
+    borderRadius: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
-  errorButtonText: {
-    color: '#ef4444', // Red text for error button
+  pushNotificationTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0f172a',
+    marginBottom: 4,
   },
-  errorActions: {
-    alignItems: 'center',
-  },
-  fallbackCloseButton: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    backgroundColor: '#f1f5f9',
-    padding: 8,
-    borderRadius: 8,
-    zIndex: 1,
-  },
-  fallbackCloseButtonText: {
+  pushNotificationMessage: {
     fontSize: 14,
-    color: '#3b82f6',
-    fontWeight: '600',
+    color: '#475569',
+    flexShrink: 1, // Allow message to shrink if title is long
   },
+  pushNotificationError: {
+    position: 'absolute',
+    top: 20,
+    left: 15,
+    right: 15,
+    backgroundColor: '#ef4444', // Red background for error
+    padding: 15,
+    zIndex: 9998, // Below modal, but above other content
+    elevation: 9998,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+    gap: 12,
+  },
+  statsColumn: {
+    flex: 1,
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  statsLabel: {
+    fontSize: 14,
+    color: '#64748b',
+    fontWeight: '500',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  statsValue: {
+    fontSize: 24,
+    color: '#3b82f6',
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+
 });

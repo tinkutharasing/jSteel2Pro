@@ -24,7 +24,7 @@ export interface Weld {
   amps: string;
   volts: string;
   ipm: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved' | 'rejected' | 'deleted';
   createdAt?: string;
   updatedAt?: string;
 }
@@ -54,7 +54,7 @@ export interface WeldFormData {
   amps: string;
   volts: string;
   ipm: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved' | 'rejected' | 'deleted';
 }
 
 export type Screen = 'home' | 'add' | 'view' | 'settings';

@@ -189,7 +189,7 @@ function addWeld(weld) {
       weld.inspectorSignature ? 'Yes' : 'No',
       '', // Weld Sketch
       '', // Defect Sketch
-      'Active', // Sheet Status
+      weld.status === 'deleted' ? 'Deleted' : 'Active', // Sheet Status - use weld status or default to Active
       new Date().toISOString(), // Created At
       new Date().toISOString(), // Updated At
     ];
@@ -228,8 +228,8 @@ function getWelds() {
         continue; // Skip this row
       }
       
-      // Only process active welds with valid data
-      if (row[28] === 'Active' && row[0] && row[2]) { // ID and Weld Number must exist
+      // Only process welds with valid data (both active and deleted)
+      if (row[0] && row[2]) { // ID and Weld Number must exist
         const weld = {
           id: row[0],
           date: row[1] || '',
