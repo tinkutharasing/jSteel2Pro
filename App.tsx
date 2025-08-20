@@ -585,10 +585,11 @@ export default function App() {
       setWelds(newWelds);
       
       // Auto-sync to Google Sheets if connected and sync enabled
+      // Note: This function triggers auto-sync - use direct AsyncStorage.save for trash/restore operations
       if (googleSheetsConnected && syncEnabled) {
         // Use setTimeout to make the sync non-blocking
         setTimeout(() => {
-          autoSyncToGoogleSheets(newWelds);
+          autoSyncToGoogleSheets(newWelds, trashWelds);
         }, 0);
       }
     } catch (error) {
@@ -860,11 +861,16 @@ export default function App() {
           const updatedWelds = [weld, ...welds];
           
           // Update local state first
-          await saveTrashWelds(updatedTrashWelds);
-          await saveWelds(updatedWelds);
-          
           setTrashWelds(updatedTrashWelds);
           setWelds(updatedWelds);
+          
+          // Save directly to AsyncStorage without triggering auto-sync (since we're just recovering from trash)
+          try {
+            await AsyncStorage.setItem('trashWelds', JSON.stringify(updatedTrashWelds));
+            await AsyncStorage.setItem('welds', JSON.stringify(updatedWelds));
+          } catch (error) {
+            console.error('Error saving to AsyncStorage:', error);
+          }
           
           if (googleSheetsConnected && syncEnabled) {
             showSuccess('Recovered', `${weld.weldNumber} has been recovered successfully and added back to Google Sheets!`);
@@ -992,9 +998,9 @@ export default function App() {
       const existingSheetWelds = await sheetsService.syncWeldsFromSheet();
       const existingWeldMap = new Map();
       
-      // Create a map of existing weld numbers to their IDs for quick lookup
+      // Create a map of existing weld numbers for quick lookup
       existingSheetWelds.forEach(sheetWeld => {
-        existingWeldMap.set(sheetWeld.weldNumber, sheetWeld.id);
+        existingWeldMap.set(sheetWeld.weldNumber, true);
       });
       
       console.log(`Found ${existingSheetWelds.length} existing welds in Google Sheets`);
@@ -1041,9 +1047,9 @@ export default function App() {
       for (const weld of welds) {
         try {
           // Check if this weld already exists in Google Sheets
-          const existingWeldId = existingWeldMap.get(weld.weldNumber);
+          const weldExists = existingWeldMap.has(weld.weldNumber);
           
-          if (existingWeldId) {
+          if (weldExists) {
             // Weld exists, update it
             console.log(`Weld ${weld.weldNumber} already exists in Google Sheets, updating...`);
             const updateResult = await sheetsService.updateWeld(weld);
@@ -1082,9 +1088,9 @@ export default function App() {
         for (const trashedWeld of trashWelds) {
           try {
             // Check if this trashed weld already exists in Google Sheets
-            const existingWeldId = existingWeldMap.get(trashedWeld.weldNumber);
+            const weldExists = existingWeldMap.has(trashedWeld.weldNumber);
             
-            if (existingWeldId) {
+            if (weldExists) {
               // Weld exists in sheet, delete it
               console.log(`Deleting trashed weld ${trashedWeld.weldNumber} from Google Sheets...`);
               const success = await sheetsService.deleteWeld(trashedWeld.weldNumber);
@@ -1124,7 +1130,7 @@ export default function App() {
     }
   }, [googleSheetsConnected, googleSheetsConfig, welds, trashWelds, syncEnabled]);
 
-  const autoSyncToGoogleSheets = useCallback(async (weldsToSync: Weld[]) => {
+  const autoSyncToGoogleSheets = useCallback(async (weldsToSync: Weld[], currentTrashWelds?: Weld[]) => {
     if (!googleSheetsConnected || !syncEnabled) {
       return; // Silent return for auto-sync if not connected or sync disabled
     }
@@ -1144,9 +1150,9 @@ export default function App() {
       const existingSheetWelds = await sheetsService.syncWeldsFromSheet();
       const existingWeldMap = new Map();
       
-      // Create a map of existing weld numbers to their IDs for quick lookup
+      // Create a map of existing weld numbers for quick lookup
       existingSheetWelds.forEach(sheetWeld => {
-        existingWeldMap.set(sheetWeld.weldNumber, sheetWeld.id);
+        existingWeldMap.set(sheetWeld.weldNumber, true);
       });
       
       console.log(`Auto-sync: Found ${existingSheetWelds.length} existing welds in Google Sheets`);
@@ -1189,9 +1195,9 @@ export default function App() {
       for (const weld of weldsToSync) {
         try {
           // Check if this weld already exists in Google Sheets
-          const existingWeldId = existingWeldMap.get(weld.weldNumber);
+          const weldExists = existingWeldMap.has(weld.weldNumber);
           
-          if (existingWeldId) {
+          if (weldExists) {
             // Weld exists, update it
             console.log(`Auto-sync: Weld ${weld.weldNumber} already exists, updating...`);
             const updateResult = await sheetsService.updateWeld(weld);
@@ -1223,16 +1229,19 @@ export default function App() {
       }
       
       // Now sync trashed items to Google Sheets
-      if (trashWelds.length > 0) {
-        console.log(`Auto-sync: Syncing ${trashWelds.length} trashed items to Google Sheets...`);
+      // Use the passed currentTrashWelds parameter or fall back to state
+      const trashedWeldsToProcess = currentTrashWelds || trashWelds;
+      
+      if (trashedWeldsToProcess.length > 0) {
+        console.log(`Auto-sync: Syncing ${trashedWeldsToProcess.length} trashed items to Google Sheets...`);
         
         trashedCount = 0;
-        for (const trashedWeld of trashWelds) {
+        for (const trashedWeld of trashedWeldsToProcess) {
           try {
             // Check if this trashed weld already exists in Google Sheets
-            const existingWeldId = existingWeldMap.get(trashedWeld.weldNumber);
+            const weldExists = existingWeldMap.has(trashedWeld.weldNumber);
             
-            if (existingWeldId) {
+            if (weldExists) {
               // Weld exists in sheet, delete it
               console.log(`Auto-sync: Deleting trashed weld ${trashedWeld.weldNumber} from Google Sheets...`);
               const success = await sheetsService.deleteWeld(trashedWeld.weldNumber);
@@ -1283,9 +1292,9 @@ export default function App() {
       const existingSheetWelds = await sheetsService.syncWeldsFromSheet();
       const existingWeldMap = new Map();
       
-      // Create a map of existing weld numbers to their IDs for quick lookup
+      // Create a map of existing weld numbers for quick lookup
       existingSheetWelds.forEach(sheetWeld => {
-        existingWeldMap.set(sheetWeld.weldNumber, sheetWeld.id);
+        existingWeldMap.set(sheetWeld.weldNumber, true);
       });
       
       console.log(`Changed welds sync: Found ${existingSheetWelds.length} existing welds in Google Sheets`);
@@ -1299,9 +1308,9 @@ export default function App() {
       for (const weld of changedWelds) {
         try {
           // Check if this weld already exists in Google Sheets
-          const existingWeldId = existingWeldMap.get(weld.weldNumber);
+          const weldExists = existingWeldMap.has(weld.weldNumber);
           
-          if (existingWeldId) {
+          if (weldExists) {
             // Weld exists, update it
             console.log(`Changed welds sync: Weld ${weld.weldNumber} already exists, updating...`);
             const updateResult = await sheetsService.updateWeld(weld);
