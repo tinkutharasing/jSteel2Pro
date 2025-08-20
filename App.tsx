@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { SafeAreaView, KeyboardAvoidingView, Platform, StatusBar, View, Text, StyleSheet, BackHandler, TouchableOpacity, ScrollView } from 'react-native';
+import { SafeAreaView, KeyboardAvoidingView, Platform, StatusBar, View, Text, StyleSheet, BackHandler, TouchableOpacity, ScrollView, TextInput } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Weld, WeldFormData, Screen } from './src/types/Weld';
@@ -25,6 +25,13 @@ export default function App() {
                   });
   const [googleSheetsModalVisible, setGoogleSheetsModalVisible] = useState(false);
   const [syncEnabled, setSyncEnabled] = useState(true); // New state for sync toggle
+  const [securityPin, setSecurityPin] = useState('1234'); // Default PIN for destructive operations
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pendingDestructiveAction, setPendingDestructiveAction] = useState<(() => void) | null>(null);
+  const [pinInput, setPinInput] = useState('');
+  const [showPinChangeModal, setShowPinChangeModal] = useState(false);
+  const [newPinInput, setNewPinInput] = useState('');
+  const [confirmPinInput, setConfirmPinInput] = useState('');
   
   // Sample data constant - this will always contain the original sample data
   const SAMPLE_WELDS: Weld[] = [
@@ -418,6 +425,81 @@ export default function App() {
     }
   };
 
+  // PIN Authentication Functions
+  const authenticateUser = async (): Promise<boolean> => {
+    return new Promise((resolve) => {
+      setPendingDestructiveAction(() => () => resolve(true));
+      setPinInput('');
+      setShowPinModal(true);
+    });
+  };
+
+  const verifyPin = (inputPin: string): boolean => {
+    return inputPin === securityPin;
+  };
+
+  const showPinPrompt = (action: () => void) => {
+    setPendingDestructiveAction(() => action);
+    setPinInput('');
+    setShowPinModal(true);
+  };
+
+  const handlePinSubmit = () => {
+    if (verifyPin(pinInput)) {
+      setShowPinModal(false);
+      setPinInput('');
+      if (pendingDestructiveAction) {
+        pendingDestructiveAction();
+        setPendingDestructiveAction(null);
+      }
+    } else {
+      setPinInput('');
+      showError('Invalid PIN', 'Please enter the correct 4-digit PIN');
+    }
+  };
+
+  const handlePinCancel = () => {
+    setShowPinModal(false);
+    setPinInput('');
+    setPendingDestructiveAction(null);
+  };
+
+  const handlePinChange = () => {
+    setShowPinChangeModal(true);
+    setNewPinInput('');
+    setConfirmPinInput('');
+  };
+
+  const handlePinChangeSubmit = () => {
+    if (newPinInput.length !== 4 || confirmPinInput.length !== 4) {
+      showError('Invalid PIN', 'Please enter 4-digit PINs');
+      return;
+    }
+    
+    if (newPinInput !== confirmPinInput) {
+      showError('PIN Mismatch', 'The two PINs do not match');
+      setConfirmPinInput('');
+      return;
+    }
+    
+    if (!/^\d{4}$/.test(newPinInput)) {
+      showError('Invalid PIN', 'PIN must contain only numbers');
+      return;
+    }
+    
+    setSecurityPin(newPinInput);
+    setShowPinChangeModal(false);
+    setNewPinInput('');
+    setConfirmPinInput('');
+    showSuccess('PIN Updated', 'Security PIN has been updated successfully!');
+  };
+
+  const handlePinChangeCancel = () => {
+    setShowPinChangeModal(false);
+    setNewPinInput('');
+    setConfirmPinInput('');
+  };
+
   const resetToSampleData = async () => {
     try {
       console.log('Resetting to sample data...');
@@ -494,6 +576,13 @@ export default function App() {
   };
 
   const clearAllData = async () => {
+    // First authenticate the user
+    const isAuthenticated = await authenticateUser();
+    if (!isAuthenticated) {
+      return; // User cancelled or authentication failed
+    }
+
+    // Then show confirmation dialog
     showConfirm({
       title: 'Clear All Data',
       message: 'This will remove all welds and trash data. This action cannot be undone.',
@@ -544,14 +633,20 @@ export default function App() {
   };
 
   const confirmResetToSampleData = () => {
-    showConfirm({
-      title: 'Reset to Sample Data',
-      message: 'This will overwrite current data with 5 sample entries.',
-      confirmText: 'Reset',
-      cancelText: 'Cancel',
-      onConfirm: async () => {
-        await resetToSampleData();
-        hideConfirm();
+    // First authenticate the user
+    authenticateUser().then((isAuthenticated) => {
+      if (isAuthenticated) {
+        // Then show confirmation dialog
+        showConfirm({
+          title: 'Reset to Sample Data',
+          message: 'This will overwrite current data with 5 sample entries.',
+          confirmText: 'Reset',
+          cancelText: 'Cancel',
+          onConfirm: async () => {
+            await resetToSampleData();
+            hideConfirm();
+          }
+        });
       }
     });
   };
@@ -1425,6 +1520,13 @@ export default function App() {
       return;
     }
     
+    // First authenticate the user with PIN
+    const isAuthenticated = await authenticateUser();
+    if (!isAuthenticated) {
+      return; // User cancelled or authentication failed
+    }
+    
+    // Then show confirmation dialog
     showConfirm({
       title: 'Force Initialize Sheet',
       message: 'This will completely clear the sheet and create new headers. All existing data will be lost. Continue?',
@@ -1474,6 +1576,13 @@ export default function App() {
       return;
     }
     
+    // First authenticate the user with PIN
+    const isAuthenticated = await authenticateUser();
+    if (!isAuthenticated) {
+      return; // User cancelled or authentication failed
+    }
+    
+    // Then show confirmation dialog
     showConfirm({
       title: 'Clear Sheet Data',
       message: 'This will remove all weld data from Google Sheets but keep the headers. This action cannot be undone.',
@@ -1725,6 +1834,31 @@ export default function App() {
                 <Text style={styles.resetButtonText}>🗑️ Clear All Data</Text>
               </TouchableOpacity>
 
+              {/* Security Settings Section */}
+              <View style={styles.settingsSection}>
+                <Text style={styles.settingsSectionTitle}>🔒 Security Settings</Text>
+                <Text style={styles.settingsSectionSubtitle}>Protect destructive operations with PIN authentication</Text>
+                
+                <View style={styles.settingsItem}>
+                  <Text style={styles.settingsItemLabel}>Authentication Method</Text>
+                  <Text style={styles.settingsItemValue}>🔢 PIN Code</Text>
+                </View>
+                
+                <View style={styles.settingsItem}>
+                  <Text style={styles.settingsItemLabel}>Security PIN</Text>
+                  <Text style={styles.settingsItemValue}>
+                    {securityPin === '1234' ? 'Default (1234)' : 'Custom PIN'}
+                  </Text>
+                </View>
+                
+                <TouchableOpacity 
+                  style={styles.googleSheetsButton} 
+                  onPress={handlePinChange}
+                >
+                  <Text style={styles.googleSheetsButtonText}>🔐 Change PIN</Text>
+                </TouchableOpacity>
+              </View>
+
               {/* Google Sheets Integration Section */}
               <View style={styles.settingsSection}>
                 <Text style={styles.settingsSectionTitle}>📊 Google Sheets Integration</Text>
@@ -1943,6 +2077,108 @@ export default function App() {
           <View style={styles.pushNotificationContent}>
             <Text style={styles.pushNotificationTitle}>{errorTitle}</Text>
             <Text style={styles.pushNotificationMessage}>{errorMessage}</Text>
+          </View>
+        </View>
+      )}
+
+      {/* Security PIN Modal */}
+      {showPinModal && (
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>🔒 Security PIN Required</Text>
+            <Text style={styles.modalMessage}>
+              This action requires a security PIN to prevent accidental data loss.
+            </Text>
+            
+            <View style={styles.pinInputContainer}>
+              <Text style={styles.pinLabel}>Enter 4-digit PIN:</Text>
+              <TextInput
+                style={styles.pinInput}
+                value={pinInput}
+                onChangeText={setPinInput}
+                placeholder="1234"
+                placeholderTextColor="#9ca3af"
+                keyboardType="numeric"
+                maxLength={4}
+                secureTextEntry={false}
+                autoFocus={true}
+              />
+            </View>
+            
+            <View style={styles.modalActions}>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.modalButtonCancel]} 
+                onPress={handlePinCancel}
+              >
+                <Text style={styles.modalButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonConfirm]}
+                onPress={handlePinSubmit}
+                disabled={pinInput.length !== 4}
+              >
+                <Text style={styles.modalButtonText}>
+                  {pinInput.length === 4 ? 'Verify PIN' : 'Enter 4 digits'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {/* PIN Change Modal */}
+      {showPinChangeModal && (
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>🔐 Change Security PIN</Text>
+            <Text style={styles.modalMessage}>
+              Enter a new 4-digit security PIN to protect destructive operations.
+            </Text>
+            
+            <View style={styles.pinInputContainer}>
+              <Text style={styles.pinLabel}>New PIN:</Text>
+              <TextInput
+                style={styles.pinInput}
+                value={newPinInput}
+                onChangeText={setNewPinInput}
+                placeholder="0000"
+                placeholderTextColor="#9ca3af"
+                keyboardType="numeric"
+                maxLength={4}
+                secureTextEntry={false}
+                autoFocus={true}
+              />
+              
+              <Text style={[styles.pinLabel, { marginTop: 16 }]}>Confirm PIN:</Text>
+              <TextInput
+                style={styles.pinInput}
+                value={confirmPinInput}
+                onChangeText={setConfirmPinInput}
+                placeholder="0000"
+                placeholderTextColor="#9ca3af"
+                keyboardType="numeric"
+                maxLength={4}
+                secureTextEntry={false}
+              />
+            </View>
+            
+            <View style={styles.modalActions}>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.modalButtonCancel]} 
+                onPress={handlePinChangeCancel}
+              >
+                <Text style={styles.modalButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonConfirm]}
+                onPress={handlePinChangeSubmit}
+                disabled={newPinInput.length !== 4 || confirmPinInput.length !== 4}
+              >
+                <Text style={styles.modalButtonText}>
+                  {newPinInput.length === 4 && confirmPinInput.length === 4 ? 'Update PIN' : 'Enter PINs'}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       )}
@@ -2494,6 +2730,30 @@ const styles = StyleSheet.create({
   disabledButton: {
     opacity: 0.5,
     backgroundColor: '#9ca3af',
+  },
+  // PIN Modal styles
+  pinInputContainer: {
+    marginVertical: 20,
+    alignItems: 'center',
+  },
+  pinLabel: {
+    fontSize: 16,
+    color: '#374151',
+    fontWeight: '500',
+    marginBottom: 12,
+  },
+  pinInput: {
+    width: 120,
+    height: 50,
+    borderWidth: 2,
+    borderColor: '#d1d5db',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    fontSize: 20,
+    fontWeight: '700',
+    textAlign: 'center',
+    backgroundColor: '#ffffff',
+    color: '#1f2937',
   },
 
 });
