@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView, Platform } from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons';
 
 import { WeldFormData } from '../types/Weld';
 import { FormField } from '../components/FormField';
@@ -39,7 +40,8 @@ export const WeldFormScreen: React.FC<WeldFormScreenProps> = ({
       <View style={styles.container}>
         <Text style={styles.errorText}>Error: Form data not loaded</Text>
         <TouchableOpacity style={styles.backButton} onPress={onBack}>
-          <Text style={styles.backButtonText}>← Back</Text>
+          <Icon name="chevron-back" size={20} color="#3b82f6" />
+          <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -49,7 +51,8 @@ export const WeldFormScreen: React.FC<WeldFormScreenProps> = ({
     <SafeAreaView style={styles.safeContainer}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={onBack}>
-          <Text style={styles.backButtonText}>← Back</Text>
+          <Icon name="chevron-back" size={20} color="#3b82f6" />
+          <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
         <Text style={styles.title}>{isEditMode ? 'Edit Weld' : 'Add New Weld'}</Text>
         <View style={styles.placeholder} />
@@ -356,6 +359,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
   },
   backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
     padding: 8,
     borderRadius: 8,
     backgroundColor: '#f1f5f9',

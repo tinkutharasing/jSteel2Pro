@@ -1800,7 +1800,6 @@ export default function App() {
           <WeldViewScreen
             weld={selectedWeld}
             onEdit={editWeld}
-            onDelete={deleteWeld}
             onBack={handleBack}
           />
         ) : null;
@@ -1812,9 +1811,10 @@ export default function App() {
                 <Icon name="chevron-back" size={20} color="#3b82f6" />
                 <Text style={styles.settingsBackButtonText}>Back</Text>
               </TouchableOpacity>
+              <Text style={styles.settingsTitle}>Settings</Text>
+              <View style={styles.settingsPlaceholder} />
             </View>
             <ScrollView style={styles.settingsContent} showsVerticalScrollIndicator={false}>
-              <Text style={styles.settingsTitle}>Settings</Text>
               <Text style={styles.settingsSubtitle}>App configuration and preferences</Text>
               
               {/* Stats Row - 2 columns */}
@@ -2216,7 +2216,11 @@ const styles = StyleSheet.create({
   settingsHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    justifyContent: 'space-between',
+    padding: 20,
+    paddingTop: 50, // Adjust for safe area
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    marginBottom: 0,
   },
   settingsBackButton: {
     flexDirection: 'row',
@@ -2232,15 +2236,20 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   settingsTitle: {
-    fontSize: 32,
-    fontWeight: '900',
+    fontSize: 25,
+    fontWeight: '500',
     color: '#0f172a',
-    marginBottom: 10,
+    textAlign: 'center',
+    marginBottom: 0,
+  },
+  settingsPlaceholder: {
+    width: 60, // Same width as back button for centering
   },
   settingsSubtitle: {
     fontSize: 18,
     color: '#64748b',
-    marginBottom: 40,
+    marginTop: 15,
+    marginBottom: 10,
   },
   settingsItem: {
     flexDirection: 'row',

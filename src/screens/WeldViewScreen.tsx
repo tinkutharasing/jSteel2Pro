@@ -34,7 +34,8 @@ export const WeldViewScreen: React.FC<WeldViewScreenProps> = ({ weld, onBack, on
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={onBack}>
-          <Text style={styles.backButtonText}>← Back</Text>
+          <Icon name="chevron-back" size={20} color="#3b82f6" />
+          <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Weld Details</Text>
         <TouchableOpacity style={styles.editButton} onPress={() => onEdit(weld)}>
@@ -317,6 +318,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
   },
   backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
     padding: 8,
     borderRadius: 8,
     backgroundColor: '#f1f5f9',
