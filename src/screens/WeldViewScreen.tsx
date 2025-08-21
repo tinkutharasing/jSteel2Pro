@@ -43,7 +43,7 @@ export const WeldViewScreen: React.FC<WeldViewScreenProps> = ({ weld, onBack, on
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.subtitle}>SAW Groove Weld Inspection Form - {weld.wps} - {formatDateToUS(weld.date)}</Text>
+        <Text style={styles.subtitle}>Weld {weld.weldNumber} - {weld.wps} - {formatDateToUS(weld.date)}</Text>
         
         {/* Basic Information */}
         <View style={styles.section}>
@@ -352,7 +352,8 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#64748b',
     textAlign: 'center',
-    marginBottom: 10,
+    marginTop: 15,
+    marginBottom: 5,
   },
   section: {
     backgroundColor: '#ffffff',

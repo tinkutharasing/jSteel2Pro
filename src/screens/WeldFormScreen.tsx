@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView, Platform } from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons';
+
 import { WeldFormData } from '../types/Weld';
 import { FormField } from '../components/FormField';
 import { DatePickerField } from '../components/DatePickerField';
@@ -38,9 +38,8 @@ export const WeldFormScreen: React.FC<WeldFormScreenProps> = ({
     return (
       <View style={styles.container}>
         <Text style={styles.errorText}>Error: Form data not loaded</Text>
-        <TouchableOpacity style={styles.backButtonContainer} onPress={onBack}>
-          <Icon name="chevron-back" size={20} color="#3b82f6" />
-          <Text style={styles.backButton}>Back</Text>
+        <TouchableOpacity style={styles.backButton} onPress={onBack}>
+          <Text style={styles.backButtonText}>← Back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -49,10 +48,11 @@ export const WeldFormScreen: React.FC<WeldFormScreenProps> = ({
   return (
     <SafeAreaView style={styles.safeContainer}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButtonContainer} onPress={onBack}>
-          <Icon name="chevron-back" size={20} color="#3b82f6" />
-          <Text style={styles.backButton}>Back</Text>
+        <TouchableOpacity style={styles.backButton} onPress={onBack}>
+          <Text style={styles.backButtonText}>← Back</Text>
         </TouchableOpacity>
+        <Text style={styles.title}>{isEditMode ? 'Edit Weld' : 'Add New Weld'}</Text>
+        <View style={styles.placeholder} />
       </View>
       
       <ScrollView 
@@ -60,7 +60,6 @@ export const WeldFormScreen: React.FC<WeldFormScreenProps> = ({
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={true}
       >
-        <Text style={styles.title}>{isEditMode ? 'Edit Weld' : 'Add New Weld'}</Text>
         <Text style={styles.subtitle}>
           {isEditMode ? 'Edit Weld Inspection Form' : 'SAW Groove Weld Inspection Form - 2 Required Fields'}
         </Text>
@@ -351,37 +350,37 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 15,
-    paddingTop: Platform.OS === 'android' ? 20 : 15,
+    justifyContent: 'space-between',
+    padding: 20,
+    paddingTop: 50, // Adjust for safe area
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
   },
-  backButtonContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  backButton: {
     padding: 8,
     borderRadius: 8,
     backgroundColor: '#f1f5f9',
     gap: 8,
   },
-  backButton: {
+  backButtonText: {
     fontSize: 16,
     color: '#3b82f6',
     fontWeight: '500',
   },
   title: {
-    fontSize: 28,
-    fontWeight: '100',
+    fontSize: 25,
+    fontWeight: '500',
     color: '#0f172a',
     textAlign: 'center',
-    marginTop: Platform.OS === 'android' ? 20 : 15,
-    marginBottom: 8,
-    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
+  },
+  placeholder: {
+    width: 60, // Same width as back button for centering
   },
   subtitle: {
     fontSize: 16,
     color: '#64748b',
     textAlign: 'center',
-    marginBottom: 20,
+    marginTop: 15,
+    marginBottom: 10,
     fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
     lineHeight: 20,
   },
