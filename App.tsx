@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { SafeAreaView, KeyboardAvoidingView, Platform, StatusBar, View, Text, StyleSheet, BackHandler, TouchableOpacity, ScrollView, TextInput } from 'react-native';
+import { SafeAreaView, KeyboardAvoidingView, Platform, StatusBar, View, Text, StyleSheet, BackHandler, TouchableOpacity, ScrollView, TextInput, Dimensions } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Weld, WeldFormData, Screen } from './src/types/Weld';
@@ -12,6 +12,20 @@ import { getCurrentDateISO } from './src/utils/dateUtils';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('home');
+  
+  // Detect if we're on a tablet or large screen
+  const [isTablet, setIsTablet] = useState(false);
+  
+  useEffect(() => {
+    const checkScreenSize = () => {
+      const { width } = Dimensions.get('window');
+      setIsTablet(width > 768);
+    };
+    
+    checkScreenSize();
+    const subscription = Dimensions.addEventListener('change', checkScreenSize);
+    return () => subscription?.remove();
+  }, []);
   
                     // Google Sheets integration state
                   const [googleSheetsConnected, setGoogleSheetsConnected] = useState(false);
@@ -1821,7 +1835,19 @@ export default function App() {
             >
               <Text style={styles.settingsSubtitle}>App configuration and preferences</Text>
               
-              {/* Data Management Section - Moved to First */}
+              {/* Quick Stats */}
+              <View style={styles.statsRow}>
+                <View style={styles.statsColumn}>
+                  <Text style={styles.statsLabel}>Total Welds</Text>
+                  <Text style={styles.statsValue}>{welds.length}</Text>
+                </View>
+                <View style={styles.statsColumn}>
+                  <Text style={styles.statsLabel}>Trashed Items</Text>
+                  <Text style={styles.statsValue}>{trashWelds.length}</Text>
+                </View>
+              </View>
+
+              {/* Data Management Section */}
               <View style={styles.settingsSection}>
                 <Text style={styles.settingsSectionTitle}>🗄️ Data Management</Text>
                 <Text style={styles.settingsSectionSubtitle}>Manage your weld inspection data</Text>
@@ -1835,19 +1861,27 @@ export default function App() {
                 </TouchableOpacity>
               </View>
 
-              {/* Quick Stats */}
-              <View style={styles.statsRow}>
-                <View style={styles.statsColumn}>
-                  <Text style={styles.statsLabel}>Total Welds</Text>
-                  <Text style={styles.statsValue}>{welds.length}</Text>
+              {/* Security Settings Section */}
+              <View style={styles.settingsSection}>
+                <Text style={styles.settingsSectionTitle}>🔒 Security Settings</Text>
+                <Text style={styles.settingsSectionSubtitle}>Protect destructive operations with PIN authentication</Text>
+                
+                <View style={styles.settingsItem}>
+                  <Text style={styles.settingsItemLabel}>Security PIN</Text>
+                  <Text style={styles.settingsItemValue}>
+                    {securityPin === '1234' ? 'Default (1234)' : 'Custom PIN'}
+                  </Text>
                 </View>
-                <View style={styles.statsColumn}>
-                  <Text style={styles.statsLabel}>Trashed Items</Text>
-                  <Text style={styles.statsValue}>{trashWelds.length}</Text>
-                </View>
+                
+                <TouchableOpacity 
+                  style={styles.googleSheetsButton} 
+                  onPress={handlePinChange}
+                >
+                  <Text style={styles.googleSheetsButtonText}>🔐 Change PIN</Text>
+                </TouchableOpacity>
               </View>
 
-              {/* Google Sheets Integration Section */}
+              {/* Google Sheets Integration Section - Full Width Below */}
               <View style={styles.settingsSection}>
                 <Text style={styles.settingsSectionTitle}>📊 Google Sheets Integration</Text>
                 <Text style={styles.settingsSectionSubtitle}>Sync your weld data with Google Sheets</Text>
@@ -1883,26 +1917,6 @@ export default function App() {
                     <Text style={styles.syncChangedButtonText}>🔄 Sync Changed Welds</Text>
                   </TouchableOpacity>
                 )}
-              </View>
-
-              {/* Security Settings Section */}
-              <View style={styles.settingsSection}>
-                <Text style={styles.settingsSectionTitle}>🔒 Security Settings</Text>
-                <Text style={styles.settingsSectionSubtitle}>Protect destructive operations with PIN authentication</Text>
-                
-                <View style={styles.settingsItem}>
-                  <Text style={styles.settingsItemLabel}>Security PIN</Text>
-                  <Text style={styles.settingsItemValue}>
-                    {securityPin === '1234' ? 'Default (1234)' : 'Custom PIN'}
-                  </Text>
-                </View>
-                
-                <TouchableOpacity 
-                  style={styles.googleSheetsButton} 
-                  onPress={handlePinChange}
-                >
-                  <Text style={styles.googleSheetsButtonText}>🔐 Change PIN</Text>
-                </TouchableOpacity>
               </View>
               
               {/* Bottom Spacer for better scroll */}
@@ -2248,6 +2262,7 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     elevation: 8,
   },
+
   settingsSectionTitle: {
     fontSize: 24,
     fontWeight: '800',
