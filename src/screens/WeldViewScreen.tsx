@@ -131,6 +131,39 @@ export const WeldViewScreen: React.FC<WeldViewScreenProps> = ({
             </Text>
           </View>
           
+          {/* Image Fields */}
+          <View style={styles.imageSection}>
+            <Text style={styles.imageSectionTitle}>Images</Text>
+            
+            <View style={styles.imageRow}>
+              <View style={styles.imageField}>
+                <Text style={styles.imageLabel}>Weld Sketch:</Text>
+                {weld.weldSketch ? (
+                  <Image 
+                    source={{ uri: weld.weldSketch }} 
+                    style={styles.imagePreview}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <Text style={styles.noImageText}>No weld sketch uploaded</Text>
+                )}
+              </View>
+              
+              <View style={styles.imageField}>
+                <Text style={styles.imageLabel}>Defect Sketch:</Text>
+                {weld.defectSketch ? (
+                  <Image 
+                    source={{ uri: weld.defectSketch }} 
+                    style={styles.imagePreview}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <Text style={styles.noImageText}>No defect sketch uploaded</Text>
+                )}
+              </View>
+            </View>
+          </View>
+          
           {/* Signature Fields */}
           <View style={styles.signatureSection}>
             <Text style={styles.signatureSectionTitle}>Signatures</Text>
@@ -337,6 +370,58 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fafc',
   },
   noSignatureText: {
+    fontSize: 14,
+    color: '#9ca3af',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    padding: 20,
+    backgroundColor: '#f1f5f9',
+    borderRadius: 8,
+    width: 120,
+  },
+  imageSection: {
+    backgroundColor: '#ffffff',
+    margin: 20,
+    marginTop: 0,
+    padding: 25,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  imageSectionTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#1e293b',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  imageRow: {
+    flexDirection: 'row',
+    gap: 20,
+  },
+  imageField: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  imageLabel: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#374151',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  imagePreview: {
+    width: 120,
+    height: 80,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 8,
+    backgroundColor: '#f8fafc',
+  },
+  noImageText: {
     fontSize: 14,
     color: '#9ca3af',
     fontStyle: 'italic',

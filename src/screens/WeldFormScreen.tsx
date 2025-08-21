@@ -4,6 +4,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import { WeldFormData } from '../types/Weld';
 import { FormField } from '../components/FormField';
 import { DatePickerField } from '../components/DatePickerField';
+import { ImageUploadField } from '../components/ImageUploadField';
 import { SignatureField } from '../components/SignatureField';
 
 interface WeldFormScreenProps {
@@ -301,6 +302,22 @@ export const WeldFormScreen: React.FC<WeldFormScreenProps> = ({
               value={formData.inspectorSignature || ''}
               onSignatureCaptured={(signature) => updateField('inspectorSignature', signature)}
               onClear={() => updateField('inspectorSignature', '')}
+            />
+          </View>
+
+          {/* Row 14 - Image Uploads */}
+          <View style={styles.formRow}>
+            <ImageUploadField
+              label="26. Weld Sketch"
+              value={formData.weldSketch || ''}
+              onImageChange={(imageUri) => updateField('weldSketch', imageUri)}
+              placeholder="Add Weld Sketch"
+            />
+            <ImageUploadField
+              label="27. Defect Sketch"
+              value={formData.defectSketch || ''}
+              onImageChange={(imageUri) => updateField('defectSketch', imageUri)}
+              placeholder="Add Defect Sketch"
             />
           </View>
           
