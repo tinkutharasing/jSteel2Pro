@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView, StatusBar, Image, Platform } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { Weld } from '../types/Weld';
+import { formatDateToUS } from '../utils/dateUtils';
 
 interface WeldViewScreenProps {
   weld: Weld;
@@ -32,7 +33,7 @@ export const WeldViewScreen: React.FC<WeldViewScreenProps> = ({
       
       <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
         <Text style={styles.title}>Weld Details</Text>
-        <Text style={styles.subtitle}>{weld.wps} - {weld.date}</Text>
+        <Text style={styles.subtitle}>{weld.wps} - {formatDateToUS(weld.date)}</Text>
         
         <View style={styles.viewSection}>
           <View style={styles.viewRow}>
@@ -49,7 +50,7 @@ export const WeldViewScreen: React.FC<WeldViewScreenProps> = ({
           </View>
           <View style={styles.viewRow}>
             <Text style={styles.viewLabel}>Date:</Text>
-            <Text style={styles.viewValue}>{weld.date}</Text>
+            <Text style={styles.viewValue}>{formatDateToUS(weld.date)}</Text>
           </View>
           <View style={styles.viewRow}>
             <Text style={styles.viewLabel}>Type Fit:</Text>

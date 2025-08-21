@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Weld } from '../types/Weld';
+import { formatDateToUS } from '../utils/dateUtils';
 
 interface WeldCardProps {
   weld: Weld;
@@ -38,7 +39,7 @@ export const WeldCard: React.FC<WeldCardProps> = ({ weld, onView, onEdit, onDele
       
       <Text style={styles.weldCardId}>{weld.weldNumber}</Text>
       <Text style={styles.weldCardWPS}>WPS: {weld.wps}</Text>
-      <Text style={styles.weldCardDate}>{weld.date}</Text>
+      <Text style={styles.weldCardDate}>{formatDateToUS(weld.date)}</Text>
       <Text style={styles.weldCardType}>{weld.typeFit}</Text>
       <Text style={styles.weldCardWelder}>Welder: {weld.welder}</Text>
       <Text style={styles.weldCardInspector}>Inspector: {weld.inspector}</Text>

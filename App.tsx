@@ -8,6 +8,7 @@ import { WeldFormScreen } from './src/screens/WeldFormScreen';
 import { WeldViewScreen } from './src/screens/WeldViewScreen';
 import { BottomNavigation } from './src/components/BottomNavigation';
 import { GoogleSheetsConfigModal } from './src/components/GoogleSheetsConfigModal';
+import { getCurrentDateISO } from './src/utils/dateUtils';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('home');
@@ -195,7 +196,7 @@ export default function App() {
   const [selectedWeld, setSelectedWeld] = useState<Weld | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [formData, setFormData] = useState<WeldFormData>({
-    date: '',
+    date: getCurrentDateISO(),
     typeFit: '',
     wps: '',
     pipeDia: '',
@@ -708,7 +709,7 @@ export default function App() {
 
   const resetForm = () => {
     setFormData({
-      date: '', typeFit: '', wps: '', pipeDia: '', gradeClass: '', weldNumber: '', welder: '', welderSignature: '',
+      date: getCurrentDateISO(), typeFit: '', wps: '', pipeDia: '', gradeClass: '', weldNumber: '', welder: '', welderSignature: '',
       inspector: '', inspectorSignature: '', firstHT: '', firstMfg: '', firstLength: '', jtNumber: '', secondHT: '', secondMfg: '',
       secondLength: '', preHeat: '', vt: '', process: '', ndeNumber: '', amps: '', volts: '', ipm: '', status: 'pending'
     });

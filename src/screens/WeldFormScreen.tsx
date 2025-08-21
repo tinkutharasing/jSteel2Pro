@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView, Pla
 import Icon from 'react-native-vector-icons/Ionicons';
 import { WeldFormData } from '../types/Weld';
 import { FormField } from '../components/FormField';
+import { DatePickerField } from '../components/DatePickerField';
 import { SignatureField } from '../components/SignatureField';
 
 interface WeldFormScreenProps {
@@ -90,11 +91,11 @@ export const WeldFormScreen: React.FC<WeldFormScreenProps> = ({
               onChangeText={(value) => updateField('wps', value)}
               placeholder="Enter WPS"
             />
-            <FormField
+            <DatePickerField
               label="4. Date"
               value={formData.date || ''}
-              onChangeText={(value) => updateField('date', value)}
-              placeholder="YYYY-MM-DD"
+              onDateChange={(value) => updateField('date', value)}
+              placeholder="MM/DD/YYYY"
             />
           </View>
 
