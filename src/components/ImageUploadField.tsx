@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image, Modal, Alert, Platform, PermissionsAndroid, Linking } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image, Modal, Alert, Platform, PermissionsAndroid, Linking, TextInput } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { launchCamera, launchImageLibrary, ImagePickerResponse, MediaType } from 'react-native-image-picker';
 
@@ -7,6 +7,8 @@ interface ImageUploadFieldProps {
   label: string;
   value: string;
   onImageChange: (imageUri: string) => void;
+  description: string;
+  onDescriptionChange: (description: string) => void;
   placeholder?: string;
   required?: boolean;
 }
@@ -15,40 +17,13 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
   label, 
   value, 
   onImageChange, 
+  description,
+  onDescriptionChange,
   placeholder = "Tap to add image",
   required = false 
 }) => {
   const [showOptions, setShowOptions] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-
-  // Test permissions on component mount
-  React.useEffect(() => {
-    if (Platform.OS === 'android') {
-      testPermissions();
-    }
-  }, []);
-
-  // Test all permissions to see their current status
-  const testPermissions = async () => {
-    try {
-      console.log('=== Testing Permissions ===');
-      console.log('Android API level:', Platform.Version);
-      
-      // Test camera permission
-      const cameraPermission = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.CAMERA);
-      console.log('Camera permission status:', cameraPermission);
-      
-      // Test storage permission (appropriate for API level)
-      const storagePermission = (Platform.Version as number) >= 33 
-        ? await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES)
-        : await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE);
-      console.log('Storage permission status:', storagePermission);
-      
-      console.log('=== End Permission Test ===');
-    } catch (error) {
-      console.error('Permission test error:', error);
-    }
-  };
 
   // Open device settings
   const openSettings = () => {
@@ -80,13 +55,8 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
   const requestCameraPermission = async () => {
     if (Platform.OS === 'android') {
       try {
-        console.log('Requesting camera permission...');
-        console.log('Android API level:', Platform.Version);
-        
         // Check if permission is already granted
         const hasPermission = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.CAMERA);
-        console.log('Camera permission already granted:', hasPermission);
-        
         if (hasPermission) {
           return true;
         }
@@ -103,8 +73,6 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
           }
         );
 
-        console.log('Camera permission result:', granted);
-
         if (granted === PermissionsAndroid.RESULTS.GRANTED) {
           return true;
         } else if (granted === PermissionsAndroid.RESULTS.DENIED) {
@@ -119,7 +87,6 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
               buttonPositive: "Allow"
             }
           );
-          console.log('Camera permission retry result:', retryGranted);
           return retryGranted === PermissionsAndroid.RESULTS.GRANTED;
         } else {
           // User selected "Don't ask again" or denied multiple times
@@ -145,12 +112,8 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
           ? PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES
           : PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE;
 
-        console.log('Requesting storage permission:', permission);
-        console.log('Android API level:', Platform.Version);
-
         // Check if permission is already granted
         const hasPermission = await PermissionsAndroid.check(permission);
-        console.log('Storage permission already granted:', hasPermission);
         
         if (hasPermission) {
           return true;
@@ -168,8 +131,6 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
           }
         );
 
-        console.log('Storage permission result:', granted);
-
         if (granted === PermissionsAndroid.RESULTS.GRANTED) {
           return true;
         } else if (granted === PermissionsAndroid.RESULTS.DENIED) {
@@ -184,7 +145,6 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
               buttonPositive: "Allow"
             }
           );
-          console.log('Storage permission retry result:', retryGranted);
           return retryGranted === PermissionsAndroid.RESULTS.GRANTED;
         } else {
           // User selected "Don't ask again" or denied multiple times
@@ -269,7 +229,10 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
         { 
           text: 'Remove', 
           style: 'destructive',
-          onPress: () => onImageChange('')
+          onPress: () => {
+            onImageChange('');
+            onDescriptionChange('');
+          }
         }
       ]
     );
@@ -286,58 +249,59 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
       </Text>
       
       {value ? (
-        // Image Preview
+        // Image Preview with Description
         <View style={styles.imageContainer}>
           <Image 
             source={{ uri: value }} 
             style={styles.imagePreview}
             resizeMode="cover"
           />
+          
+          {/* Action Buttons - Always on top */}
           <View style={styles.imageOverlay}>
             <TouchableOpacity 
               style={styles.overlayButton} 
               onPress={openImageOptions}
             >
               <Icon name="camera" size={20} color="#ffffff" />
-              <Text style={styles.overlayButtonText}>Change</Text>
             </TouchableOpacity>
             <TouchableOpacity 
               style={[styles.overlayButton, styles.removeButton]} 
               onPress={handleRemoveImage}
             >
               <Icon name="trash" size={20} color="#ffffff" />
-              <Text style={styles.overlayButtonText}>Remove</Text>
             </TouchableOpacity>
+          </View>
+          
+          {/* Description Field - Below the image and buttons */}
+          <View style={styles.descriptionContainer}>
+            <TextInput
+              style={styles.descriptionInput}
+              value={description}
+              onChangeText={onDescriptionChange}
+              placeholder="Add description for this image..."
+              multiline
+              numberOfLines={3}
+              textAlignVertical="top"
+            />
           </View>
         </View>
       ) : (
         // Upload Button
-        <View style={styles.uploadContainer}>
-          <TouchableOpacity 
-            style={styles.uploadButton} 
-            onPress={openImageOptions}
-            activeOpacity={0.7}
-            disabled={isLoading}
-          >
-            <Icon name="camera-outline" size={32} color={isLoading ? "#94a3b8" : "#64748b"} />
-            <Text style={[styles.uploadButtonText, isLoading && styles.uploadButtonTextDisabled]}>
-              {isLoading ? 'Processing...' : placeholder}
-            </Text>
-            <Text style={[styles.uploadSubtext, isLoading && styles.uploadButtonTextDisabled]}>
-              {isLoading ? 'Please wait...' : 'Tap to add from camera or gallery'}
-            </Text>
-          </TouchableOpacity>
-          
-          {/* Debug button for testing permissions */}
-          {__DEV__ && Platform.OS === 'android' && (
-            <TouchableOpacity 
-              style={styles.debugButton} 
-              onPress={testPermissions}
-            >
-              <Text style={styles.debugButtonText}>Test Permissions</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+        <TouchableOpacity 
+          style={styles.uploadButton} 
+          onPress={openImageOptions}
+          activeOpacity={0.7}
+          disabled={isLoading}
+        >
+          <Icon name="camera-outline" size={32} color={isLoading ? "#94a3b8" : "#64748b"} />
+          <Text style={[styles.uploadButtonText, isLoading && styles.uploadButtonTextDisabled]}>
+            {isLoading ? 'Processing...' : placeholder}
+          </Text>
+          <Text style={[styles.uploadSubtext, isLoading && styles.uploadButtonTextDisabled]}>
+            {isLoading ? 'Please wait...' : 'Tap to add from camera or gallery'}
+          </Text>
+        </TouchableOpacity>
       )}
 
       {/* Image Source Selection Modal */}
@@ -406,11 +370,6 @@ const styles = StyleSheet.create({
     color: '#1e293b',
     marginBottom: 6,
   },
-  uploadContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
   uploadButton: {
     borderWidth: 2,
     borderColor: '#e2e8f0',
@@ -432,58 +391,58 @@ const styles = StyleSheet.create({
   uploadSubtext: {
     fontSize: 12,
     color: '#94a3b8',
-    marginTop: 4,
     textAlign: 'center',
   },
-  debugButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    backgroundColor: '#3b82f6',
+  descriptionContainer: {
+    marginTop: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    backgroundColor: '#f8fafc',
     borderRadius: 8,
-    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    zIndex: 1,
+    position: 'relative',
   },
-  debugButtonText: {
-    color: '#ffffff',
+  descriptionInput: {
     fontSize: 14,
-    fontWeight: '600',
+    color: '#1e293b',
+    minHeight: 60,
+    textAlignVertical: 'top',
+    padding: 0,
   },
   imageContainer: {
     position: 'relative',
-    borderRadius: 12,
-    overflow: 'hidden',
-    minHeight: 120,
+    marginBottom: 6,
   },
   imagePreview: {
     width: '100%',
-    height: 120,
-    borderRadius: 12,
+    height: 200,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 8,
+    backgroundColor: '#f8fafc',
+    resizeMode: 'cover',
   },
   imageOverlay: {
     position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
+    top: 8,
+    right: 8,
     flexDirection: 'row',
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    padding: 12,
-    justifyContent: 'space-around',
+    gap: 8,
+    zIndex: 10,
   },
   overlayButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    padding: 8,
     borderRadius: 6,
-    backgroundColor: 'rgba(59, 130, 246, 0.8)',
-    gap: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 36,
+    minHeight: 36,
   },
   removeButton: {
-    backgroundColor: 'rgba(239, 68, 68, 0.8)',
-  },
-  overlayButtonText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '600',
+    backgroundColor: 'rgba(220, 38, 38, 0.9)',
   },
   modalOverlay: {
     flex: 1,

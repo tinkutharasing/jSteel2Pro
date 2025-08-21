@@ -217,12 +217,14 @@ export default function App() {
     vt: '',
     process: '',
     ndeNumber: '',
-          amps: '',
-      volts: '',
-      ipm: '',
-      status: 'pending',
-      weldSketch: '',
-      defectSketch: ''
+    amps: '',
+    volts: '',
+    ipm: '',
+    status: 'pending',
+    weldSketch: '',
+    weldSketchDescription: '',
+    defectSketch: '',
+    defectSketchDescription: ''
   });
 
   // Confirmation popup state
@@ -713,7 +715,7 @@ export default function App() {
     setFormData({
       date: getCurrentDateISO(), typeFit: '', wps: '', pipeDia: '', gradeClass: '', weldNumber: '', welder: '', welderSignature: '',
       inspector: '', inspectorSignature: '', firstHT: '', firstMfg: '', firstLength: '', jtNumber: '', secondHT: '', secondMfg: '',
-      secondLength: '', preHeat: '', vt: '', process: '', ndeNumber: '', amps: '', volts: '', ipm: '', status: 'pending', weldSketch: '', defectSketch: ''
+      secondLength: '', preHeat: '', vt: '', process: '', ndeNumber: '', amps: '', volts: '', ipm: '', status: 'pending', weldSketch: '', weldSketchDescription: '', defectSketch: '', defectSketchDescription: ''
     });
     setIsEditMode(false);
     setSelectedWeld(null);
@@ -801,7 +803,9 @@ export default function App() {
       ipm: weld.ipm || '',
       status: weld.status || 'pending',
       weldSketch: weld.weldSketch || '',
-      defectSketch: weld.defectSketch || ''
+      weldSketchDescription: weld.weldSketchDescription || '',
+      defectSketch: weld.defectSketch || '',
+      defectSketchDescription: weld.defectSketchDescription || ''
     });
     setIsEditMode(true);
     setCurrentScreen('add');

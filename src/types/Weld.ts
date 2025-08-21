@@ -26,7 +26,9 @@ export interface Weld {
   ipm: string;
   status: 'pending' | 'approved' | 'rejected';
   weldSketch?: string;
+  weldSketchDescription?: string;
   defectSketch?: string;
+  defectSketchDescription?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -58,7 +60,9 @@ export interface WeldFormData {
   ipm: string;
   status: 'pending' | 'approved' | 'rejected';
   weldSketch: string;
+  weldSketchDescription: string;
   defectSketch: string;
+  defectSketchDescription: string;
 }
 
 export type Screen = 'home' | 'add' | 'view' | 'settings';

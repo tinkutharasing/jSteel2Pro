@@ -311,12 +311,16 @@ export const WeldFormScreen: React.FC<WeldFormScreenProps> = ({
               label="26. Weld Sketch"
               value={formData.weldSketch || ''}
               onImageChange={(imageUri) => updateField('weldSketch', imageUri)}
+              description={formData.weldSketchDescription || ''}
+              onDescriptionChange={(description) => updateField('weldSketchDescription', description)}
               placeholder="Add Weld Sketch"
             />
             <ImageUploadField
               label="27. Defect Sketch"
               value={formData.defectSketch || ''}
               onImageChange={(imageUri) => updateField('defectSketch', imageUri)}
+              description={formData.defectSketchDescription || ''}
+              onDescriptionChange={(description) => updateField('defectSketchDescription', description)}
               placeholder="Add Defect Sketch"
             />
           </View>
