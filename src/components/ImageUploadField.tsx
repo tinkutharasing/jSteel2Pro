@@ -21,6 +21,35 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
   const [showOptions, setShowOptions] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Test permissions on component mount
+  React.useEffect(() => {
+    if (Platform.OS === 'android') {
+      testPermissions();
+    }
+  }, []);
+
+  // Test all permissions to see their current status
+  const testPermissions = async () => {
+    try {
+      console.log('=== Testing Permissions ===');
+      console.log('Android API level:', Platform.Version);
+      
+      // Test camera permission
+      const cameraPermission = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.CAMERA);
+      console.log('Camera permission status:', cameraPermission);
+      
+      // Test storage permission (appropriate for API level)
+      const storagePermission = (Platform.Version as number) >= 33 
+        ? await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES)
+        : await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE);
+      console.log('Storage permission status:', storagePermission);
+      
+      console.log('=== End Permission Test ===');
+    } catch (error) {
+      console.error('Permission test error:', error);
+    }
+  };
+
   // Open device settings
   const openSettings = () => {
     if (Platform.OS === 'ios') {
@@ -51,8 +80,13 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
   const requestCameraPermission = async () => {
     if (Platform.OS === 'android') {
       try {
+        console.log('Requesting camera permission...');
+        console.log('Android API level:', Platform.Version);
+        
         // Check if permission is already granted
         const hasPermission = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.CAMERA);
+        console.log('Camera permission already granted:', hasPermission);
+        
         if (hasPermission) {
           return true;
         }
@@ -69,6 +103,8 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
           }
         );
 
+        console.log('Camera permission result:', granted);
+
         if (granted === PermissionsAndroid.RESULTS.GRANTED) {
           return true;
         } else if (granted === PermissionsAndroid.RESULTS.DENIED) {
@@ -83,6 +119,7 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
               buttonPositive: "Allow"
             }
           );
+          console.log('Camera permission retry result:', retryGranted);
           return retryGranted === PermissionsAndroid.RESULTS.GRANTED;
         } else {
           // User selected "Don't ask again" or denied multiple times
@@ -102,15 +139,26 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
   const requestStoragePermission = async () => {
     if (Platform.OS === 'android') {
       try {
+        // For Android 13+ (API 33+), use READ_MEDIA_IMAGES
+        // For older versions, use READ_EXTERNAL_STORAGE
+        const permission = (Platform.Version as number) >= 33 
+          ? PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES
+          : PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE;
+
+        console.log('Requesting storage permission:', permission);
+        console.log('Android API level:', Platform.Version);
+
         // Check if permission is already granted
-        const hasPermission = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE);
+        const hasPermission = await PermissionsAndroid.check(permission);
+        console.log('Storage permission already granted:', hasPermission);
+        
         if (hasPermission) {
           return true;
         }
 
         // Request permission
         const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
+          permission,
           {
             title: "Storage Permission",
             message: "This app needs access to your storage to select photos for weld inspections.",
@@ -120,12 +168,14 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
           }
         );
 
+        console.log('Storage permission result:', granted);
+
         if (granted === PermissionsAndroid.RESULTS.GRANTED) {
           return true;
         } else if (granted === PermissionsAndroid.RESULTS.DENIED) {
           // User denied, show explanation and ask again
           const retryGranted = await PermissionsAndroid.request(
-            PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
+            permission,
             {
               title: "Storage Permission Required",
               message: "Storage access is essential for selecting weld inspection photos. Please allow storage access.",
@@ -134,6 +184,7 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
               buttonPositive: "Allow"
             }
           );
+          console.log('Storage permission retry result:', retryGranted);
           return retryGranted === PermissionsAndroid.RESULTS.GRANTED;
         } else {
           // User selected "Don't ask again" or denied multiple times
@@ -261,20 +312,32 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
         </View>
       ) : (
         // Upload Button
-        <TouchableOpacity 
-          style={styles.uploadButton} 
-          onPress={openImageOptions}
-          activeOpacity={0.7}
-          disabled={isLoading}
-        >
-          <Icon name="camera-outline" size={32} color={isLoading ? "#94a3b8" : "#64748b"} />
-          <Text style={[styles.uploadButtonText, isLoading && styles.uploadButtonTextDisabled]}>
-            {isLoading ? 'Processing...' : placeholder}
-          </Text>
-          <Text style={[styles.uploadSubtext, isLoading && styles.uploadButtonTextDisabled]}>
-            {isLoading ? 'Please wait...' : 'Tap to add from camera or gallery'}
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.uploadContainer}>
+          <TouchableOpacity 
+            style={styles.uploadButton} 
+            onPress={openImageOptions}
+            activeOpacity={0.7}
+            disabled={isLoading}
+          >
+            <Icon name="camera-outline" size={32} color={isLoading ? "#94a3b8" : "#64748b"} />
+            <Text style={[styles.uploadButtonText, isLoading && styles.uploadButtonTextDisabled]}>
+              {isLoading ? 'Processing...' : placeholder}
+            </Text>
+            <Text style={[styles.uploadSubtext, isLoading && styles.uploadButtonTextDisabled]}>
+              {isLoading ? 'Please wait...' : 'Tap to add from camera or gallery'}
+            </Text>
+          </TouchableOpacity>
+          
+          {/* Debug button for testing permissions */}
+          {__DEV__ && Platform.OS === 'android' && (
+            <TouchableOpacity 
+              style={styles.debugButton} 
+              onPress={testPermissions}
+            >
+              <Text style={styles.debugButtonText}>Test Permissions</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       )}
 
       {/* Image Source Selection Modal */}
@@ -343,6 +406,11 @@ const styles = StyleSheet.create({
     color: '#1e293b',
     marginBottom: 6,
   },
+  uploadContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
   uploadButton: {
     borderWidth: 2,
     borderColor: '#e2e8f0',
@@ -366,6 +434,18 @@ const styles = StyleSheet.create({
     color: '#94a3b8',
     marginTop: 4,
     textAlign: 'center',
+  },
+  debugButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: '#3b82f6',
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  debugButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '600',
   },
   imageContainer: {
     position: 'relative',
