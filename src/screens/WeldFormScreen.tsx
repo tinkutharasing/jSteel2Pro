@@ -64,7 +64,7 @@ export const WeldFormScreen: React.FC<WeldFormScreenProps> = ({
         showsVerticalScrollIndicator={true}
       >
         <Text style={styles.subtitle}>
-          {isEditMode ? 'Edit Weld Inspection Form' : 'SAW Groove Weld Inspection Form - 2 Required Fields'}
+          {isEditMode ? 'Edit Weld Inspection Form' : 'New Weld Form - 2 Required Fields'}
         </Text>
         
         <View style={styles.formSection}>
