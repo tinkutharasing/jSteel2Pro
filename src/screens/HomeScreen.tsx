@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, TextInput, SafeAreaView, Platform, Image } from 'react-native';
+import React, { useState, useMemo, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, TextInput, SafeAreaView, Platform, Image, Dimensions } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { Weld } from '../types/Weld';
 import { WeldCard } from '../components/WeldCard';
@@ -28,6 +28,36 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   onNavigate
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Detect optimal cards per row based on screen size and orientation
+  const [dimensions, setDimensions] = useState({
+    width: Dimensions.get('window').width,
+    height: Dimensions.get('window').height
+  });
+
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }) => {
+      setDimensions({ width: window.width, height: window.height });
+    });
+
+    return () => subscription?.remove();
+  }, []);
+
+  const screenWidth = dimensions.width;
+  const screenHeight = dimensions.height;
+  const isLandscape = screenWidth > screenHeight;
+  
+  // Determine optimal cards per row
+  let cardsPerRow = 2; // Default for small screens
+  if (screenWidth > 800) {
+    cardsPerRow = 4; // Large tablets
+  } else if (screenWidth > 600 || isLandscape) {
+    cardsPerRow = 3; // Medium tablets or landscape
+  }
+  // Phone portrait stays at 2 cards per row
+  
+  const canFitThreeCards = cardsPerRow >= 3;
+  const canFitFourCards = cardsPerRow >= 4;
 
   // Filter welds based on search query (search by weld number)
   const filteredWelds = useMemo(() => {
@@ -109,6 +139,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               onView={onViewWeld}
               onEdit={onEditWeld}
               onDelete={onDeleteWeld}
+              canFitThreeCards={canFitThreeCards}
+              canFitFourCards={canFitFourCards}
             />
           ))
         )}
@@ -131,6 +163,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 onDelete={onPermanentlyDeleteWeld}
                 onRecover={onRecoverWeld}
                 isTrash={true}
+                canFitThreeCards={canFitThreeCards}
+                canFitFourCards={canFitFourCards}
               />
             ))}
           </View>
@@ -193,7 +227,7 @@ const styles = StyleSheet.create({
   weldsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     padding: 15,
     paddingHorizontal: 15,
     // Debug: add border to see grid container

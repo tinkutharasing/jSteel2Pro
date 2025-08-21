@@ -10,9 +10,11 @@ interface WeldCardProps {
   onDelete: (weld: Weld) => void;
   onRecover?: (weld: Weld) => void;
   isTrash?: boolean;
+  canFitThreeCards?: boolean;
+  canFitFourCards?: boolean;
 }
 
-export const WeldCard: React.FC<WeldCardProps> = ({ weld, onView, onEdit, onDelete, onRecover, isTrash = false }) => {
+export const WeldCard: React.FC<WeldCardProps> = ({ weld, onView, onEdit, onDelete, onRecover, isTrash = false, canFitThreeCards = false, canFitFourCards = false }) => {
   // Get status color and text
   const getStatusInfo = (status: string) => {
     switch (status) {
@@ -28,8 +30,16 @@ export const WeldCard: React.FC<WeldCardProps> = ({ weld, onView, onEdit, onDele
 
   const statusInfo = getStatusInfo(weld.status || 'pending');
 
+  // Dynamic styles based on screen size
+  const cardStyle = [
+    styles.weldCard,
+    canFitThreeCards && !canFitFourCards && styles.weldCardTablet,
+    canFitFourCards && styles.weldCardFour,
+    isTrash && styles.trashCard
+  ];
+
   return (
-    <View style={[styles.weldCard, isTrash && styles.trashCard]}>
+    <View style={cardStyle}>
       {/* Status Indicator */}
       <View style={[styles.statusBadge, { backgroundColor: statusInfo.bgColor }]}>
         <Text style={[styles.statusText, { color: statusInfo.color }]}>
@@ -85,7 +95,7 @@ export const WeldCard: React.FC<WeldCardProps> = ({ weld, onView, onEdit, onDele
 
 const styles = StyleSheet.create({
   weldCard: {
-    width: '48%',
+    width: '46%', // Default for mobile (2 columns) - reduced to fit with margin
     backgroundColor: '#f8f9fa',
     padding: 20,
     borderRadius: 20,
@@ -98,6 +108,19 @@ const styles = StyleSheet.create({
     elevation: 8,
     minHeight: 160,
     marginBottom: 16,
+    marginRight: '4%', // Add right margin for spacing between cards
+  },
+  weldCardTablet: {
+    width: '30%', // 3 columns for wider screens - reduced to fit with margin
+    minHeight: 180,
+    padding: 16,
+    marginRight: '3.33%', // Add right margin for 3-column spacing
+  },
+  weldCardFour: {
+    width: '22%', // 4 columns for large tablets - reduced to fit with margin
+    minHeight: 160,
+    padding: 12,
+    marginRight: '2%', // Add right margin for 4-column spacing
   },
   trashCard: {
     backgroundColor: '#fef2f2',

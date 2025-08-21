@@ -1814,10 +1814,28 @@ export default function App() {
               <Text style={styles.settingsTitle}>Settings</Text>
               <View style={styles.settingsPlaceholder} />
             </View>
-            <ScrollView style={styles.settingsContent} showsVerticalScrollIndicator={false}>
+            <ScrollView 
+              style={styles.settingsContent} 
+              contentContainerStyle={styles.settingsScrollContent}
+              showsVerticalScrollIndicator={false}
+            >
               <Text style={styles.settingsSubtitle}>App configuration and preferences</Text>
               
-              {/* Stats Row - 2 columns */}
+              {/* Data Management Section - Moved to First */}
+              <View style={styles.settingsSection}>
+                <Text style={styles.settingsSectionTitle}>🗄️ Data Management</Text>
+                <Text style={styles.settingsSectionSubtitle}>Manage your weld inspection data</Text>
+                
+                <TouchableOpacity style={styles.resetButton} onPress={confirmResetToSampleData}>
+                  <Text style={styles.resetButtonText}>🔄 Reset to Sample Data</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity style={[styles.resetButton, styles.clearButton]} onPress={clearAllData}>
+                  <Text style={styles.resetButtonText}>🗑️ Clear All Data</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Quick Stats */}
               <View style={styles.statsRow}>
                 <View style={styles.statsColumn}>
                   <Text style={styles.statsLabel}>Total Welds</Text>
@@ -1827,45 +1845,6 @@ export default function App() {
                   <Text style={styles.statsLabel}>Trashed Items</Text>
                   <Text style={styles.statsValue}>{trashWelds.length}</Text>
                 </View>
-              </View>
-              
-              {/* Database Status - Single column */}
-              <View style={styles.settingsItem}>
-                <Text style={styles.settingsItemLabel}>Database Status</Text>
-                <Text style={styles.settingsItemValue}>
-                  {welds.length > 0 ? '✅ Active' : '❌ Empty'}
-                </Text>
-              </View>
-              <TouchableOpacity style={styles.resetButton} onPress={confirmResetToSampleData}>
-                <Text style={styles.resetButtonText}>🔄 Reset to Sample Data</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.resetButton, styles.clearButton]} onPress={clearAllData}>
-                <Text style={styles.resetButtonText}>🗑️ Clear All Data</Text>
-              </TouchableOpacity>
-
-              {/* Security Settings Section */}
-              <View style={styles.settingsSection}>
-                <Text style={styles.settingsSectionTitle}>🔒 Security Settings</Text>
-                <Text style={styles.settingsSectionSubtitle}>Protect destructive operations with PIN authentication</Text>
-                
-                <View style={styles.settingsItem}>
-                  <Text style={styles.settingsItemLabel}>Authentication Method</Text>
-                  <Text style={styles.settingsItemValue}>🔢 PIN Code</Text>
-                </View>
-                
-                <View style={styles.settingsItem}>
-                  <Text style={styles.settingsItemLabel}>Security PIN</Text>
-                  <Text style={styles.settingsItemValue}>
-                    {securityPin === '1234' ? 'Default (1234)' : 'Custom PIN'}
-                  </Text>
-                </View>
-                
-                <TouchableOpacity 
-                  style={styles.googleSheetsButton} 
-                  onPress={handlePinChange}
-                >
-                  <Text style={styles.googleSheetsButtonText}>🔐 Change PIN</Text>
-                </TouchableOpacity>
               </View>
 
               {/* Google Sheets Integration Section */}
@@ -1895,92 +1874,39 @@ export default function App() {
                   </Text>
                 </TouchableOpacity>
                 
-                              {googleSheetsConnected && (
-                <>
-                  <TouchableOpacity style={styles.syncButton} onPress={syncToGoogleSheets}>
-                    <Text style={styles.syncButtonText}>🔄 Sync to Google Sheets</Text>
+                {googleSheetsConnected && (
+                  <TouchableOpacity 
+                    style={[styles.syncChangedButton, !syncEnabled && styles.disabledButton]} 
+                    onPress={() => syncChangedWeldsToGoogleSheets(welds)}
+                    disabled={!syncEnabled}
+                  >
+                    <Text style={styles.syncChangedButtonText}>🔄 Sync Changed Welds</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.syncFromButton} onPress={syncFromGoogleSheets}>
-                    <Text style={styles.syncFromButtonText}>⬇️ Sync from Google Sheets</Text>
-                  </TouchableOpacity>
-                  
-                  {/* Sheet Management Buttons */}
-                  <View style={styles.sheetManagementSection}>
-                    <Text style={styles.sheetManagementTitle}>📋 Sheet Management</Text>
-                    <TouchableOpacity 
-                      style={styles.initializeButton} 
-                      onPress={initializeGoogleSheet}
-                    >
-                      <Text style={styles.initializeButtonText}>📝 Initialize Sheet Headers</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                      style={styles.forceInitializeButton} 
-                      onPress={forceInitializeGoogleSheet}
-                    >
-                      <Text style={styles.forceInitializeButtonText}>⚡ Force Initialize Headers</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                      style={styles.clearButton} 
-                      onPress={clearGoogleSheet}
-                    >
-                      <Text style={styles.clearButtonText}>🗑️ Clear Sheet Data</Text>
-                    </TouchableOpacity>
-                  </View>
-                  
-                  {/* Auto-Sync Settings */}
-                  <View style={styles.autoSyncSection}>
-                    <Text style={styles.autoSyncTitle}>🔄 Auto-Sync Settings</Text>
-                    <Text style={styles.autoSyncSubtitle}>Automatically sync changes to Google Sheets</Text>
-                    
-                    <View style={styles.settingsItem}>
-                      <Text style={styles.settingsItemLabel}>Auto-Sync Status</Text>
-                      <Text style={styles.settingsItemValue}>
-                        {!googleSheetsConnected ? '❌ Not Connected' : 
-                         !syncEnabled ? '⏸️ Sync Disabled' : '✅ Enabled'}
-                      </Text>
-                    </View>
-                    
-                    {/* Sync Toggle Checkbox */}
-                    <View style={styles.settingsItem}>
-                      <Text style={styles.settingsItemLabel}>Enable Google Sheets Sync</Text>
-                      <TouchableOpacity 
-                        style={[styles.checkbox, syncEnabled && styles.checkboxChecked]}
-                        onPress={() => saveSyncSetting(!syncEnabled)}
-                      >
-                        {syncEnabled && <Text style={styles.checkboxText}>✓</Text>}
-                      </TouchableOpacity>
-                    </View>
-                    
-                    <Text style={styles.syncNote}>
-                      💡 Disable sync for faster performance when working offline. Enable when you need to sync data.
-                    </Text>
-                    
-                    <TouchableOpacity 
-                      style={[styles.syncChangedButton, !syncEnabled && styles.disabledButton]} 
-                      onPress={() => syncChangedWeldsToGoogleSheets(welds)}
-                      disabled={!syncEnabled}
-                    >
-                      <Text style={styles.syncChangedButtonText}>🔄 Sync Changed Welds</Text>
-                    </TouchableOpacity>
-                  </View>
-                </>
-              )}
+                )}
+              </View>
+
+              {/* Security Settings Section */}
+              <View style={styles.settingsSection}>
+                <Text style={styles.settingsSectionTitle}>🔒 Security Settings</Text>
+                <Text style={styles.settingsSectionSubtitle}>Protect destructive operations with PIN authentication</Text>
+                
+                <View style={styles.settingsItem}>
+                  <Text style={styles.settingsItemLabel}>Security PIN</Text>
+                  <Text style={styles.settingsItemValue}>
+                    {securityPin === '1234' ? 'Default (1234)' : 'Custom PIN'}
+                  </Text>
+                </View>
+                
+                <TouchableOpacity 
+                  style={styles.googleSheetsButton} 
+                  onPress={handlePinChange}
+                >
+                  <Text style={styles.googleSheetsButtonText}>🔐 Change PIN</Text>
+                </TouchableOpacity>
+              </View>
               
-              {/* Debug Info */}
-              <View style={styles.debugInfo}>
-                <Text style={styles.debugText}>Debug: ID = {googleSheetsConfig.spreadsheetId || 'None'}</Text>
-                <Text style={styles.debugText}>Debug: Connected = {googleSheetsConnected ? 'Yes' : 'No'}</Text>
-                                  <TouchableOpacity style={styles.debugButton} onPress={checkAsyncStorage}>
-                    <Text style={styles.debugButtonText}>🔍 Check AsyncStorage</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.debugButton} onPress={debugGoogleSheet}>
-                    <Text style={styles.debugButtonText}>🐛 Debug Sheet State</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.debugButton} onPress={compareWeldNumbers}>
-                    <Text style={styles.debugButtonText}>🔍 Compare Weld Numbers</Text>
-                  </TouchableOpacity>
-              </View>
-              </View>
+              {/* Bottom Spacer for better scroll */}
+              <View style={styles.bottomSpacer} />
             </ScrollView>
           </View>
         );
@@ -2212,6 +2138,10 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     paddingTop: 40,
+    paddingBottom: 50, // Add bottom padding for better scroll
+  },
+  settingsScrollContent: {
+    paddingBottom: 50, // Ensure content has bottom padding for scroll
   },
   settingsHeader: {
     flexDirection: 'row',
@@ -2245,6 +2175,9 @@ const styles = StyleSheet.create({
   settingsPlaceholder: {
     width: 60, // Same width as back button for centering
   },
+  bottomSpacer: {
+    height: 100, // Add space at bottom for better scroll
+  },
   settingsSubtitle: {
     fontSize: 18,
     color: '#64748b',
@@ -2277,10 +2210,10 @@ const styles = StyleSheet.create({
   },
   resetButton: {
     backgroundColor: '#ef4444',
-    padding: 15,
+    padding: 14,
     borderRadius: 12,
     alignItems: 'center',
-    marginTop: 20,
+    marginTop: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -2294,10 +2227,10 @@ const styles = StyleSheet.create({
   },
   clearButton: {
     backgroundColor: '#dc2626', // A darker red for the clear all button
-    padding: 14,
+    padding: 12,
     borderRadius: 10,
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
     shadowColor: '#dc2626',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
@@ -2306,9 +2239,9 @@ const styles = StyleSheet.create({
   },
   settingsSection: {
     backgroundColor: '#ffffff',
-    padding: 20,
+    padding: 16,
     borderRadius: 16,
-    marginTop: 30,
+    marginTop: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
@@ -2324,14 +2257,14 @@ const styles = StyleSheet.create({
   settingsSectionSubtitle: {
     fontSize: 16,
     color: '#64748b',
-    marginBottom: 20,
+    marginBottom: 12,
   },
   googleSheetsButton: {
     backgroundColor: '#3b82f6',
-    padding: 16,
+    padding: 14,
     borderRadius: 12,
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
     shadowColor: '#3b82f6',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
