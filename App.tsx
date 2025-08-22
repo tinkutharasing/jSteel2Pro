@@ -1902,6 +1902,35 @@ export default function App() {
                   </View>
                 )}
                 
+                {googleSheetsConnected && (
+                  <TouchableOpacity 
+                    style={[styles.syncToggleButton, syncEnabled ? styles.syncEnabledButton : styles.syncDisabledButton]} 
+                    onPress={() => {
+                      const newSyncState = !syncEnabled;
+                      saveSyncSetting(newSyncState);
+                      showSuccess(
+                        'Sync ' + (newSyncState ? 'Enabled' : 'Disabled'),
+                        newSyncState 
+                          ? 'Google Sheets sync is now active. All changes will be automatically synced.' 
+                          : 'Google Sheets sync is now paused. Changes will be saved locally only.'
+                      );
+                    }}
+                  >
+                    <Text style={styles.syncToggleButtonText}>
+                      {syncEnabled ? '⏸️ Pause Sync' : '🔄 Enable Sync'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+                
+                {googleSheetsConnected && (
+                  <Text style={styles.syncDescriptionText}>
+                    {syncEnabled 
+                      ? '📝 Auto-sync is active. All weld changes will be automatically saved to Google Sheets.'
+                      : '💾 Auto-sync is paused. Changes are saved locally only. Enable sync to connect with Google Sheets.'
+                    }
+                  </Text>
+                )}
+                
                 <TouchableOpacity style={styles.googleSheetsButton} onPress={openGoogleSheetsSettings}>
                   <Text style={styles.googleSheetsButtonText}>
                     {googleSheetsConnected ? '⚙️ Configure Sheets' : '🔗 Connect to Sheets'}
@@ -2720,6 +2749,38 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     backgroundColor: '#ffffff',
     color: '#1f2937',
+  },
+  syncToggleButton: {
+    backgroundColor: '#3b82f6',
+    padding: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 16,
+    shadowColor: '#3b82f6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  syncToggleButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  syncEnabledButton: {
+    backgroundColor: '#10b981',
+  },
+  syncDisabledButton: {
+    backgroundColor: '#dc2626',
+  },
+  syncDescriptionText: {
+    fontSize: 14,
+    color: '#6b7280',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    marginTop: 12,
+    marginBottom: 16,
+    paddingHorizontal: 20,
   },
 
 });
