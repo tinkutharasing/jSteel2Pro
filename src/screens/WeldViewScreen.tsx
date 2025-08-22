@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Modal, Dimensions } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { Weld } from '../types/Weld';
 import { formatDateToUS } from '../utils/dateUtils';
@@ -11,24 +11,8 @@ interface WeldViewScreenProps {
 }
 
 export const WeldViewScreen: React.FC<WeldViewScreenProps> = ({ weld, onBack, onEdit }) => {
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  
   // Detect if we're on a tablet (width > 768px)
   const isTablet = Dimensions.get('window').width > 768;
-  
-  // Responsive image dimensions
-  const imageWidth = '100%';
-  const imageHeight = isTablet ? 300 : 200;
-  const imageMaxWidth = isTablet ? 500 : '100%';
-  const imageMinWidth = isTablet ? 300 : '100%';
-
-  const openImagePreview = (imageUri: string) => {
-    setSelectedImage(imageUri);
-  };
-
-  const closeImagePreview = () => {
-    setSelectedImage(null);
-  };
 
   return (
     <View style={styles.container}>
@@ -44,25 +28,15 @@ export const WeldViewScreen: React.FC<WeldViewScreenProps> = ({ weld, onBack, on
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.subtitle}>Weld {weld.weldNumber} - {weld.wps} - {formatDateToUS(weld.date)}</Text>
+        <Text style={styles.subtitle}>Weld {weld.weldNumber || 'No Number'} - {formatDateToUS(weld.date)}</Text>
         
-        {/* Basic Information */}
+        {/* Header Information */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Basic Information</Text>
+          <Text style={styles.sectionTitle}>Header Information</Text>
           
           <View style={styles.viewRow}>
-            <Text style={styles.viewLabel}>Weld Number:</Text>
-            <Text style={styles.viewValue}>{weld.weldNumber}</Text>
-          </View>
-          
-          <View style={styles.viewRow}>
-            <Text style={styles.viewLabel}>NDE Number:</Text>
-            <Text style={styles.viewValue}>{weld.ndeNumber}</Text>
-          </View>
-          
-          <View style={styles.viewRow}>
-            <Text style={styles.viewLabel}>WPS:</Text>
-            <Text style={styles.viewValue}>{weld.wps}</Text>
+            <Text style={styles.viewLabel}>Welder Name:</Text>
+            <Text style={styles.viewValue}>{weld.welderName || 'N/A'}</Text>
           </View>
           
           <View style={styles.viewRow}>
@@ -71,28 +45,58 @@ export const WeldViewScreen: React.FC<WeldViewScreenProps> = ({ weld, onBack, on
           </View>
           
           <View style={styles.viewRow}>
-            <Text style={styles.viewLabel}>Type/Fit:</Text>
-            <Text style={styles.viewValue}>{weld.typeFit}</Text>
+            <Text style={styles.viewLabel}>Welder Type:</Text>
+            <Text style={styles.viewValue}>
+              {weld.welderCompany ? 'Company' : ''}
+              {weld.welderCompany && weld.welderContractor ? ' | ' : ''}
+              {weld.welderContractor ? 'Contractor' : ''}
+              {!weld.welderCompany && !weld.welderContractor ? 'N/A' : ''}
+            </Text>
           </View>
           
           <View style={styles.viewRow}>
-            <Text style={styles.viewLabel}>Pipe Diameter:</Text>
-            <Text style={styles.viewValue}>{weld.pipeDia}</Text>
+            <Text style={styles.viewLabel}>LOA/TCC/MOD:</Text>
+            <Text style={styles.viewValue}>{weld.loaTccMod || 'N/A'}</Text>
           </View>
           
           <View style={styles.viewRow}>
-            <Text style={styles.viewLabel}>Grade/Class:</Text>
-            <Text style={styles.viewValue}>{weld.gradeClass}</Text>
+            <Text style={styles.viewLabel}>Welding Contractor Name:</Text>
+            <Text style={styles.viewValue}>{weld.weldingContractorName || 'N/A'}</Text>
           </View>
           
           <View style={styles.viewRow}>
-            <Text style={styles.viewLabel}>Welder Name:</Text>
-            <Text style={styles.viewValue}>{weld.welder}</Text>
+            <Text style={styles.viewLabel}>WO/JO#:</Text>
+            <Text style={styles.viewValue}>{weld.woJoNumber || 'N/A'}</Text>
           </View>
           
           <View style={styles.viewRow}>
-            <Text style={styles.viewLabel}>Inspector Name:</Text>
-            <Text style={styles.viewValue}>{weld.inspector}</Text>
+            <Text style={styles.viewLabel}>Welding Inspector Name:</Text>
+            <Text style={styles.viewValue}>{weld.weldingInspectorName || 'N/A'}</Text>
+          </View>
+          
+          <View style={styles.viewRow}>
+            <Text style={styles.viewLabel}>Welding Inspection Company:</Text>
+            <Text style={styles.viewValue}>{weld.weldingInspectionCompany || 'N/A'}</Text>
+          </View>
+          
+          <View style={styles.viewRow}>
+            <Text style={styles.viewLabel}>Job Location:</Text>
+            <Text style={styles.viewValue}>{weld.jobLocation || 'N/A'}</Text>
+          </View>
+          
+          <View style={styles.viewRow}>
+            <Text style={styles.viewLabel}>Number of Welds Made Today:</Text>
+            <Text style={styles.viewValue}>{weld.numberOfWeldsMadeToday || 'N/A'}</Text>
+          </View>
+          
+          <View style={styles.viewRow}>
+            <Text style={styles.viewLabel}>Stencil #:</Text>
+            <Text style={styles.viewValue}>{weld.stencilNumber || 'N/A'}</Text>
+          </View>
+          
+          <View style={styles.viewRow}>
+            <Text style={styles.viewLabel}>Process Used:</Text>
+            <Text style={styles.viewValue}>{weld.processUsed || 'N/A'}</Text>
           </View>
           
           <View style={styles.viewRow}>
@@ -108,198 +112,56 @@ export const WeldViewScreen: React.FC<WeldViewScreenProps> = ({ weld, onBack, on
           </View>
         </View>
 
-        {/* First Pass */}
+        {/* Weld Table */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>First Pass</Text>
+          <Text style={styles.sectionTitle}>Weld Table</Text>
           
           <View style={styles.viewRow}>
-            <Text style={styles.viewLabel}>First HT:</Text>
-            <Text style={styles.viewValue}>{weld.firstHT}</Text>
-          </View>
-          
-          <View style={styles.viewRow}>
-            <Text style={styles.viewLabel}>First MFG:</Text>
-            <Text style={styles.viewValue}>{weld.firstMfg}</Text>
+            <Text style={styles.viewLabel}>Weld #:</Text>
+            <Text style={styles.viewValue}>{weld.weldNumber || 'N/A'}</Text>
           </View>
           
           <View style={styles.viewRow}>
-            <Text style={styles.viewLabel}>First Length:</Text>
-            <Text style={styles.viewValue}>{weld.firstLength}</Text>
-          </View>
-        </View>
-
-        {/* Second Pass */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Second Pass</Text>
-          
-          <View style={styles.viewRow}>
-            <Text style={styles.viewLabel}>JT Number:</Text>
-            <Text style={styles.viewValue}>{weld.jtNumber}</Text>
+            <Text style={styles.viewLabel}>Pipe Size (In.):</Text>
+            <Text style={styles.viewValue}>{weld.pipeSizeInches || 'N/A'}</Text>
           </View>
           
           <View style={styles.viewRow}>
-            <Text style={styles.viewLabel}>Second HT:</Text>
-            <Text style={styles.viewValue}>{weld.secondHT}</Text>
+            <Text style={styles.viewLabel}>Butt:</Text>
+            <Text style={styles.viewValue}>{weld.butt || 'N/A'}</Text>
           </View>
           
           <View style={styles.viewRow}>
-            <Text style={styles.viewLabel}>Second MFG:</Text>
-            <Text style={styles.viewValue}>{weld.secondMfg}</Text>
+            <Text style={styles.viewLabel}>Fillet (Tee, Sleeve, Other):</Text>
+            <Text style={styles.viewValue}>{weld.fillet || 'N/A'}</Text>
           </View>
           
           <View style={styles.viewRow}>
-            <Text style={styles.viewLabel}>Second Length:</Text>
-            <Text style={styles.viewValue}>{weld.secondLength}</Text>
-          </View>
-        </View>
-
-        {/* Process Parameters */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Process Parameters</Text>
-          
-          <View style={styles.viewRow}>
-            <Text style={styles.viewLabel}>Pre-Heat:</Text>
-            <Text style={styles.viewValue}>{weld.preHeat}</Text>
+            <Text style={styles.viewLabel}>Passes:</Text>
+            <Text style={styles.viewValue}>{weld.passes || 'N/A'}</Text>
           </View>
           
           <View style={styles.viewRow}>
-            <Text style={styles.viewLabel}>VT:</Text>
-            <Text style={styles.viewValue}>{weld.vt}</Text>
+            <Text style={styles.viewLabel}>O'Clock Position:</Text>
+            <Text style={styles.viewValue}>{weld.oClockPosition || 'N/A'}</Text>
           </View>
           
           <View style={styles.viewRow}>
-            <Text style={styles.viewLabel}>Process:</Text>
-            <Text style={styles.viewValue}>{weld.process}</Text>
+            <Text style={styles.viewLabel}>WPS # and Title Used:</Text>
+            <Text style={styles.viewValue}>{weld.wpsNumberAndTitle || 'N/A'}</Text>
           </View>
           
           <View style={styles.viewRow}>
-            <Text style={styles.viewLabel}>Amps:</Text>
-            <Text style={styles.viewValue}>{weld.amps}</Text>
+            <Text style={styles.viewLabel}>Electrode Type/Brand:</Text>
+            <Text style={styles.viewValue}>{weld.electrodeTypeBrand || 'N/A'}</Text>
           </View>
           
           <View style={styles.viewRow}>
-            <Text style={styles.viewLabel}>Volts:</Text>
-            <Text style={styles.viewValue}>{weld.volts}</Text>
-          </View>
-          
-          <View style={styles.viewRow}>
-            <Text style={styles.viewLabel}>IPM:</Text>
-            <Text style={styles.viewValue}>{weld.ipm}</Text>
-          </View>
-        </View>
-
-        {/* Image Fields */}
-        <View style={[styles.imageSection, isTablet && styles.imageSectionTablet]}>
-          <Text style={styles.imageSectionTitle}>Images</Text>
-          
-          <View style={[styles.imageRow, isTablet && styles.imageRowTablet]}>
-            <View style={[styles.imageField, isTablet && styles.imageFieldTablet]}>
-              <Text style={[styles.imageLabel, isTablet && styles.imageLabelTablet]}>Weld Sketch:</Text>
-              {weld.weldSketch ? (
-                <View style={styles.imageContent}>
-                  <TouchableOpacity onPress={() => openImagePreview(weld.weldSketch!)}>
-                    <Image 
-                      source={{ uri: weld.weldSketch }} 
-                      style={[styles.imagePreview, { height: imageHeight, maxWidth: imageMaxWidth, minWidth: imageMinWidth }]}
-                      resizeMode="cover"
-                    />
-                  </TouchableOpacity>
-                  {weld.weldSketchDescription && (
-                    <Text style={[styles.imageDescription, { maxWidth: imageMaxWidth, minWidth: imageMinWidth }]}>
-                      {weld.weldSketchDescription}
-                    </Text>
-                  )}
-                </View>
-              ) : (
-                <View style={[styles.noImageContainer, { height: imageHeight, maxWidth: imageMaxWidth, minWidth: imageMinWidth }]}>
-                  <Text style={styles.noImageText}>No weld sketch uploaded</Text>
-                </View>
-              )}
-            </View>
-            
-            <View style={[styles.imageField, isTablet && styles.imageFieldTablet]}>
-              <Text style={[styles.imageLabel, isTablet && styles.imageLabelTablet]}>Defect Sketch:</Text>
-              {weld.defectSketch ? (
-                <View style={styles.imageContent}>
-                  <TouchableOpacity onPress={() => openImagePreview(weld.defectSketch!)}>
-                    <Image 
-                      source={{ uri: weld.defectSketch }} 
-                      style={[styles.imagePreview, { height: imageHeight, maxWidth: imageMaxWidth, minWidth: imageMinWidth }]}
-                      resizeMode="cover"
-                    />
-                  </TouchableOpacity>
-                  {weld.defectSketchDescription && (
-                    <Text style={[styles.imageDescription, { maxWidth: imageMaxWidth, minWidth: imageMinWidth }]}>
-                      {weld.defectSketchDescription}
-                    </Text>
-                  )}
-                </View>
-              ) : (
-                <View style={[styles.noImageContainer, { height: imageHeight, maxWidth: imageMaxWidth, minWidth: imageMinWidth }]}>
-                  <Text style={styles.noImageText}>No defect sketch uploaded</Text>
-                </View>
-              )}
-            </View>
-          </View>
-        </View>
-
-        {/* Signatures */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Signatures</Text>
-          
-          <View style={styles.signatureRow}>
-            <View style={styles.signatureField}>
-              <Text style={styles.signatureLabel}>Welder Signature:</Text>
-              {weld.welderSignature ? (
-                <Image 
-                  source={{ uri: weld.welderSignature }} 
-                  style={styles.signaturePreview}
-                  resizeMode="contain"
-                />
-              ) : (
-                <Text style={styles.noSignatureText}>No signature</Text>
-              )}
-            </View>
-            
-            <View style={styles.signatureField}>
-              <Text style={styles.signatureLabel}>Inspector Signature:</Text>
-              {weld.inspectorSignature ? (
-                <Image 
-                  source={{ uri: weld.inspectorSignature }} 
-                  style={styles.signaturePreview}
-                  resizeMode="contain"
-                />
-              ) : (
-                <Text style={styles.noSignatureText}>No signature</Text>
-              )}
-            </View>
+            <Text style={styles.viewLabel}>GPS Coordinates:</Text>
+            <Text style={styles.viewValue}>{weld.gpsCoordinates || 'N/A'}</Text>
           </View>
         </View>
       </ScrollView>
-
-      {/* Full Screen Image Preview Modal */}
-      <Modal
-        visible={!!selectedImage}
-        transparent={true}
-        animationType="fade"
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <TouchableOpacity onPress={closeImagePreview} style={styles.closeButton}>
-                <Text style={styles.closeButtonText}>×</Text>
-              </TouchableOpacity>
-            </View>
-            {selectedImage && (
-              <Image 
-                source={{ uri: selectedImage }} 
-                style={styles.fullScreenImage}
-                resizeMode="contain"
-              />
-            )}
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 };
@@ -387,11 +249,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#1e293b',
+    flex: 1,
   },
   viewValue: {
     fontSize: 16,
     color: '#64748b',
     fontWeight: '500',
+    flex: 1,
+    textAlign: 'right',
   },
   statusBadge: {
     paddingVertical: 6,
@@ -415,217 +280,5 @@ const styles = StyleSheet.create({
   statusRejected: {
     backgroundColor: '#fee2e2',
   },
-  imageSection: {
-    backgroundColor: '#ffffff',
-    margin: 20,
-    marginTop: 0,
-    padding: 20,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  imageSectionTablet: {
-    margin: 20,
-    marginTop: 0,
-    padding: 25,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  imageSectionTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#1e293b',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  imageSectionRow: {
-    flexDirection: 'row',
-    gap: 20,
-    justifyContent: 'space-between',
-  },
-  imageRow: {
-    flexDirection: 'row',
-    gap: 10,
-    justifyContent: 'space-between',
-    flexWrap: 'wrap',
-  },
-  imageRowTablet: {
-    flexDirection: 'row',
-    gap: 20,
-    justifyContent: 'space-between',
-  },
-  imageField: {
-    flex: 1,
-    alignItems: 'center',
-    minWidth: 150,
-    maxWidth: '100%',
-    paddingHorizontal: 5,
-  },
-  imageFieldTablet: {
-    flex: 1,
-    alignItems: 'center',
-    minWidth: 300,
-    maxWidth: 500,
-    paddingHorizontal: 10,
-  },
-  imageLabel: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#374151',
-    marginBottom: 15,
-    textAlign: 'center',
-  },
-  imageLabelTablet: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#374151',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  imageContent: {
-    alignItems: 'center',
-    width: '100%',
-  },
-  imagePreview: {
-    width: '100%',
-    height: 200,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 8,
-    backgroundColor: '#f8fafc',
-    minWidth: 150,
-    maxWidth: '100%',
-    resizeMode: 'cover',
-  },
-  imageDescription: {
-    fontSize: 14,
-    color: '#374151',
-    marginTop: 12,
-    textAlign: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: '#f8fafc',
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    width: '100%',
-    minHeight: 50,
-    maxWidth: '100%',
-  },
-  noImageText: {
-    fontSize: 14,
-    color: '#9ca3af',
-    fontStyle: 'italic',
-    textAlign: 'center',
-    padding: 20,
-    backgroundColor: '#f1f5f9',
-    borderRadius: 8,
-    width: '100%',
-    minWidth: 200,
-    maxWidth: 400,
-    minHeight: 200,
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  noImageContainer: {
-    width: '100%',
-    minWidth: 150,
-    maxWidth: '100%',
-    minHeight: 200,
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  signatureSection: {
-    backgroundColor: '#ffffff',
-    margin: 20,
-    marginTop: 0,
-    padding: 25,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  signatureSectionTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#1e293b',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  signatureRow: {
-    flexDirection: 'row',
-    gap: 20,
-  },
-  signatureField: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  signatureLabel: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#374151',
-    marginBottom: 15,
-    textAlign: 'center',
-  },
-  signaturePreview: {
-    width: 120,
-    height: 80,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 8,
-    backgroundColor: '#f8fafc',
-  },
-  noSignatureText: {
-    fontSize: 14,
-    color: '#9ca3af',
-    fontStyle: 'italic',
-    textAlign: 'center',
-    padding: 20,
-    backgroundColor: '#f1f5f9',
-    borderRadius: 8,
-    width: 120,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: 'white',
-    borderRadius: 10,
-    width: '90%',
-    height: '90%',
-    overflow: 'hidden',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    padding: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
-  },
-  closeButton: {
-    padding: 10,
-  },
-  closeButtonText: {
-    fontSize: 24,
-    color: '#333',
-  },
-  fullScreenImage: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
-  },
 });
+

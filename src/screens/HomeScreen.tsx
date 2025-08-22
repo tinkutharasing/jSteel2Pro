@@ -59,13 +59,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   const canFitThreeCards = cardsPerRow >= 3;
   const canFitFourCards = cardsPerRow >= 4;
 
-  // Filter welds based on search query (search by weld number)
+  // Filter welds based on search query (search by weld number or welder name)
   const filteredWelds = useMemo(() => {
     if (!searchQuery.trim()) return welds;
     
     return welds.filter(weld => 
-      weld.weldNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      weld.wps.toLowerCase().includes(searchQuery.toLowerCase())
+      (weld.weldNumber && weld.weldNumber.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (weld.welderName && weld.welderName.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (weld.wpsNumberAndTitle && weld.wpsNumberAndTitle.toLowerCase().includes(searchQuery.toLowerCase()))
     );
   }, [welds, searchQuery]);
 
@@ -96,7 +97,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
-          placeholder="Search by Weld Number or WPS..."
+          placeholder="Search by Weld Number, Welder Name, or WPS..."
           placeholderTextColor="#64748b"
           value={searchQuery}
           onChangeText={setSearchQuery}

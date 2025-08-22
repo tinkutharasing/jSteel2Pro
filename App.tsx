@@ -52,150 +52,165 @@ export default function App() {
   const SAMPLE_WELDS: Weld[] = [
     {
       id: '1',
+      // Header Information
+      welderName: 'CHARLES UBERROTH',
       date: '2024-01-15',
-      typeFit: 'EL 90 to Pipe',
-      wps: 'WPS-6',
-      pipeDia: '24 inch',
-      gradeClass: 'X65-x65',
+      welderCompany: true,
+      welderContractor: false,
+      loaTccMod: '',
+      weldingContractorName: 'NPL',
+      woJoNumber: 'WO24413-914',
+      weldingInspectorName: 'SHAMJITH KS',
+      weldingInspectionCompany: 'CPI',
+      jobLocation: 'WO24413-914; 25128 Old Cleveland Road',
+      numberOfWeldsMadeToday: '5',
+      stencilNumber: 'QA',
+      processUsed: 'SMAW',
+      
+      // Weld Table Columns
       weldNumber: 'A1368',
-      welder: 'Mike Johnson',
-      welderSignature: '',
-      inspector: 'John Doe',
-      inspectorSignature: '',
-      firstHT: 'CAAD',
-      firstMfg: 'SteelCorp',
-      firstLength: '35.5 feet',
-      jtNumber: 'JT-001',
-      secondHT: '1F769H',
-      secondMfg: 'MetalWorks',
-      secondLength: '21.5 feet',
-      preHeat: 'YES',
-      vt: 'HFW/DSAW',
-      process: 'GMAW-SAW',
-      ndeNumber: 'NDE-324',
-      amps: '316,325,333',
-      volts: '27,30,33',
-      ipm: '8-inch',
+      pipeSizeInches: '24',
+      butt: 'Yes',
+      fillet: 'Tee',
+      passes: '3',
+      oClockPosition: '12 o\'clock',
+      wpsNumberAndTitle: 'WPS-6 - Standard Pipe Welding',
+      electrodeTypeBrand: 'E7018 - Lincoln Electric',
+      gpsCoordinates: '29.7604° N, 95.3698° W',
+      
+      // Metadata
       status: 'approved',
       createdAt: '2024-01-15T10:30:00Z',
       updatedAt: '2024-01-15T10:30:00Z'
     },
     {
       id: '2',
+      // Header Information
+      welderName: 'SARAH WILSON',
       date: '2024-01-16',
-      typeFit: 'Pipe to Pipe',
-      wps: 'WPS-8',
-      pipeDia: '18 inch',
-      gradeClass: 'X52-x52',
+      welderCompany: false,
+      welderContractor: true,
+      loaTccMod: 'LOA-2024-001',
+      weldingContractorName: 'Wilson Welding Co',
+      woJoNumber: 'WO24413-915',
+      weldingInspectorName: 'JANE SMITH',
+      weldingInspectionCompany: 'Quality Inspections Inc',
+      jobLocation: 'WO24413-915; 25130 Old Cleveland Road',
+      numberOfWeldsMadeToday: '3',
+      stencilNumber: 'QB',
+      processUsed: 'GTAW',
+      
+      // Weld Table Columns
       weldNumber: 'B2479',
-      welder: 'Sarah Wilson',
-      welderSignature: '',
-      inspector: 'Jane Smith',
-      inspectorSignature: '',
-      firstHT: 'BCCD',
-      firstMfg: 'PipeTech',
-      firstLength: '28.0 feet',
-      jtNumber: 'JT-002',
-      secondHT: '2G890K',
-      secondMfg: 'SteelFlow',
-      secondLength: '15.2 feet',
-      preHeat: 'NO',
-      vt: 'GTAW',
-      process: 'GTAW-SMAW',
-      ndeNumber: 'NDE-456',
-      amps: '180,195,210',
-      volts: '22,25,28',
-      ipm: '6-inch',
+      pipeSizeInches: '18',
+      butt: 'Yes',
+      fillet: 'Sleeve',
+      passes: '2',
+      oClockPosition: '6 o\'clock',
+      wpsNumberAndTitle: 'WPS-8 - Precision Welding',
+      electrodeTypeBrand: 'ER70S-6 - ESAB',
+      gpsCoordinates: '29.7605° N, 95.3699° W',
+      
+      // Metadata
       status: 'pending',
       createdAt: '2024-01-16T14:15:00Z',
       updatedAt: '2024-01-16T14:15:00Z'
     },
     {
       id: '3',
+      // Header Information
+      welderName: 'DAVID CHEN',
       date: '2024-01-17',
-      typeFit: 'Tee to Pipe',
-      wps: 'WPS-12',
-      pipeDia: '36 inch',
-      gradeClass: 'X70-x70',
+      welderCompany: true,
+      welderContractor: false,
+      loaTccMod: '',
+      weldingContractorName: 'Chen Steel Works',
+      woJoNumber: 'WO24413-916',
+      weldingInspectorName: 'ROBERT BROWN',
+      weldingInspectionCompany: 'Steel Quality Control',
+      jobLocation: 'WO24413-916; 25132 Old Cleveland Road',
+      numberOfWeldsMadeToday: '7',
+      stencilNumber: 'QC',
+      processUsed: 'FCAW',
+      
+      // Weld Table Columns
       weldNumber: 'C3590',
-      welder: 'David Chen',
-      welderSignature: '',
-      inspector: 'Robert Brown',
-      inspectorSignature: '',
-      firstHT: 'DCCE',
-      firstMfg: 'BigSteel',
-      firstLength: '42.8 feet',
-      jtNumber: 'JT-003',
-      secondHT: '3H901L',
-      secondMfg: 'HeavyMetal',
-      secondLength: '32.1 feet',
-      preHeat: 'YES',
-      vt: 'SMAW',
-      process: 'SMAW-FCAW',
-      ndeNumber: 'NDE-789',
-      amps: '450,475,490',
-      volts: '32,35,38',
-      ipm: '12-inch',
+      pipeSizeInches: '36',
+      butt: 'Yes',
+      fillet: 'Other',
+      passes: '4',
+      oClockPosition: '3 o\'clock',
+      wpsNumberAndTitle: 'WPS-12 - Heavy Duty Welding',
+      electrodeTypeBrand: 'E71T-1 - Hobart',
+      gpsCoordinates: '29.7606° N, 95.3700° W',
+      
+      // Metadata
       status: 'rejected',
       createdAt: '2024-01-17T09:45:00Z',
       updatedAt: '2024-01-17T09:45:00Z'
     },
     {
       id: '4',
+      // Header Information
+      welderName: 'LISA GARCIA',
       date: '2024-01-18',
-      typeFit: 'Reducer to Pipe',
-      wps: 'WPS-15',
-      pipeDia: '20 inch',
-      gradeClass: 'X60-x60',
+      welderCompany: false,
+      welderContractor: true,
+      loaTccMod: 'TCC-2024-002',
+      weldingContractorName: 'Garcia Welding Services',
+      woJoNumber: 'WO24413-917',
+      weldingInspectorName: 'MICHAEL WHITE',
+      weldingInspectionCompany: 'Professional Inspections',
+      jobLocation: 'WO24413-917; 25134 Old Cleveland Road',
+      numberOfWeldsMadeToday: '4',
+      stencilNumber: 'QD',
+      processUsed: 'GMAW',
+      
+      // Weld Table Columns
       weldNumber: 'D4701',
-      welder: 'Lisa Garcia',
-      welderSignature: '',
-      inspector: 'Michael White',
-      inspectorSignature: '',
-      firstHT: 'ECCF',
-      firstMfg: 'ReduxCorp',
-      firstLength: '25.3 feet',
-      jtNumber: 'JT-004',
-      secondHT: '4I012M',
-      secondMfg: 'FlexSteel',
-      secondLength: '18.7 feet',
-      preHeat: 'YES',
-      vt: 'GMAW',
-      process: 'GMAW-GTAW',
-      ndeNumber: 'NDE-012',
-      amps: '280,295,310',
-      volts: '24,27,30',
-      ipm: '7-inch',
+      pipeSizeInches: '20',
+      butt: 'Yes',
+      fillet: 'Tee',
+      passes: '3',
+      oClockPosition: '9 o\'clock',
+      wpsNumberAndTitle: 'WPS-15 - Medium Duty Welding',
+      electrodeTypeBrand: 'ER70S-3 - Miller',
+      gpsCoordinates: '29.7607° N, 95.3701° W',
+      
+      // Metadata
       status: 'approved',
       createdAt: '2024-01-18T16:20:00Z',
       updatedAt: '2024-01-18T16:20:00Z'
     },
     {
       id: '5',
+      // Header Information
+      welderName: 'ALEX THOMPSON',
       date: '2024-01-19',
-      typeFit: 'Flange to Pipe',
-      wps: 'WPS-18',
-      pipeDia: '16 inch',
-      gradeClass: 'X55-x55',
+      welderCompany: true,
+      welderContractor: false,
+      loaTccMod: '',
+      weldingContractorName: 'Thompson Industrial',
+      woJoNumber: 'WO24413-918',
+      weldingInspectorName: 'EMILY DAVIS',
+      weldingInspectionCompany: 'Industrial Quality Assurance',
+      jobLocation: 'WO24413-918; 25136 Old Cleveland Road',
+      numberOfWeldsMadeToday: '6',
+      stencilNumber: 'QE',
+      processUsed: 'SMAW',
+      
+      // Weld Table Columns
       weldNumber: 'E5812',
-      welder: 'Alex Thompson',
-      welderSignature: '',
-      inspector: 'Emily Davis',
-      inspectorSignature: '',
-      firstHT: 'FCCG',
-      firstMfg: 'FlangeTech',
-      firstLength: '22.1 feet',
-      jtNumber: 'JT-005',
-      secondHT: '5J123N',
-      secondMfg: 'SecureSteel',
-      secondLength: '14.9 feet',
-      preHeat: 'NO',
-      vt: 'FCAW',
-      process: 'FCAW-SMAW',
-      ndeNumber: 'NDE-345',
-      amps: '220,235,250',
-      volts: '21,24,27',
-      ipm: '5-inch',
+      pipeSizeInches: '16',
+      butt: 'Yes',
+      fillet: 'Sleeve',
+      passes: '2',
+      oClockPosition: '12 o\'clock',
+      wpsNumberAndTitle: 'WPS-18 - Standard Industrial',
+      electrodeTypeBrand: 'E7018 - Blue Demon',
+      gpsCoordinates: '29.7608° N, 95.3702° W',
+      
+      // Metadata
       status: 'pending',
       createdAt: '2024-01-19T11:10:00Z',
       updatedAt: '2024-01-19T11:10:00Z'
@@ -210,35 +225,34 @@ export default function App() {
   const [selectedWeld, setSelectedWeld] = useState<Weld | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [formData, setFormData] = useState<WeldFormData>({
+    // Header Information
+    welderName: '',
     date: getCurrentDateISO(),
-    typeFit: '',
-    wps: '',
-    pipeDia: '',
-    gradeClass: '',
+    welderCompany: false,
+    welderContractor: false,
+    loaTccMod: '',
+    weldingContractorName: '',
+    woJoNumber: '',
+    weldingInspectorName: '',
+    weldingInspectionCompany: '',
+    jobLocation: '',
+    numberOfWeldsMadeToday: '',
+    stencilNumber: '',
+    processUsed: '',
+    
+    // Weld Table Columns
     weldNumber: '',
-    welder: '',
-    welderSignature: '',
-    inspector: '',
-    inspectorSignature: '',
-    firstHT: '',
-    firstMfg: '',
-    firstLength: '',
-    jtNumber: '',
-    secondHT: '',
-    secondMfg: '',
-    secondLength: '',
-    preHeat: '',
-    vt: '',
-    process: '',
-    ndeNumber: '',
-    amps: '',
-    volts: '',
-    ipm: '',
-    status: 'pending',
-    weldSketch: '',
-    weldSketchDescription: '',
-    defectSketch: '',
-    defectSketchDescription: ''
+    pipeSizeInches: '',
+    butt: '',
+    fillet: '',
+    passes: '',
+    oClockPosition: '',
+    wpsNumberAndTitle: '',
+    electrodeTypeBrand: '',
+    gpsCoordinates: '',
+    
+    // Metadata
+    status: 'pending'
   });
 
   // Confirmation popup state
@@ -720,16 +734,43 @@ export default function App() {
     }
   };
 
-  const updateField = useCallback((field: keyof WeldFormData, value: string) => {
-    console.log(`Updating field ${field} with value: ${value}`);
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const updateField = useCallback((field: keyof WeldFormData, value: string | boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   }, []);
 
   const resetForm = () => {
     setFormData({
-      date: getCurrentDateISO(), typeFit: '', wps: '', pipeDia: '', gradeClass: '', weldNumber: '', welder: '', welderSignature: '',
-      inspector: '', inspectorSignature: '', firstHT: '', firstMfg: '', firstLength: '', jtNumber: '', secondHT: '', secondMfg: '',
-      secondLength: '', preHeat: '', vt: '', process: '', ndeNumber: '', amps: '', volts: '', ipm: '', status: 'pending', weldSketch: '', weldSketchDescription: '', defectSketch: '', defectSketchDescription: ''
+      // Header Information
+      welderName: '',
+      date: getCurrentDateISO(),
+      welderCompany: false,
+      welderContractor: false,
+      loaTccMod: '',
+      weldingContractorName: '',
+      woJoNumber: '',
+      weldingInspectorName: '',
+      weldingInspectionCompany: '',
+      jobLocation: '',
+      numberOfWeldsMadeToday: '',
+      stencilNumber: '',
+      processUsed: '',
+      
+      // Weld Table Columns
+      weldNumber: '',
+      pipeSizeInches: '',
+      butt: '',
+      fillet: '',
+      passes: '',
+      oClockPosition: '',
+      wpsNumberAndTitle: '',
+      electrodeTypeBrand: '',
+      gpsCoordinates: '',
+      
+      // Metadata
+      status: 'pending'
     });
     setIsEditMode(false);
     setSelectedWeld(null);
@@ -740,8 +781,32 @@ export default function App() {
       showError('Error', 'Weld Number is required');
       return;
     }
-    if (!formData.ndeNumber?.trim()) {
-      showError('Error', 'NDE Number is required');
+    if (!formData.welderName?.trim()) {
+      showError('Error', 'Welder Name is required');
+      return;
+    }
+    if (!formData.weldingInspectorName?.trim()) {
+      showError('Error', 'Welding Inspector Name is required');
+      return;
+    }
+    if (!formData.weldingInspectionCompany?.trim()) {
+      showError('Error', 'Welding Inspection Company is required');
+      return;
+    }
+    if (!formData.jobLocation?.trim()) {
+      showError('Error', 'Job Location is required');
+      return;
+    }
+    if (!formData.processUsed?.trim()) {
+      showError('Error', 'Process Used is required');
+      return;
+    }
+    if (!formData.pipeSizeInches?.trim()) {
+      showError('Error', 'Pipe Size is required');
+      return;
+    }
+    if (!formData.wpsNumberAndTitle?.trim()) {
+      showError('Error', 'WPS Number and Title is required');
       return;
     }
     
@@ -791,35 +856,34 @@ export default function App() {
   const editWeld = (weld: Weld) => {
     setSelectedWeld(weld);
     setFormData({
+      // Header Information
+      welderName: weld.welderName || '',
       date: weld.date || '',
-      typeFit: weld.typeFit || '',
-      wps: weld.wps || '',
-      pipeDia: weld.pipeDia || '',
-      gradeClass: weld.gradeClass || '',
+      welderCompany: weld.welderCompany || false,
+      welderContractor: weld.welderContractor || false,
+      loaTccMod: weld.loaTccMod || '',
+      weldingContractorName: weld.weldingContractorName || '',
+      woJoNumber: weld.woJoNumber || '',
+      weldingInspectorName: weld.weldingInspectorName || '',
+      weldingInspectionCompany: weld.weldingInspectionCompany || '',
+      jobLocation: weld.jobLocation || '',
+      numberOfWeldsMadeToday: weld.numberOfWeldsMadeToday || '',
+      stencilNumber: weld.stencilNumber || '',
+      processUsed: weld.processUsed || '',
+      
+      // Weld Table Columns
       weldNumber: weld.weldNumber || '',
-      welder: weld.welder || '',
-      welderSignature: weld.welderSignature || '',
-      inspector: weld.inspector || '',
-      inspectorSignature: weld.inspectorSignature || '',
-      firstHT: weld.firstHT || '',
-      firstMfg: weld.firstMfg || '',
-      firstLength: weld.firstLength || '',
-      jtNumber: weld.jtNumber || '',
-      secondHT: weld.secondHT || '',
-      secondMfg: weld.secondMfg || '',
-      secondLength: weld.secondLength || '',
-      preHeat: weld.preHeat || '',
-      vt: weld.vt || '',
-      process: weld.process || '',
-      ndeNumber: weld.ndeNumber || '',
-      amps: weld.amps || '',
-      volts: weld.volts || '',
-      ipm: weld.ipm || '',
-      status: weld.status || 'pending',
-      weldSketch: weld.weldSketch || '',
-      weldSketchDescription: weld.weldSketchDescription || '',
-      defectSketch: weld.defectSketch || '',
-      defectSketchDescription: weld.defectSketchDescription || ''
+      pipeSizeInches: weld.pipeSizeInches || '',
+      butt: weld.butt || '',
+      fillet: weld.fillet || '',
+      passes: weld.passes || '',
+      oClockPosition: weld.oClockPosition || '',
+      wpsNumberAndTitle: weld.wpsNumberAndTitle || '',
+      electrodeTypeBrand: weld.electrodeTypeBrand || '',
+      gpsCoordinates: weld.gpsCoordinates || '',
+      
+      // Metadata
+      status: weld.status || 'pending'
     });
     setIsEditMode(true);
     setCurrentScreen('add');

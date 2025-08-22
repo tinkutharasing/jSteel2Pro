@@ -47,12 +47,12 @@ export const WeldCard: React.FC<WeldCardProps> = ({ weld, onView, onEdit, onDele
         </Text>
       </View>
       
-      <Text style={styles.weldCardId}>{weld.weldNumber}</Text>
-      <Text style={styles.weldCardWPS}>WPS: {weld.wps}</Text>
+      <Text style={styles.weldCardId}>{weld.weldNumber || 'No Weld #'}</Text>
+      <Text style={styles.weldCardWelder}>Welder: {weld.welderName || 'N/A'}</Text>
       <Text style={styles.weldCardDate}>{formatDateToUS(weld.date)}</Text>
-      <Text style={styles.weldCardType}>{weld.typeFit}</Text>
-      <Text style={styles.weldCardWelder}>Welder: {weld.welder}</Text>
-      <Text style={styles.weldCardInspector}>Inspector: {weld.inspector}</Text>
+      <Text style={styles.weldCardWPS}>WPS: {weld.wpsNumberAndTitle || 'N/A'}</Text>
+      <Text style={styles.weldCardLocation}>Location: {weld.jobLocation || 'N/A'}</Text>
+      <Text style={styles.weldCardInspector}>Inspector: {weld.weldingInspectorName || 'N/A'}</Text>
       
       <View style={styles.cardActions}>
         <TouchableOpacity style={styles.iconButton} onPress={() => onView(weld)}>
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
     color: '#000000',
     marginBottom: 8,
   },
-  weldCardWPS: {
+  weldCardWelder: {
     fontSize: 16,
     color: '#3b82f6',
     fontWeight: '700',
@@ -145,17 +145,17 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 5,
   },
-  weldCardType: {
+  weldCardWPS: {
     fontSize: 12,
     color: '#64748b',
     fontWeight: '500',
     marginBottom: 5,
   },
-  weldCardWelder: {
+  weldCardLocation: {
     fontSize: 11,
     color: '#64748b',
     fontWeight: '500',
-    marginBottom: 2,
+    marginBottom: 5,
   },
   weldCardInspector: {
     fontSize: 11,

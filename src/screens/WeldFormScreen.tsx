@@ -3,15 +3,13 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView, Pla
 import Icon from 'react-native-vector-icons/Ionicons';
 
 import { WeldFormData } from '../types/Weld';
-import { FormField } from '../components/FormField';
+import { FormField, CheckboxField } from '../components/FormField';
 import { DatePickerField } from '../components/DatePickerField';
-import { ImageUploadField } from '../components/ImageUploadField';
-import { SignatureField } from '../components/SignatureField';
 
 interface WeldFormScreenProps {
   formData: WeldFormData;
   isEditMode: boolean;
-  onUpdateField: (field: keyof WeldFormData, value: string) => void;
+  onUpdateField: (field: keyof WeldFormData, value: string | boolean) => void;
   onSave: () => void;
   onBack: () => void;
 }
@@ -28,7 +26,7 @@ export const WeldFormScreen: React.FC<WeldFormScreenProps> = ({
     console.log('WeldFormScreen rendered with:', { formData, isEditMode });
   }, [formData, isEditMode]);
 
-  const updateField = useCallback((field: keyof WeldFormData, value: string) => {
+  const updateField = useCallback((field: keyof WeldFormData, value: string | boolean) => {
     console.log(`Updating field ${field} with value: ${value}`);
     onUpdateField(field, value);
   }, [onUpdateField]);
@@ -64,275 +62,260 @@ export const WeldFormScreen: React.FC<WeldFormScreenProps> = ({
         showsVerticalScrollIndicator={true}
       >
         <Text style={styles.subtitle}>
-          {isEditMode ? 'Edit Weld Inspection Form' : 'New Weld Form - 2 Required Fields'}
+          {isEditMode ? 'Edit Weld Inspection Form' : 'New Weld Form'}
         </Text>
         
+        {/* Header Information Section */}
         <View style={styles.formSection}>
-          {/* Row 1 - Weld Number First */}
+          <Text style={styles.sectionTitle}>Header Information</Text>
+          
+          {/* Row 1 - Welder Name and Date */}
           <View style={styles.formRow}>
             <FormField
-              label="1. Weld Number *"
+              label="Welder Name"
+              value={formData.welderName || ''}
+              onChangeText={(value) => updateField('welderName', value)}
+              placeholder="e.g., CHARLES UBERROTH"
+              required
+            />
+            <DatePickerField
+              label="Date"
+              value={formData.date || ''}
+              onDateChange={(value) => updateField('date', value)}
+              placeholder="MM/DD/YYYY"
+              required
+            />
+          </View>
+
+          {/* Row 2 - Company/Contractor Selection */}
+          <View style={styles.formRow}>
+            <CheckboxField
+              label="Company"
+              value={formData.welderCompany || false}
+              onChange={(value) => updateField('welderCompany', value)}
+            />
+            <CheckboxField
+              label="Contractor"
+              value={formData.welderContractor || false}
+              onChange={(value) => updateField('welderContractor', value)}
+            />
+          </View>
+
+          {/* Row 3 - LOA/TCC/MOD and Contractor Name */}
+          <View style={styles.formRow}>
+            <FormField
+              label="LOA/TCC/MOD"
+              value={formData.loaTccMod || ''}
+              onChangeText={(value) => updateField('loaTccMod', value)}
+              placeholder="Leave blank if not applicable"
+            />
+            <FormField
+              label="Welding Contractor Name"
+              value={formData.weldingContractorName || ''}
+              onChangeText={(value) => updateField('weldingContractorName', value)}
+              placeholder="e.g., NPL"
+            />
+          </View>
+
+          {/* Row 4 - WO/JO# and Inspector Name */}
+          <View style={styles.formRow}>
+            <FormField
+              label="WO/JO#"
+              value={formData.woJoNumber || ''}
+              onChangeText={(value) => updateField('woJoNumber', value)}
+              placeholder="Leave blank if not applicable"
+            />
+            <FormField
+              label="Welding Inspector Name"
+              value={formData.weldingInspectorName || ''}
+              onChangeText={(value) => updateField('weldingInspectorName', value)}
+              placeholder="e.g., SHAMJITH KS"
+              required
+            />
+          </View>
+
+          {/* Row 5 - Inspection Company and Job Location */}
+          <View style={styles.formRow}>
+            <FormField
+              label="Welding Inspection Company"
+              value={formData.weldingInspectionCompany || ''}
+              onChangeText={(value) => updateField('weldingInspectionCompany', value)}
+              placeholder="e.g., CPI"
+              required
+            />
+            <FormField
+              label="Job Location"
+              value={formData.jobLocation || ''}
+              onChangeText={(value) => updateField('jobLocation', value)}
+              placeholder="e.g., WO24413-914; 25128 Old Cleveland Road"
+              required
+            />
+          </View>
+
+          {/* Row 6 - Number of Welds and Stencil */}
+          <View style={styles.formRow}>
+            <FormField
+              label="Number of Welds Made Today"
+              value={formData.numberOfWeldsMadeToday || ''}
+              onChangeText={(value) => updateField('numberOfWeldsMadeToday', value)}
+              placeholder="Leave blank if not applicable"
+            />
+            <FormField
+              label="Stencil #"
+              value={formData.stencilNumber || ''}
+              onChangeText={(value) => updateField('stencilNumber', value)}
+              placeholder="e.g., QA"
+            />
+          </View>
+
+          {/* Row 7 - Process Used */}
+          <View style={styles.formRow}>
+            <FormField
+              label="Process Used"
+              value={formData.processUsed || ''}
+              onChangeText={(value) => updateField('processUsed', value)}
+              placeholder="e.g., SMAW"
+              required
+            />
+            <View style={styles.placeholder} />
+          </View>
+        </View>
+
+        {/* Weld Table Section */}
+        <View style={styles.formSection}>
+          <Text style={styles.sectionTitle}>Weld Table</Text>
+          
+          {/* Row 1 - Weld # and Pipe Size */}
+          <View style={styles.formRow}>
+            <FormField
+              label="Weld #"
               value={formData.weldNumber || ''}
               onChangeText={(value) => updateField('weldNumber', value)}
               placeholder="Enter Weld Number"
               required
             />
             <FormField
-              label="2. NDE Number *"
-              value={formData.ndeNumber || ''}
-              onChangeText={(value) => updateField('ndeNumber', value)}
-              placeholder="Enter NDE Number"
+              label="Pipe Size (In.)"
+              value={formData.pipeSizeInches || ''}
+              onChangeText={(value) => updateField('pipeSizeInches', value)}
+              placeholder="Enter pipe size in inches"
               required
             />
           </View>
 
-          {/* Row 2 */}
+          {/* Row 2 - Butt and Fillet */}
           <View style={styles.formRow}>
             <FormField
-              label="3. WPS"
-              value={formData.wps || ''}
-              onChangeText={(value) => updateField('wps', value)}
-              placeholder="Enter WPS"
+              label="Butt"
+              value={formData.butt || ''}
+              onChangeText={(value) => updateField('butt', value)}
+              placeholder="Enter butt information"
             />
-            <DatePickerField
-              label="4. Date"
-              value={formData.date || ''}
-              onDateChange={(value) => updateField('date', value)}
-              placeholder="MM/DD/YYYY"
+            <FormField
+              label="Fillet (Tee, Sleeve, Other)"
+              value={formData.fillet || ''}
+              onChangeText={(value) => updateField('fillet', value)}
+              placeholder="Enter fillet information"
             />
           </View>
 
-          {/* Row 3 */}
+          {/* Row 3 - Passes and O'Clock Position */}
           <View style={styles.formRow}>
             <FormField
-              label="5. Type Fit"
-              value={formData.typeFit || ''}
-              onChangeText={(value) => updateField('typeFit', value)}
-              placeholder="Enter Type Fit"
+              label="Passes"
+              value={formData.passes || ''}
+              onChangeText={(value) => updateField('passes', value)}
+              placeholder="Enter number of passes"
             />
             <FormField
-              label="6. Pipe Diameter"
-              value={formData.pipeDia || ''}
-              onChangeText={(value) => updateField('pipeDia', value)}
-              placeholder="Enter Pipe Diameter"
+              label="O'Clock Position"
+              value={formData.oClockPosition || ''}
+              onChangeText={(value) => updateField('oClockPosition', value)}
+              placeholder="e.g., 12 o'clock"
             />
           </View>
 
-          {/* Row 4 */}
+          {/* Row 4 - WPS and Electrode */}
           <View style={styles.formRow}>
             <FormField
-              label="7. Grade/Class"
-              value={formData.gradeClass || ''}
-              onChangeText={(value) => updateField('gradeClass', value)}
-              placeholder="Enter Grade/Class"
+              label="WPS # and Title Used"
+              value={formData.wpsNumberAndTitle || ''}
+              onChangeText={(value) => updateField('wpsNumberAndTitle', value)}
+              placeholder="Enter WPS number and title"
+              required
             />
             <FormField
-              label="8. Welder Name"
-              value={formData.welder || ''}
-              onChangeText={(value) => updateField('welder', value)}
-              placeholder="Enter Welder Name"
+              label="Electrode Type/Brand"
+              value={formData.electrodeTypeBrand || ''}
+              onChangeText={(value) => updateField('electrodeTypeBrand', value)}
+              placeholder="Enter electrode type and brand"
             />
           </View>
 
-          {/* Row 5 */}
+          {/* Row 5 - GPS Coordinates */}
           <View style={styles.formRow}>
             <FormField
-              label="9. Inspector Name"
-              value={formData.inspector || ''}
-              onChangeText={(value) => updateField('inspector', value)}
-              placeholder="Enter Inspector Name"
+              label="GPS Coordinates"
+              value={formData.gpsCoordinates || ''}
+              onChangeText={(value) => updateField('gpsCoordinates', value)}
+              placeholder="Enter GPS coordinates"
             />
-            <FormField
-              label="10. First HT"
-              value={formData.firstHT || ''}
-              onChangeText={(value) => updateField('firstHT', value)}
-              placeholder="Enter First HT"
-            />
+            <View style={styles.placeholder} />
           </View>
+        </View>
 
-          {/* Row 6 */}
-          <View style={styles.formRow}>
-            <FormField
-              label="11. First MFG"
-              value={formData.firstMfg || ''}
-              onChangeText={(value) => updateField('firstMfg', value)}
-              placeholder="Enter First MFG"
-            />
-            <FormField
-              label="12. First Length"
-              value={formData.firstLength || ''}
-              onChangeText={(value) => updateField('firstLength', value)}
-              placeholder="Enter First Length"
-            />
-          </View>
-
-          {/* Row 7 */}
-          <View style={styles.formRow}>
-            <FormField
-              label="13. JT Number"
-              value={formData.jtNumber || ''}
-              onChangeText={(value) => updateField('jtNumber', value)}
-              placeholder="Enter JT Number"
-            />
-            <FormField
-              label="14. Second HT"
-              value={formData.secondHT || ''}
-              onChangeText={(value) => updateField('secondHT', value)}
-              placeholder="Enter Second HT"
-            />
-          </View>
-
-          {/* Row 8 */}
-          <View style={styles.formRow}>
-            <FormField
-              label="15. Second MFG"
-              value={formData.secondMfg || ''}
-              onChangeText={(value) => updateField('secondMfg', value)}
-              placeholder="Enter Second MFG"
-            />
-            <FormField
-              label="16. Second Length"
-              value={formData.secondLength || ''}
-              onChangeText={(value) => updateField('secondLength', value)}
-              placeholder="Enter Second Length"
-            />
-          </View>
-
-          {/* Row 9 */}
-          <View style={styles.formRow}>
-            <FormField
-              label="17. Pre Heat"
-              value={formData.preHeat || ''}
-              onChangeText={(value) => updateField('preHeat', value)}
-              placeholder="Enter Pre Heat"
-            />
-            <FormField
-              label="18. VT"
-              value={formData.vt || ''}
-              onChangeText={(value) => updateField('vt', value)}
-              placeholder="Enter VT"
-            />
-          </View>
-
-          {/* Row 10 */}
-          <View style={styles.formRow}>
-            <FormField
-              label="19. Process"
-              value={formData.process || ''}
-              onChangeText={(value) => updateField('process', value)}
-              placeholder="Enter Process"
-            />
-            <FormField
-              label="20. Amps"
-              value={formData.amps || ''}
-              onChangeText={(value) => updateField('amps', value)}
-              placeholder="Enter Amps"
-            />
-          </View>
-
-          {/* Row 11 */}
-          <View style={styles.formRow}>
-            <FormField
-              label="21. Volts"
-              value={formData.volts || ''}
-              onChangeText={(value) => updateField('volts', value)}
-              placeholder="Enter Volts"
-            />
-            <FormField
-              label="22. IPM"
-              value={formData.ipm || ''}
-              onChangeText={(value) => updateField('ipm', value)}
-              placeholder="Enter IPM"
-            />
-          </View>
-
-          {/* Row 12 - Status */}
-          <View style={styles.formRow}>
-            <View style={styles.statusField}>
-              <Text style={styles.statusLabel}>23. Status</Text>
-              <View style={styles.statusOptions}>
-                <TouchableOpacity 
-                  style={[
-                    styles.statusOption, 
-                    (formData.status === 'pending' || !formData.status) && styles.statusOptionActive
-                  ]}
-                  onPress={() => updateField('status', 'pending')}
-                >
-                  <Text style={[
-                    styles.statusOptionText,
-                    (formData.status === 'pending' || !formData.status) && styles.statusOptionTextActive
-                  ]}>Pending</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[
-                    styles.statusOption, 
-                    formData.status === 'approved' && styles.statusOptionActive
-                  ]}
-                  onPress={() => updateField('status', 'approved')}
-                >
-                  <Text style={[
-                    styles.statusOptionText,
-                    formData.status === 'approved' && styles.statusOptionTextActive
-                  ]}>Approved</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[
-                    styles.statusOption, 
-                    formData.status === 'rejected' && styles.statusOptionActive
-                  ]}
-                  onPress={() => updateField('status', 'rejected')}
-                >
-                  <Text style={[
-                    styles.statusOptionText,
-                    formData.status === 'rejected' && styles.statusOptionTextActive
-                  ]}>Rejected</Text>
-                </TouchableOpacity>
-              </View>
+        {/* Status Section */}
+        <View style={styles.formSection}>
+          <Text style={styles.sectionTitle}>Status</Text>
+          
+          <View style={styles.statusField}>
+            <Text style={styles.statusLabel}>Status</Text>
+            <View style={styles.statusOptions}>
+              <TouchableOpacity 
+                style={[
+                  styles.statusOption, 
+                  (formData.status === 'pending' || !formData.status) && styles.statusOptionActive
+                ]}
+                onPress={() => updateField('status', 'pending')}
+              >
+                <Text style={[
+                  styles.statusOptionText,
+                  (formData.status === 'pending' || !formData.status) && styles.statusOptionTextActive
+                ]}>Pending</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[
+                  styles.statusOption, 
+                  formData.status === 'approved' && styles.statusOptionActive
+                ]}
+                onPress={() => updateField('status', 'approved')}
+              >
+                <Text style={[
+                  styles.statusOptionText,
+                  formData.status === 'approved' && styles.statusOptionTextActive
+                ]}>Approved</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[
+                  styles.statusOption, 
+                  formData.status === 'rejected' && styles.statusOptionActive
+                ]}
+                onPress={() => updateField('status', 'rejected')}
+              >
+                <Text style={[
+                  styles.statusOptionText,
+                  formData.status === 'rejected' && styles.statusOptionTextActive
+                ]}>Rejected</Text>
+              </TouchableOpacity>
             </View>
           </View>
-
-          {/* Row 13 - Signatures (At the end) */}
-          <View style={styles.formRow}>
-            <SignatureField
-              label="24. Welder Signature"
-              value={formData.welderSignature || ''}
-              onSignatureCaptured={(signature) => updateField('welderSignature', signature)}
-              onClear={() => updateField('welderSignature', '')}
-            />
-            <SignatureField
-              label="25. Inspector Signature"
-              value={formData.inspectorSignature || ''}
-              onSignatureCaptured={(signature) => updateField('inspectorSignature', signature)}
-              onClear={() => updateField('inspectorSignature', '')}
-            />
-          </View>
-
-          {/* Row 14 - Image Uploads */}
-          <View style={styles.formRow}>
-            <ImageUploadField
-              label="26. Weld Sketch"
-              value={formData.weldSketch || ''}
-              onImageChange={(imageUri) => updateField('weldSketch', imageUri)}
-              description={formData.weldSketchDescription || ''}
-              onDescriptionChange={(description) => updateField('weldSketchDescription', description)}
-              placeholder="Add Weld Sketch"
-            />
-            <ImageUploadField
-              label="27. Defect Sketch"
-              value={formData.defectSketch || ''}
-              onImageChange={(imageUri) => updateField('defectSketch', imageUri)}
-              description={formData.defectSketchDescription || ''}
-              onDescriptionChange={(description) => updateField('defectSketchDescription', description)}
-              placeholder="Add Defect Sketch"
-            />
-          </View>
-          
-          <TouchableOpacity style={styles.button} onPress={onSave}>
-            <Text style={styles.buttonText}>
-              {isEditMode ? 'Update Weld' : 'Save Weld Inspection'}
-            </Text>
-          </TouchableOpacity>
         </View>
+          
+        <TouchableOpacity style={styles.button} onPress={onSave}>
+          <Text style={styles.buttonText}>
+            {isEditMode ? 'Update Weld' : 'Save Weld Inspection'}
+          </Text>
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
@@ -399,7 +382,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 16,
     elevation: 8,
-    marginBottom: 40,
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#1e293b',
+    marginBottom: 20,
+    textAlign: 'center',
   },
   formRow: {
     flexDirection: 'row',
@@ -411,6 +401,8 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 16,
     marginTop: 16,
+    marginHorizontal: 15,
+    marginBottom: 40,
     alignItems: 'center',
     minHeight: 56,
   },

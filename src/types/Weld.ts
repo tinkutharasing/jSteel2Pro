@@ -1,68 +1,67 @@
 export interface Weld {
   id: string;
+  
+  // Header Information
+  welderName: string;
   date: string;
-  typeFit: string;
-  wps: string;
-  pipeDia: string;
-  gradeClass: string;
+  welderCompany: boolean;
+  welderContractor: boolean;
+  loaTccMod: string;
+  weldingContractorName: string;
+  woJoNumber: string;
+  weldingInspectorName: string;
+  weldingInspectionCompany: string;
+  jobLocation: string;
+  numberOfWeldsMadeToday: string;
+  stencilNumber: string;
+  processUsed: string;
+  
+  // Weld Table Columns
   weldNumber: string;
-  welder: string;
-  welderSignature: string;
-  inspector: string;
-  inspectorSignature: string;
-  firstHT: string;
-  firstMfg: string;
-  firstLength: string;
-  jtNumber: string;
-  secondHT: string;
-  secondMfg: string;
-  secondLength: string;
-  preHeat: string;
-  vt: string;
-  process: string;
-  ndeNumber: string;
-  amps: string;
-  volts: string;
-  ipm: string;
+  pipeSizeInches: string;
+  butt: string;
+  fillet: string;
+  passes: string;
+  oClockPosition: string;
+  wpsNumberAndTitle: string;
+  electrodeTypeBrand: string;
+  gpsCoordinates: string;
+  
+  // Metadata
   status: 'pending' | 'approved' | 'rejected';
-  weldSketch?: string;
-  weldSketchDescription?: string;
-  defectSketch?: string;
-  defectSketchDescription?: string;
   createdAt?: string;
   updatedAt?: string;
 }
 
 export interface WeldFormData {
+  // Header Information
+  welderName: string;
   date: string;
-  typeFit: string;
-  wps: string;
-  pipeDia: string;
-  gradeClass: string;
+  welderCompany: boolean;
+  welderContractor: boolean;
+  loaTccMod: string;
+  weldingContractorName: string;
+  woJoNumber: string;
+  weldingInspectorName: string;
+  weldingInspectionCompany: string;
+  jobLocation: string;
+  numberOfWeldsMadeToday: string;
+  stencilNumber: string;
+  processUsed: string;
+  
+  // Weld Table Columns
   weldNumber: string;
-  welder: string;
-  welderSignature: string;
-  inspector: string;
-  inspectorSignature: string;
-  firstHT: string;
-  firstMfg: string;
-  firstLength: string;
-  jtNumber: string;
-  secondHT: string;
-  secondMfg: string;
-  secondLength: string;
-  preHeat: string;
-  vt: string;
-  process: string;
-  ndeNumber: string;
-  amps: string;
-  volts: string;
-  ipm: string;
+  pipeSizeInches: string;
+  butt: string;
+  fillet: string;
+  passes: string;
+  oClockPosition: string;
+  wpsNumberAndTitle: string;
+  electrodeTypeBrand: string;
+  gpsCoordinates: string;
+  
+  // Metadata
   status: 'pending' | 'approved' | 'rejected';
-  weldSketch: string;
-  weldSketchDescription: string;
-  defectSketch: string;
-  defectSketchDescription: string;
 }
 
 export type Screen = 'home' | 'add' | 'view' | 'settings';

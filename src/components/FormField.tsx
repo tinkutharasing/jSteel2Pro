@@ -1,61 +1,118 @@
 import React from 'react';
-import { View, Text, TextInput, StyleSheet } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
 
 interface FormFieldProps {
   label: string;
   value: string;
-  onChangeText: (value: string) => void;
-  placeholder: string;
+  onChangeText: (text: string) => void;
+  placeholder?: string;
+  required?: boolean;
+  multiline?: boolean;
+  numberOfLines?: number;
+}
+
+interface CheckboxFieldProps {
+  label: string;
+  value: boolean;
+  onChange: (value: boolean) => void;
   required?: boolean;
 }
 
-export const FormField: React.FC<FormFieldProps> = ({ 
-  label, 
-  value, 
-  onChangeText, 
-  placeholder, 
-  required = false 
+export const FormField: React.FC<FormFieldProps> = ({
+  label,
+  value,
+  onChangeText,
+  placeholder,
+  required = false,
+  multiline = false,
+  numberOfLines = 1
 }) => {
   return (
-    <View style={styles.formField}>
-      <Text style={styles.fieldLabel}>
-        {label} {required && '*'}
+    <View style={styles.container}>
+      <Text style={styles.label}>
+        {label} {required && <Text style={styles.required}>*</Text>}
       </Text>
       <TextInput
-        style={styles.textInput}
+        style={[
+          styles.input,
+          multiline && styles.multilineInput
+        ]}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor="#495057"
-        blurOnSubmit={false}
-        autoComplete="off"
-        autoCorrect={false}
-        autoCapitalize="none"
-        multiline={false}
+        placeholderTextColor="#9ca3af"
+        multiline={multiline}
+        numberOfLines={numberOfLines}
       />
     </View>
   );
 };
 
+export const CheckboxField: React.FC<CheckboxFieldProps> = ({
+  label,
+  value,
+  onChange,
+  required = false
+}) => {
+  return (
+    <View style={styles.container}>
+      <Text style={styles.label}>
+        {label} {required && <Text style={styles.required}>*</Text>}
+      </Text>
+      <TouchableOpacity
+        style={[styles.checkbox, value && styles.checkboxChecked]}
+        onPress={() => onChange(!value)}
+      >
+        {value && <Text style={styles.checkmark}>✓</Text>}
+      </TouchableOpacity>
+    </View>
+  );
+};
+
 const styles = StyleSheet.create({
-  formField: {
+  container: {
     flex: 1,
+    marginBottom: 16,
   },
-  fieldLabel: {
-    fontSize: 14,
+  label: {
+    fontSize: 16,
     fontWeight: '700',
     color: '#1e293b',
-    marginBottom: 6,
+    marginBottom: 8,
   },
-  textInput: {
-    fontSize: 16,
-    color: '#0f172a',
-    padding: 18,
-    backgroundColor: '#f8fafc',
+  required: {
+    color: '#ef4444',
+  },
+  input: {
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderStyle: 'solid',
-    borderRadius: 12,
-    minHeight: 56,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    backgroundColor: '#ffffff',
+    color: '#1f2937',
+  },
+  multilineInput: {
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderWidth: 2,
+    borderColor: '#d1d5db',
+    borderRadius: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+  },
+  checkboxChecked: {
+    backgroundColor: '#3b82f6',
+    borderColor: '#3b82f6',
+  },
+  checkmark: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
