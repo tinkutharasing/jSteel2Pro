@@ -5,6 +5,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import { WeldFormData } from '../types/Weld';
 import { FormField, CheckboxField } from '../components/FormField';
 import { DatePickerField } from '../components/DatePickerField';
+import { ImageUploadField } from '../components/ImageUploadField';
 
 interface WeldFormScreenProps {
   formData: WeldFormData;
@@ -219,7 +220,7 @@ export const WeldFormScreen: React.FC<WeldFormScreenProps> = ({
             />
           </View>
 
-          {/* Row 3 - Passes and O'Clock Position */}
+          {/* Row 3 - Passes and Cap Size */}
           <View style={styles.formRow}>
             <FormField
               label="Passes"
@@ -228,10 +229,10 @@ export const WeldFormScreen: React.FC<WeldFormScreenProps> = ({
               placeholder="Enter number of passes"
             />
             <FormField
-              label="O'Clock Position"
-              value={formData.oClockPosition || ''}
-              onChangeText={(value) => updateField('oClockPosition', value)}
-              placeholder="e.g., 12 o'clock"
+              label="Cap Size"
+              value={formData.capSize || ''}
+              onChangeText={(value) => updateField('capSize', value)}
+              placeholder="Enter cap size"
             />
           </View>
 
@@ -251,16 +252,29 @@ export const WeldFormScreen: React.FC<WeldFormScreenProps> = ({
               placeholder="Enter electrode type and brand"
             />
           </View>
+        </View>
 
-          {/* Row 5 - GPS Coordinates */}
+        {/* Image Upload Section */}
+        <View style={styles.formSection}>
+          <Text style={styles.sectionTitle}>Images</Text>
+          
           <View style={styles.formRow}>
-            <FormField
-              label="GPS Coordinates"
-              value={formData.gpsCoordinates || ''}
-              onChangeText={(value) => updateField('gpsCoordinates', value)}
-              placeholder="Enter GPS coordinates"
+            <ImageUploadField
+              label="Weld Sketch"
+              value={formData.weldSketch || ''}
+              onImageChange={(imageUri) => updateField('weldSketch', imageUri)}
+              description={formData.weldSketchDescription || ''}
+              onDescriptionChange={(description) => updateField('weldSketchDescription', description)}
+              placeholder="Add Weld Sketch"
             />
-            <View style={styles.placeholder} />
+            <ImageUploadField
+              label="Defect Sketch"
+              value={formData.defectSketch || ''}
+              onImageChange={(imageUri) => updateField('defectSketch', imageUri)}
+              description={formData.defectSketchDescription || ''}
+              onDescriptionChange={(description) => updateField('defectSketchDescription', description)}
+              placeholder="Add Defect Sketch"
+            />
           </View>
         </View>
 

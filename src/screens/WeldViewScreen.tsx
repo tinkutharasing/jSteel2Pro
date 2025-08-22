@@ -142,8 +142,8 @@ export const WeldViewScreen: React.FC<WeldViewScreenProps> = ({ weld, onBack, on
           </View>
           
           <View style={styles.viewRow}>
-            <Text style={styles.viewLabel}>O'Clock Position:</Text>
-            <Text style={styles.viewValue}>{weld.oClockPosition || 'N/A'}</Text>
+            <Text style={styles.viewLabel}>Cap Size:</Text>
+            <Text style={styles.viewValue}>{weld.capSize || 'N/A'}</Text>
           </View>
           
           <View style={styles.viewRow}>
@@ -155,11 +155,35 @@ export const WeldViewScreen: React.FC<WeldViewScreenProps> = ({ weld, onBack, on
             <Text style={styles.viewLabel}>Electrode Type/Brand:</Text>
             <Text style={styles.viewValue}>{weld.electrodeTypeBrand || 'N/A'}</Text>
           </View>
+        </View>
+
+        {/* Images Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Images</Text>
           
           <View style={styles.viewRow}>
-            <Text style={styles.viewLabel}>GPS Coordinates:</Text>
-            <Text style={styles.viewValue}>{weld.gpsCoordinates || 'N/A'}</Text>
+            <Text style={styles.viewLabel}>Weld Sketch:</Text>
+            <Text style={styles.viewValue}>{weld.weldSketch ? 'Uploaded' : 'Not uploaded'}</Text>
           </View>
+          
+          {weld.weldSketchDescription && (
+            <View style={styles.viewRow}>
+              <Text style={styles.viewLabel}>Weld Sketch Description:</Text>
+              <Text style={styles.viewValue}>{weld.weldSketchDescription}</Text>
+            </View>
+          )}
+          
+          <View style={styles.viewRow}>
+            <Text style={styles.viewLabel}>Defect Sketch:</Text>
+            <Text style={styles.viewValue}>{weld.defectSketch ? 'Uploaded' : 'Not uploaded'}</Text>
+          </View>
+          
+          {weld.defectSketchDescription && (
+            <View style={styles.viewRow}>
+              <Text style={styles.viewLabel}>Defect Sketch Description:</Text>
+              <Text style={styles.viewValue}>{weld.defectSketchDescription}</Text>
+            </View>
+          )}
         </View>
       </ScrollView>
     </View>

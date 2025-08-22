@@ -73,10 +73,15 @@ export default function App() {
       butt: 'Yes',
       fillet: 'Tee',
       passes: '3',
-      oClockPosition: '12 o\'clock',
+      capSize: '12 o\'clock',
       wpsNumberAndTitle: 'WPS-6 - Standard Pipe Welding',
       electrodeTypeBrand: 'E7018 - Lincoln Electric',
-      gpsCoordinates: '29.7604° N, 95.3698° W',
+      
+      // Image Fields
+      weldSketch: '',
+      weldSketchDescription: '',
+      defectSketch: '',
+      defectSketchDescription: '',
       
       // Metadata
       status: 'approved',
@@ -106,10 +111,15 @@ export default function App() {
       butt: 'Yes',
       fillet: 'Sleeve',
       passes: '2',
-      oClockPosition: '6 o\'clock',
+      capSize: '6 o\'clock',
       wpsNumberAndTitle: 'WPS-8 - Precision Welding',
       electrodeTypeBrand: 'ER70S-6 - ESAB',
-      gpsCoordinates: '29.7605° N, 95.3699° W',
+      
+      // Image Fields
+      weldSketch: '',
+      weldSketchDescription: '',
+      defectSketch: '',
+      defectSketchDescription: '',
       
       // Metadata
       status: 'pending',
@@ -139,10 +149,15 @@ export default function App() {
       butt: 'Yes',
       fillet: 'Other',
       passes: '4',
-      oClockPosition: '3 o\'clock',
+      capSize: '3 o\'clock',
       wpsNumberAndTitle: 'WPS-12 - Heavy Duty Welding',
       electrodeTypeBrand: 'E71T-1 - Hobart',
-      gpsCoordinates: '29.7606° N, 95.3700° W',
+      
+      // Image Fields
+      weldSketch: '',
+      weldSketchDescription: '',
+      defectSketch: '',
+      defectSketchDescription: '',
       
       // Metadata
       status: 'rejected',
@@ -172,10 +187,15 @@ export default function App() {
       butt: 'Yes',
       fillet: 'Tee',
       passes: '3',
-      oClockPosition: '9 o\'clock',
+      capSize: '9 o\'clock',
       wpsNumberAndTitle: 'WPS-15 - Medium Duty Welding',
       electrodeTypeBrand: 'ER70S-3 - Miller',
-      gpsCoordinates: '29.7607° N, 95.3701° W',
+      
+      // Image Fields
+      weldSketch: '',
+      weldSketchDescription: '',
+      defectSketch: '',
+      defectSketchDescription: '',
       
       // Metadata
       status: 'approved',
@@ -205,10 +225,15 @@ export default function App() {
       butt: 'Yes',
       fillet: 'Sleeve',
       passes: '2',
-      oClockPosition: '12 o\'clock',
+      capSize: '12 o\'clock',
       wpsNumberAndTitle: 'WPS-18 - Standard Industrial',
       electrodeTypeBrand: 'E7018 - Blue Demon',
-      gpsCoordinates: '29.7608° N, 95.3702° W',
+      
+      // Image Fields
+      weldSketch: '',
+      weldSketchDescription: '',
+      defectSketch: '',
+      defectSketchDescription: '',
       
       // Metadata
       status: 'pending',
@@ -246,10 +271,15 @@ export default function App() {
     butt: '',
     fillet: '',
     passes: '',
-    oClockPosition: '',
+    capSize: '',
     wpsNumberAndTitle: '',
     electrodeTypeBrand: '',
-    gpsCoordinates: '',
+    
+    // Image Fields
+    weldSketch: '',
+    weldSketchDescription: '',
+    defectSketch: '',
+    defectSketchDescription: '',
     
     // Metadata
     status: 'pending'
@@ -764,16 +794,20 @@ export default function App() {
       butt: '',
       fillet: '',
       passes: '',
-      oClockPosition: '',
+      capSize: '',
       wpsNumberAndTitle: '',
       electrodeTypeBrand: '',
-      gpsCoordinates: '',
+      
+      // Image Fields
+      weldSketch: '',
+      weldSketchDescription: '',
+      defectSketch: '',
+      defectSketchDescription: '',
       
       // Metadata
       status: 'pending'
     });
     setIsEditMode(false);
-    setSelectedWeld(null);
   };
 
   const addWeld = () => {
@@ -877,10 +911,15 @@ export default function App() {
       butt: weld.butt || '',
       fillet: weld.fillet || '',
       passes: weld.passes || '',
-      oClockPosition: weld.oClockPosition || '',
+      capSize: weld.capSize || '',
       wpsNumberAndTitle: weld.wpsNumberAndTitle || '',
       electrodeTypeBrand: weld.electrodeTypeBrand || '',
-      gpsCoordinates: weld.gpsCoordinates || '',
+      
+      // Image Fields
+      weldSketch: weld.weldSketch || '',
+      weldSketchDescription: weld.weldSketchDescription || '',
+      defectSketch: weld.defectSketch || '',
+      defectSketchDescription: weld.defectSketchDescription || '',
       
       // Metadata
       status: weld.status || 'pending'

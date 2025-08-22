@@ -22,10 +22,15 @@ export interface Weld {
   butt: string;
   fillet: string;
   passes: string;
-  oClockPosition: string;
+  capSize: string;
   wpsNumberAndTitle: string;
   electrodeTypeBrand: string;
-  gpsCoordinates: string;
+  
+  // Image Fields
+  weldSketch?: string;
+  weldSketchDescription?: string;
+  defectSketch?: string;
+  defectSketchDescription?: string;
   
   // Metadata
   status: 'pending' | 'approved' | 'rejected';
@@ -55,10 +60,15 @@ export interface WeldFormData {
   butt: string;
   fillet: string;
   passes: string;
-  oClockPosition: string;
+  capSize: string;
   wpsNumberAndTitle: string;
   electrodeTypeBrand: string;
-  gpsCoordinates: string;
+  
+  // Image Fields
+  weldSketch: string;
+  weldSketchDescription: string;
+  defectSketch: string;
+  defectSketchDescription: string;
   
   // Metadata
   status: 'pending' | 'approved' | 'rejected';
