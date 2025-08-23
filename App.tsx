@@ -6,7 +6,7 @@ import { Weld, WeldFormData, Screen } from './src/types/Weld';
 import { WeldCardData } from './src/types/WeldCard';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { BulkWeldEditorScreen } from './src/screens/BulkWeldEditorScreen';
-import { WeldPrintView } from './src/screens/WeldPrintView';
+import WeldPrintView from './src/screens/WeldPrintView';
 import { BottomNavigation } from './src/components/BottomNavigation';
 import { GoogleSheetsConfigModal } from './src/components/GoogleSheetsConfigModal';
 import { getCurrentDateISO } from './src/utils/dateUtils';
