@@ -13,6 +13,7 @@ import {
 import Icon from 'react-native-vector-icons/Ionicons';
 import ViewShot from 'react-native-view-shot';
 import RNFS from 'react-native-fs';
+import RNPrint from 'react-native-print';
 import { WeldCardData } from '../types/WeldCard';
 
 interface WeldPrintViewProps {
@@ -136,8 +137,248 @@ const WeldPrintView: React.FC<WeldPrintViewProps> = ({ card, onBack }) => {
     }
   };
 
-  const handlePrint = () => {
-    Alert.alert('Print', 'Print functionality would be implemented here');
+  const handlePrint = async () => {
+    try {
+      // Generate HTML content for printing
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Weld Inspection Report</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              margin: 0;
+              padding: 20px;
+              color: #333;
+            }
+            @page {
+              margin: 0.5in;
+              size: A4;
+            }
+            .header {
+              text-align: center;
+              margin-bottom: 30px;
+              border-bottom: 2px solid #3b82f6;
+              padding-bottom: 20px;
+            }
+            .back-button {
+              margin-top: 20px;
+              text-align: center;
+              padding: 10px;
+              background-color: #f0f9ff;
+              border: 2px solid #3b82f6;
+              border-radius: 8px;
+              display: inline-block;
+              margin-left: auto;
+              margin-right: auto;
+            }
+            .company-name {
+              font-size: 28px;
+              font-weight: bold;
+              color: #1e293b;
+              margin-bottom: 8px;
+            }
+            .company-subtitle {
+              font-size: 18px;
+              color: #64748b;
+              margin-bottom: 20px;
+            }
+            .card-info {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 30px;
+              background: #f8fafc;
+              padding: 15px;
+              border-radius: 8px;
+            }
+            .info-item {
+              margin: 5px 0;
+            }
+            .label {
+              font-weight: bold;
+              color: #64748b;
+            }
+            .value {
+              color: #1e293b;
+            }
+            .section-title {
+              font-size: 18px;
+              font-weight: bold;
+              color: #1e293b;
+              margin: 20px 0 10px 0;
+              border-bottom: 1px solid #e5e7eb;
+              padding-bottom: 5px;
+            }
+            .table {
+              width: 100%;
+              border-collapse: collapse;
+              margin: 15px 0;
+            }
+            .table th,
+            .table td {
+              border: 1px solid #e5e7eb;
+              padding: 8px;
+              text-align: center;
+              font-size: 12px;
+            }
+            .table th {
+              background-color: #f9fafb;
+              font-weight: bold;
+              color: #374151;
+            }
+            .images-section {
+              margin-top: 30px;
+            }
+            .image-row {
+              display: flex;
+              margin: 20px 0;
+              align-items: flex-start;
+            }
+            .image-info {
+              margin-right: 30px;
+            }
+            .image-title {
+              font-weight: bold;
+              margin-bottom: 10px;
+              color: #374151;
+            }
+            .description {
+              max-width: 400px;
+              padding: 10px;
+              background: #f8fafc;
+              border: 1px solid #e2e8f0;
+              border-radius: 6px;
+              font-size: 12px;
+              color: #64748b;
+            }
+            @media print {
+              body {
+                margin: 0;
+                padding: 0;
+              }
+              .header {
+                page-break-after: avoid;
+                margin-top: 0;
+              }
+              .table {
+                page-break-inside: avoid;
+              }
+              .image-row {
+                page-break-inside: avoid;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="company-name">jSteel Pro</div>
+            <div class="company-subtitle">Weld Inspection Management</div>
+            <div class="back-button">
+              <strong style="color: #3b82f6; font-size: 16px; font-weight: 600; display: inline-block; padding: 12px 20px; border: 2px solid #3b82f6; border-radius: 8px; background-color: #f0f9ff; text-align: center; min-width: 200px;">
+                ← BACK TO PREVIOUS PAGE
+              </strong>
+            </div>
+          </div>
+
+          <div class="card-info">
+            <div>
+              <div class="info-item">
+                <span class="label">Date:</span> 
+                <span class="value">${formatDate(card.date)}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">Card ID:</span> 
+                <span class="value">${card.cardId}</span>
+              </div>
+            </div>
+            <div>
+              <div class="info-item">
+                <span class="label">Total Welds:</span> 
+                <span class="value">${card.welds?.length || 0}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">Created:</span> 
+                <span class="value">${card.createdAt ? formatDate(card.createdAt) : 'N/A'}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title">Weld Details</div>
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Weld #</th>
+                <th>WID #</th>
+                <th>Pipe Size</th>
+                <th>Type</th>
+                <th>Cap Size</th>
+                <th>Passes</th>
+                <th>WPS</th>
+                <th>Electrode</th>
+                <th>RT</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${card.welds && card.welds.length > 0 ? 
+                card.welds.map((weld: any) => `
+                  <tr>
+                    <td>${weld.weldNumber || 'N/A'}</td>
+                    <td>${weld.widNumber || 'N/A'}</td>
+                    <td>${weld.pipeSizeInches || 'N/A'}</td>
+                    <td>${weld.typeOfWeld || 'N/A'}</td>
+                    <td>${weld.capSize || 'N/A'}</td>
+                    <td>${weld.passes || 'N/A'}</td>
+                    <td>${weld.wpsNumberAndTitle || 'N/A'}</td>
+                    <td>${weld.electrodeTypeBrand || 'N/A'}</td>
+                    <td>${weld.rt || 'N/A'}</td>
+                  </tr>
+                `).join('') : 
+                `<tr>
+                  <td colspan="9">No welds available</td>
+                </tr>`
+              }
+            </tbody>
+          </table>
+
+          <div class="section-title">Images and Sketches</div>
+          <div class="images-section">
+            <div class="image-row">
+              <div class="image-info">
+                <div class="image-title">Weld Sketch</div>
+                <div class="description">
+                  ${card.weldSketchDescription || 'No weld sketch description available'}
+                </div>
+              </div>
+            </div>
+            <div class="image-row">
+              <div class="image-info">
+                <div class="image-title">Defect Sketch</div>
+                <div class="description">
+                  ${card.defectSketchDescription || 'No defect sketch description available'}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top: 40px; text-align: center; font-size: 12px; color: #9ca3af;">
+            Generated on ${new Date().toLocaleString()}
+          </div>
+        </body>
+        </html>
+      `;
+
+      // Print the HTML content
+      await RNPrint.print({
+        html: htmlContent,
+        jobName: `WeldCard_${card.cardId}_${new Date().toISOString().split('T')[0]}`,
+      });
+
+    } catch (error) {
+      console.error('Print error:', error);
+      Alert.alert('Print Error', 'Failed to print the document. Please try again.');
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -172,7 +413,7 @@ const WeldPrintView: React.FC<WeldPrintViewProps> = ({ card, onBack }) => {
         {/* Back Button and Action Buttons Row */}
         <View style={styles.navigationRow}>
           <TouchableOpacity style={styles.backButton} onPress={onBack}>
-            <Icon name="arrow-back" size={24} color="#6b7280" />
+            <Icon name="arrow-back" size={24} color="#3b82f6" />
             <Text style={styles.backButtonText}>Back</Text>
           </TouchableOpacity>
           
@@ -247,90 +488,96 @@ const WeldPrintView: React.FC<WeldPrintViewProps> = ({ card, onBack }) => {
         <View style={styles.imagesSection}>
           <Text style={styles.sectionTitle}>Images and Sketches</Text>
           <View style={styles.imagesGrid}>
-            {/* Column 1: Weld Sketch Image */}
-            <View style={styles.imageColumn}>
-              <View style={styles.imageContainer}>
-                {card.weldSketch ? (
-                  <TouchableOpacity
-                    onPress={() => setSelectedImageForPreview({
-                      uri: card.weldSketch!,
-                      title: 'Weld Sketch'
-                    })}
-                    style={styles.imageTouchable}
-                  >
-                    <ViewShot
-                      ref={weldSketchRef}
-                      style={styles.imageWrapper}
+            {/* Weld Sketch Row */}
+            <View style={styles.imageRow}>
+              {/* Weld Sketch Image */}
+              <View style={styles.imageColumn}>
+                <View style={styles.imageContainer}>
+                  {card.weldSketch ? (
+                    <TouchableOpacity
+                      onPress={() => setSelectedImageForPreview({
+                        uri: card.weldSketch!,
+                        title: 'Weld Sketch'
+                      })}
+                      style={styles.imageTouchable}
                     >
-                      <Image 
-                        source={{ uri: card.weldSketch }} 
-                        style={styles.actualImage}
-                        resizeMode="contain"
-                        onError={(error) => console.log('Weld sketch image error:', error)}
-                      />
-                    </ViewShot>
-                  </TouchableOpacity>
-                ) : (
-                  <View style={styles.noImageContainer}>
-                    <Icon name="image-outline" size={32} color="#9ca3af" />
-                    <Text style={styles.noImageText}>No Weld Sketch</Text>
-                  </View>
-                )}
+                      <ViewShot
+                        ref={weldSketchRef}
+                        style={styles.imageWrapper}
+                      >
+                        <Image 
+                          source={{ uri: card.weldSketch }} 
+                          style={styles.actualImage}
+                          resizeMode="contain"
+                          onError={(error) => console.log('Weld sketch image error:', error)}
+                        />
+                      </ViewShot>
+                    </TouchableOpacity>
+                  ) : (
+                    <View style={styles.noImageContainer}>
+                      <Icon name="image-outline" size={32} color="#9ca3af" />
+                      <Text style={styles.noImageText}>No Weld Sketch</Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={styles.imageDescription}>Weld Sketch</Text>
               </View>
-              <Text style={styles.imageDescription}>Weld Sketch</Text>
+
+              {/* Weld Sketch Description */}
+              <View style={styles.descriptionColumn}>
+                <View style={styles.descriptionContainer}>
+                  <Text style={styles.descriptionText}>
+                    {card.weldSketchDescription || 'No weld sketch description available'}
+                  </Text>
+                </View>
+                <Text style={styles.imageDescription}>Description</Text>
+              </View>
             </View>
 
-            {/* Column 2: Weld Sketch Description */}
-            <View style={styles.imageColumn}>
-              <View style={styles.descriptionContainer}>
-                <Text style={styles.descriptionText}>
-                  {card.weldSketchDescription || 'No weld sketch description available'}
-                </Text>
-              </View>
-              <Text style={styles.imageDescription}>Description</Text>
-            </View>
-
-            {/* Column 3: Defect Sketch Image */}
-            <View style={styles.imageColumn}>
-              <View style={styles.imageContainer}>
-                {card.defectSketch ? (
-                  <TouchableOpacity
-                    onPress={() => setSelectedImageForPreview({
-                      uri: card.defectSketch!,
-                      title: 'Defect Sketch'
-                    })}
-                    style={styles.imageTouchable}
-                  >
-                    <ViewShot
-                      ref={defectSketchRef}
-                      style={styles.imageWrapper}
+            {/* Defect Sketch Row */}
+            <View style={styles.imageRow}>
+              {/* Defect Sketch Image */}
+              <View style={styles.imageColumn}>
+                <View style={styles.imageContainer}>
+                  {card.defectSketch ? (
+                    <TouchableOpacity
+                      onPress={() => setSelectedImageForPreview({
+                        uri: card.defectSketch!,
+                        title: 'Defect Sketch'
+                      })}
+                      style={styles.imageTouchable}
                     >
-                      <Image 
-                        source={{ uri: card.defectSketch }} 
-                        style={styles.actualImage}
-                        resizeMode="contain"
-                        onError={(error) => console.log('Defect sketch image error:', error)}
-                      />
-                    </ViewShot>
-                  </TouchableOpacity>
-                ) : (
-                  <View style={styles.noImageContainer}>
-                    <Icon name="image-outline" size={32} color="#9ca3af" />
-                    <Text style={styles.noImageText}>No Defect Sketch</Text>
-                  </View>
-                )}
+                      <ViewShot
+                        ref={defectSketchRef}
+                        style={styles.imageWrapper}
+                      >
+                        <Image 
+                          source={{ uri: card.defectSketch }} 
+                          style={styles.actualImage}
+                          resizeMode="contain"
+                          onError={(error) => console.log('Defect sketch image error:', error)}
+                        />
+                      </ViewShot>
+                    </TouchableOpacity>
+                  ) : (
+                    <View style={styles.noImageContainer}>
+                      <Icon name="image-outline" size={32} color="#9ca3af" />
+                      <Text style={styles.noImageText}>No Defect Sketch</Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={styles.imageDescription}>Defect Sketch</Text>
               </View>
-              <Text style={styles.imageDescription}>Defect Sketch</Text>
-            </View>
 
-            {/* Column 4: Defect Sketch Description */}
-            <View style={styles.imageColumn}>
-              <View style={styles.descriptionContainer}>
-                <Text style={styles.descriptionText}>
-                  {card.defectSketchDescription || 'No defect sketch description available'}
-                </Text>
+              {/* Defect Sketch Description */}
+              <View style={styles.descriptionColumn}>
+                <View style={styles.descriptionContainer}>
+                  <Text style={styles.descriptionText}>
+                    {card.defectSketchDescription || 'No defect sketch description available'}
+                  </Text>
+                </View>
+                <Text style={styles.imageDescription}>Description</Text>
               </View>
-              <Text style={styles.imageDescription}>Description</Text>
             </View>
           </View>
         </View>
@@ -510,17 +757,27 @@ const styles = StyleSheet.create({
   },
   
   imagesGrid: {
+    gap: 16,
+  },
+  
+  imageRow: {
     flexDirection: 'row',
-    gap: 12,
+    alignItems: 'flex-start',
+    marginBottom: 12,
   },
   
   imageColumn: {
+    alignItems: 'center',
+    // No flex property - let images take only needed space
+  },
+  
+  descriptionColumn: {
     flex: 1,
     alignItems: 'center',
   },
   
   imageContainer: {
-    width: '100%',
+    width: 100, // Fixed width for images
     height: 80,
     borderWidth: 1,
     borderColor: '#e2e8f0',
@@ -550,7 +807,7 @@ const styles = StyleSheet.create({
   },
   
   descriptionContainer: {
-    width: '100%',
+    width: '100%', // Take full width of the flex container
     height: 80,
     borderWidth: 1,
     borderColor: '#e2e8f0',
@@ -560,6 +817,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fafc',
     justifyContent: 'center',
     alignItems: 'center',
+    marginLeft: 12, // Add margin between image and description
   },
   
   descriptionText: {
@@ -631,7 +889,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: '#f8fafc',
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: '#3b82f6',
   },
   
   buttonText: {
@@ -651,7 +909,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontSize: 14,
     fontWeight: '500',
-    color: '#374151',
+    color: '#3b82f6',
   },
 
   // New styles for header actions
