@@ -89,30 +89,60 @@ const styles = StyleSheet.create({
     minHeight: 120,
     marginBottom: 12,
     marginRight: '4%', // Add right margin for spacing between cards
+    // Remove any shadows
+    elevation: 0,
+    shadowColor: 'transparent',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
   },
   weldCardTablet: {
     width: '30%', // 3 columns for wider screens - reduced to fit with margin
     minHeight: 120,
     padding: 12,
     marginRight: '3.33%', // Add right margin for 3-column spacing
+    // Remove any shadows
+    elevation: 0,
+    shadowColor: 'transparent',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
   },
   weldCardFour: {
     width: '22%', // 4 columns for large tablets - reduced to fit with margin
     minHeight: 120,
     padding: 12,
     marginRight: '2%', // Add right margin for 4-column spacing
+    // Remove any shadows
+    elevation: 0,
+    shadowColor: 'transparent',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
   },
   weldCardFive: {
     width: '18%', // 5 columns for very large landscape screens
     minHeight: 120,
     padding: 12,
     marginRight: '1.6%', // Add right margin for 5-column spacing
+    // Remove any shadows
+    elevation: 0,
+    shadowColor: 'transparent',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
   },
   weldCardSix: {
     width: '15%', // 6 columns for extremely large landscape screens
     minHeight: 120,
     padding: 12,
     marginRight: '1.33%', // Add right margin for 6-column spacing
+    // Remove any shadows
+    elevation: 0,
+    shadowColor: 'transparent',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
   },
   trashCard: {
     backgroundColor: '#fef2f2',
