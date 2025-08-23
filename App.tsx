@@ -6,9 +6,11 @@ import { Weld, WeldFormData, Screen } from './src/types/Weld';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { WeldFormScreen } from './src/screens/WeldFormScreen';
 import { WeldViewScreen } from './src/screens/WeldViewScreen';
+import { BulkWeldEditorScreen } from './src/screens/BulkWeldEditorScreen';
 import { BottomNavigation } from './src/components/BottomNavigation';
 import { GoogleSheetsConfigModal } from './src/components/GoogleSheetsConfigModal';
 import { getCurrentDateISO } from './src/utils/dateUtils';
+import { GoogleSheetsService } from './src/services/GoogleSheetsService';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('home');
@@ -47,200 +49,6 @@ export default function App() {
   const [showPinChangeModal, setShowPinChangeModal] = useState(false);
   const [newPinInput, setNewPinInput] = useState('');
   const [confirmPinInput, setConfirmPinInput] = useState('');
-  
-  // Sample data constant - this will always contain the original sample data
-  const SAMPLE_WELDS: Weld[] = [
-    {
-      id: '1',
-      // Header Information
-      welderName: 'CHARLES UBERROTH',
-      date: '2024-01-15',
-      welderCompany: true,
-      welderContractor: false,
-      loaTccMod: '',
-      weldingContractorName: 'NPL',
-      woJoNumber: 'WO24413-914',
-      weldingInspectorName: 'SHAMJITH KS',
-      weldingInspectionCompany: 'CPI',
-      jobLocation: 'WO24413-914; 25128 Old Cleveland Road',
-      numberOfWeldsMadeToday: '5',
-      stencilNumber: 'QA',
-      processUsed: 'SMAW',
-      
-      // Weld Table Columns
-      weldNumber: 'A1368',
-      pipeSizeInches: '24',
-      butt: 'Yes',
-      fillet: 'Tee',
-      passes: '3',
-      capSize: '12 o\'clock',
-      wpsNumberAndTitle: 'WPS-6 - Standard Pipe Welding',
-      electrodeTypeBrand: 'E7018 - Lincoln Electric',
-      
-      // Image Fields
-      weldSketch: '',
-      weldSketchDescription: '',
-      defectSketch: '',
-      defectSketchDescription: '',
-      
-      // Metadata
-      status: 'approved',
-      createdAt: '2024-01-15T10:30:00Z',
-      updatedAt: '2024-01-15T10:30:00Z'
-    },
-    {
-      id: '2',
-      // Header Information
-      welderName: 'SARAH WILSON',
-      date: '2024-01-16',
-      welderCompany: false,
-      welderContractor: true,
-      loaTccMod: 'LOA-2024-001',
-      weldingContractorName: 'Wilson Welding Co',
-      woJoNumber: 'WO24413-915',
-      weldingInspectorName: 'JANE SMITH',
-      weldingInspectionCompany: 'Quality Inspections Inc',
-      jobLocation: 'WO24413-915; 25130 Old Cleveland Road',
-      numberOfWeldsMadeToday: '3',
-      stencilNumber: 'QB',
-      processUsed: 'GTAW',
-      
-      // Weld Table Columns
-      weldNumber: 'B2479',
-      pipeSizeInches: '18',
-      butt: 'Yes',
-      fillet: 'Sleeve',
-      passes: '2',
-      capSize: '6 o\'clock',
-      wpsNumberAndTitle: 'WPS-8 - Precision Welding',
-      electrodeTypeBrand: 'ER70S-6 - ESAB',
-      
-      // Image Fields
-      weldSketch: '',
-      weldSketchDescription: '',
-      defectSketch: '',
-      defectSketchDescription: '',
-      
-      // Metadata
-      status: 'pending',
-      createdAt: '2024-01-16T14:15:00Z',
-      updatedAt: '2024-01-16T14:15:00Z'
-    },
-    {
-      id: '3',
-      // Header Information
-      welderName: 'DAVID CHEN',
-      date: '2024-01-17',
-      welderCompany: true,
-      welderContractor: false,
-      loaTccMod: '',
-      weldingContractorName: 'Chen Steel Works',
-      woJoNumber: 'WO24413-916',
-      weldingInspectorName: 'ROBERT BROWN',
-      weldingInspectionCompany: 'Steel Quality Control',
-      jobLocation: 'WO24413-916; 25132 Old Cleveland Road',
-      numberOfWeldsMadeToday: '7',
-      stencilNumber: 'QC',
-      processUsed: 'FCAW',
-      
-      // Weld Table Columns
-      weldNumber: 'C3590',
-      pipeSizeInches: '36',
-      butt: 'Yes',
-      fillet: 'Other',
-      passes: '4',
-      capSize: '3 o\'clock',
-      wpsNumberAndTitle: 'WPS-12 - Heavy Duty Welding',
-      electrodeTypeBrand: 'E71T-1 - Hobart',
-      
-      // Image Fields
-      weldSketch: '',
-      weldSketchDescription: '',
-      defectSketch: '',
-      defectSketchDescription: '',
-      
-      // Metadata
-      status: 'rejected',
-      createdAt: '2024-01-17T09:45:00Z',
-      updatedAt: '2024-01-17T09:45:00Z'
-    },
-    {
-      id: '4',
-      // Header Information
-      welderName: 'LISA GARCIA',
-      date: '2024-01-18',
-      welderCompany: false,
-      welderContractor: true,
-      loaTccMod: 'TCC-2024-002',
-      weldingContractorName: 'Garcia Welding Services',
-      woJoNumber: 'WO24413-917',
-      weldingInspectorName: 'MICHAEL WHITE',
-      weldingInspectionCompany: 'Professional Inspections',
-      jobLocation: 'WO24413-917; 25134 Old Cleveland Road',
-      numberOfWeldsMadeToday: '4',
-      stencilNumber: 'QD',
-      processUsed: 'GMAW',
-      
-      // Weld Table Columns
-      weldNumber: 'D4701',
-      pipeSizeInches: '20',
-      butt: 'Yes',
-      fillet: 'Tee',
-      passes: '3',
-      capSize: '9 o\'clock',
-      wpsNumberAndTitle: 'WPS-15 - Medium Duty Welding',
-      electrodeTypeBrand: 'ER70S-3 - Miller',
-      
-      // Image Fields
-      weldSketch: '',
-      weldSketchDescription: '',
-      defectSketch: '',
-      defectSketchDescription: '',
-      
-      // Metadata
-      status: 'approved',
-      createdAt: '2024-01-18T16:20:00Z',
-      updatedAt: '2024-01-18T16:20:00Z'
-    },
-    {
-      id: '5',
-      // Header Information
-      welderName: 'ALEX THOMPSON',
-      date: '2024-01-19',
-      welderCompany: true,
-      welderContractor: false,
-      loaTccMod: '',
-      weldingContractorName: 'Thompson Industrial',
-      woJoNumber: 'WO24413-918',
-      weldingInspectorName: 'EMILY DAVIS',
-      weldingInspectionCompany: 'Industrial Quality Assurance',
-      jobLocation: 'WO24413-918; 25136 Old Cleveland Road',
-      numberOfWeldsMadeToday: '6',
-      stencilNumber: 'QE',
-      processUsed: 'SMAW',
-      
-      // Weld Table Columns
-      weldNumber: 'E5812',
-      pipeSizeInches: '16',
-      butt: 'Yes',
-      fillet: 'Sleeve',
-      passes: '2',
-      capSize: '12 o\'clock',
-      wpsNumberAndTitle: 'WPS-18 - Standard Industrial',
-      electrodeTypeBrand: 'E7018 - Blue Demon',
-      
-      // Image Fields
-      weldSketch: '',
-      weldSketchDescription: '',
-      defectSketch: '',
-      defectSketchDescription: '',
-      
-      // Metadata
-      status: 'pending',
-      createdAt: '2024-01-19T11:10:00Z',
-      updatedAt: '2024-01-19T11:10:00Z'
-    }
-  ];
 
   const [welds, setWelds] = useState<Weld[]>([]);
 
@@ -253,6 +61,20 @@ export default function App() {
     // Header Information
     welderName: '',
     date: getCurrentDateISO(),
+    jobLocation: '',
+    
+    // Weld Table Columns - Simplified
+    weldNumber: '',
+    widNumber: '',
+    pipeSizeInches: '',
+    typeOfWeld: '',
+    capSize: '',
+    passes: '',
+    wpsNumberAndTitle: '',
+    electrodeTypeBrand: '',
+    rt: '',
+    
+    // Legacy fields (kept for compatibility)
     welderCompany: false,
     welderContractor: false,
     loaTccMod: '',
@@ -260,20 +82,11 @@ export default function App() {
     woJoNumber: '',
     weldingInspectorName: '',
     weldingInspectionCompany: '',
-    jobLocation: '',
     numberOfWeldsMadeToday: '',
     stencilNumber: '',
     processUsed: '',
-    
-    // Weld Table Columns
-    weldNumber: '',
-    pipeSizeInches: '',
     butt: '',
     fillet: '',
-    passes: '',
-    capSize: '',
-    wpsNumberAndTitle: '',
-    electrodeTypeBrand: '',
     
     // Image Fields
     weldSketch: '',
@@ -563,13 +376,13 @@ export default function App() {
     setConfirmPinInput('');
   };
 
-  const resetToSampleData = async () => {
-    try {
-      console.log('Resetting to sample data...');
+  const resetDatabase = async () => {
+          try {
+        console.log('Resetting database...');
       
-      // If connected to Google Sheets and sync enabled, clear existing data and add sample welds
+              // If connected to Google Sheets and sync enabled, clear existing data
       if (googleSheetsConnected && syncEnabled) {
-        console.log('Syncing reset to sample data action to Google Sheets...');
+                  console.log('Syncing database reset to Google Sheets...');
         
         // Import and use Google Sheets service
         const { createGoogleSheetsService } = await import('./src/services/GoogleSheetsService');
@@ -599,42 +412,21 @@ export default function App() {
           console.log(`Successfully deleted ${deletedCount} welds from Google Sheets`);
         }
         
-        // Now add all sample welds to Google Sheets
-        console.log(`Adding ${SAMPLE_WELDS.length} sample welds to Google Sheets...`);
-        
-        let addedCount = 0;
-        for (const sampleWeld of SAMPLE_WELDS) {
-          try {
-            const result = await sheetsService.addWeld(sampleWeld);
-            if (result.success) {
-              addedCount++;
-              console.log(`Added sample weld ${sampleWeld.weldNumber} to Google Sheets`);
-            } else {
-              console.error(`Failed to add sample weld ${sampleWeld.weldNumber}:`, result.message);
-            }
-          } catch (error) {
-            console.error(`Failed to add sample weld ${sampleWeld.weldNumber}:`, error);
-          }
-        }
-        
-        console.log(`Successfully added ${addedCount} sample welds to Google Sheets`);
+        // Sample data functionality removed - app now starts empty
+        console.log('Sample data functionality has been removed');
       }
       
       await AsyncStorage.removeItem('welds');
       await AsyncStorage.removeItem('trashWelds');
-      await AsyncStorage.setItem('welds', JSON.stringify(SAMPLE_WELDS));
+      await AsyncStorage.setItem('welds', JSON.stringify([]));
       await AsyncStorage.setItem('trashWelds', JSON.stringify([]));
-      setWelds(SAMPLE_WELDS);
+      setWelds([]);
       setTrashWelds([]);
-      console.log('Sample data restored successfully');
-      if (googleSheetsConnected && syncEnabled) {
-        showSuccess('Success', `Database reset! Restored ${SAMPLE_WELDS.length} welds and synced to Google Sheets.`);
-      } else {
-        showSuccess('Success', `Database reset! Restored ${SAMPLE_WELDS.length} welds locally.`);
-      }
+      console.log('All data cleared successfully');
+      showSuccess('Success', 'Database reset! All data has been cleared.');
     } catch (error) {
-      console.error('Error resetting to sample data:', error);
-      showError('Error', 'Failed to reset to sample data');
+      console.error('Error resetting database:', error);
+      showError('Error', 'Failed to reset database');
     }
   };
 
@@ -695,18 +487,18 @@ export default function App() {
     });
   };
 
-  const confirmResetToSampleData = () => {
+  const confirmResetDatabase = () => {
     // First authenticate the user
     authenticateUser().then((isAuthenticated) => {
       if (isAuthenticated) {
         // Then show confirmation dialog
         showConfirm({
-          title: 'Reset to Sample Data',
-          message: 'This will overwrite current data with 5 sample entries.',
+          title: 'Reset Database',
+          message: 'This will clear all current data and start fresh.',
           confirmText: 'Reset',
           cancelText: 'Cancel',
           onConfirm: async () => {
-            await resetToSampleData();
+            await resetDatabase();
             hideConfirm();
           }
         });
@@ -718,7 +510,7 @@ export default function App() {
     try {
       const storedWelds = await AsyncStorage.getItem('welds');
       const storedTrash = await AsyncStorage.getItem('trashWelds');
-      const message = `Current State:\n• Active Welds: ${welds.length}\n• Trash Items: ${trashWelds.length}\n\nStorage Status:\n• Welds in AsyncStorage: ${storedWelds ? 'Yes' : 'No'}\n• Trash in AsyncStorage: ${storedTrash ? 'Yes' : 'No'}\n\nSample Data Available:\n• Sample Welds: ${SAMPLE_WELDS.length}`;
+      const message = `Current State:\n• Active Welds: ${welds.length}\n• Trash Items: ${trashWelds.length}\n\nStorage Status:\n• Welds in AsyncStorage: ${storedWelds ? 'Yes' : 'No'}\n• Trash in AsyncStorage: ${storedTrash ? 'Yes' : 'No'}`;
       showSuccess('Database Status', message);
     } catch (error) {
       console.error('Error checking database status:', error);
@@ -776,6 +568,20 @@ export default function App() {
       // Header Information
       welderName: '',
       date: getCurrentDateISO(),
+      jobLocation: '',
+      
+      // Weld Table Columns - Simplified
+      weldNumber: '',
+      widNumber: '',
+      pipeSizeInches: '',
+      typeOfWeld: '',
+      capSize: '',
+      passes: '',
+      wpsNumberAndTitle: '',
+      electrodeTypeBrand: '',
+      rt: '',
+      
+      // Legacy fields (kept for compatibility)
       welderCompany: false,
       welderContractor: false,
       loaTccMod: '',
@@ -783,20 +589,11 @@ export default function App() {
       woJoNumber: '',
       weldingInspectorName: '',
       weldingInspectionCompany: '',
-      jobLocation: '',
       numberOfWeldsMadeToday: '',
       stencilNumber: '',
       processUsed: '',
-      
-      // Weld Table Columns
-      weldNumber: '',
-      pipeSizeInches: '',
       butt: '',
       fillet: '',
-      passes: '',
-      capSize: '',
-      wpsNumberAndTitle: '',
-      electrodeTypeBrand: '',
       
       // Image Fields
       weldSketch: '',
@@ -810,81 +607,84 @@ export default function App() {
     setIsEditMode(false);
   };
 
-  const addWeld = () => {
+  const addWeld = async () => {
+    // Validate required fields
     if (!formData.weldNumber?.trim()) {
-      showError('Error', 'Weld Number is required');
+      showError('Validation Error', 'Weld Number is required');
       return;
     }
-    if (!formData.welderName?.trim()) {
-      showError('Error', 'Welder Name is required');
-      return;
-    }
-    if (!formData.weldingInspectorName?.trim()) {
-      showError('Error', 'Welding Inspector Name is required');
-      return;
-    }
-    if (!formData.weldingInspectionCompany?.trim()) {
-      showError('Error', 'Welding Inspection Company is required');
-      return;
-    }
-    if (!formData.jobLocation?.trim()) {
-      showError('Error', 'Job Location is required');
-      return;
-    }
-    if (!formData.processUsed?.trim()) {
-      showError('Error', 'Process Used is required');
-      return;
-    }
-    if (!formData.pipeSizeInches?.trim()) {
-      showError('Error', 'Pipe Size is required');
-      return;
-    }
-    if (!formData.wpsNumberAndTitle?.trim()) {
-      showError('Error', 'WPS Number and Title is required');
-      return;
-    }
-    
-    if (isEditMode && selectedWeld) {
-      // Check for duplicate weld number when editing (excluding current weld)
-      const existingWeld = welds.find(weld => 
-        weld.weldNumber === formData.weldNumber && weld.id !== selectedWeld.id
-      );
-      if (existingWeld) {
-        showError('Duplicate Weld Number', `Weld number ${formData.weldNumber} already exists in another entry. Please use a unique weld number.`);
-        return;
-      }
-      
-      // Update existing weld
-      const updatedWelds = welds.map(weld => 
-        weld.id === selectedWeld.id 
-          ? { 
-              ...weld,           // Keep existing fields like id, status, createdAt
-              ...formData,       // Update with new form data
-              updatedAt: new Date().toISOString() 
+
+    try {
+      if (isEditMode && selectedWeld) {
+        // Check for duplicate weld number when editing (excluding current weld)
+        const existingWeld = welds.find(weld => 
+          weld.weldNumber === formData.weldNumber && weld.id !== selectedWeld.id
+        );
+        if (existingWeld) {
+          showError('Duplicate Weld Number', `Weld number ${formData.weldNumber} already exists in another entry. Please use a unique weld number.`);
+          return;
+        }
+        
+        // Update existing weld
+        const updatedWelds = welds.map(weld => 
+          weld.id === selectedWeld.id 
+            ? { 
+                ...weld,           // Keep existing fields like id, status, createdAt
+                ...formData,       // Update with new form data
+                updatedAt: new Date().toISOString() 
+              }
+            : weld
+        );
+        setWelds(updatedWelds);
+        await saveWelds(updatedWelds);
+        showSuccess('Success', 'Weld updated successfully!');
+      } else {
+        // Check for duplicate weld number locally
+        const existingWeld = welds.find(weld => weld.weldNumber === formData.weldNumber);
+        if (existingWeld) {
+          showError('Duplicate Weld Number', `Weld number ${formData.weldNumber} already exists. Please use a unique weld number.`);
+          return;
+        }
+        
+        // Add new weld
+        const newWeld: Weld = {
+          id: Date.now().toString(),
+          ...formData,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+
+        // Add to local state
+        const updatedWelds = [newWeld, ...welds];
+        setWelds(updatedWelds);
+        await saveWelds(updatedWelds);
+        
+        // Sync to Google Sheets if connected and enabled
+        if (googleSheetsConnected && syncEnabled) {
+          try {
+            const sheetsService = new GoogleSheetsService();
+            const result = await sheetsService.addWeld(newWeld);
+            if (result.success) {
+              console.log('Weld added to Google Sheets successfully');
+            } else {
+              console.error('Failed to add weld to Google Sheets:', result.message);
             }
-          : weld
-      );
-      setWelds(updatedWelds);
-      saveWelds(updatedWelds);
-      showSuccess('Success', 'Weld updated successfully!');
-    } else {
-      // Check for duplicate weld number locally
-      const existingWeld = welds.find(weld => weld.weldNumber === formData.weldNumber);
-      if (existingWeld) {
-        showError('Duplicate Weld Number', `Weld number ${formData.weldNumber} already exists. Please use a unique weld number.`);
-        return;
+          } catch (error) {
+            console.error('Error syncing to Google Sheets:', error);
+          }
+        }
+        
+        showSuccess('Success', 'Weld added successfully!');
       }
       
-      // Add new weld
-      const newWeld = { ...formData, id: Date.now().toString(), status: 'pending' as const, createdAt: new Date().toISOString() };
-      const updatedWelds = [newWeld, ...welds];
-      setWelds(updatedWelds);
-      saveWelds(updatedWelds);
-      showSuccess('Success', 'Weld added successfully!');
+      // Reset form and navigate back to home
+      resetForm();
+      setCurrentScreen('home');
+      
+    } catch (error) {
+      console.error('Error adding/updating weld:', error);
+      showError('Error', 'Failed to save weld');
     }
-    
-    setCurrentScreen('home');
-    resetForm();
   };
 
   const editWeld = (weld: Weld) => {
@@ -893,6 +693,20 @@ export default function App() {
       // Header Information
       welderName: weld.welderName || '',
       date: weld.date || '',
+      jobLocation: weld.jobLocation || '',
+      
+      // Weld Table Columns - Simplified
+      weldNumber: weld.weldNumber || '',
+      widNumber: weld.widNumber || '',
+      pipeSizeInches: weld.pipeSizeInches || '',
+      typeOfWeld: weld.typeOfWeld || '',
+      capSize: weld.capSize || '',
+      passes: weld.passes || '',
+      wpsNumberAndTitle: weld.wpsNumberAndTitle || '',
+      electrodeTypeBrand: weld.electrodeTypeBrand || '',
+      rt: weld.rt || '',
+      
+      // Legacy fields (kept for compatibility)
       welderCompany: weld.welderCompany || false,
       welderContractor: weld.welderContractor || false,
       loaTccMod: weld.loaTccMod || '',
@@ -900,20 +714,11 @@ export default function App() {
       woJoNumber: weld.woJoNumber || '',
       weldingInspectorName: weld.weldingInspectorName || '',
       weldingInspectionCompany: weld.weldingInspectionCompany || '',
-      jobLocation: weld.jobLocation || '',
       numberOfWeldsMadeToday: weld.numberOfWeldsMadeToday || '',
       stencilNumber: weld.stencilNumber || '',
       processUsed: weld.processUsed || '',
-      
-      // Weld Table Columns
-      weldNumber: weld.weldNumber || '',
-      pipeSizeInches: weld.pipeSizeInches || '',
       butt: weld.butt || '',
       fillet: weld.fillet || '',
-      passes: weld.passes || '',
-      capSize: weld.capSize || '',
-      wpsNumberAndTitle: weld.wpsNumberAndTitle || '',
-      electrodeTypeBrand: weld.electrodeTypeBrand || '',
       
       // Image Fields
       weldSketch: weld.weldSketch || '',
@@ -1920,141 +1725,13 @@ export default function App() {
             onBack={handleBack}
           />
         ) : null;
-      case 'settings':
+      case 'bulk-edit':
         return (
-          <View style={styles.settingsContainer}>
-            <View style={styles.settingsHeader}>
-              <TouchableOpacity style={styles.settingsBackButton} onPress={handleBack}>
-                <Icon name="chevron-back" size={20} color="#3b82f6" />
-                <Text style={styles.settingsBackButtonText}>Back</Text>
-              </TouchableOpacity>
-              <Text style={styles.settingsTitle}>Settings</Text>
-              <View style={styles.settingsPlaceholder} />
-            </View>
-            <ScrollView 
-              style={styles.settingsContent} 
-              contentContainerStyle={styles.settingsScrollContent}
-              showsVerticalScrollIndicator={false}
-            >
-              <Text style={styles.settingsSubtitle}>App configuration and preferences</Text>
-              
-              {/* Quick Stats */}
-              <View style={styles.statsRow}>
-                <View style={styles.statsColumn}>
-                  <Text style={styles.statsLabel}>Total Welds</Text>
-                  <Text style={styles.statsValue}>{welds.length}</Text>
-                </View>
-                <View style={styles.statsColumn}>
-                  <Text style={styles.statsLabel}>Trashed Items</Text>
-                  <Text style={styles.statsValue}>{trashWelds.length}</Text>
-                </View>
-              </View>
-
-              {/* Data Management Section */}
-              <View style={styles.settingsSection}>
-                <Text style={styles.settingsSectionTitle}>🗄️ Data Management</Text>
-                <Text style={styles.settingsSectionSubtitle}>Manage your weld inspection data</Text>
-                
-                <TouchableOpacity style={styles.resetButton} onPress={confirmResetToSampleData}>
-                  <Text style={styles.resetButtonText}>🔄 Reset to Sample Data</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity style={[styles.resetButton, styles.clearButton]} onPress={clearAllData}>
-                  <Text style={styles.resetButtonText}>🗑️ Clear All Data</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Security Settings Section */}
-              <View style={styles.settingsSection}>
-                <Text style={styles.settingsSectionTitle}>🔒 Security Settings</Text>
-                <Text style={styles.settingsSectionSubtitle}>Protect destructive operations with PIN authentication</Text>
-                
-                <View style={styles.settingsItem}>
-                  <Text style={styles.settingsItemLabel}>Security PIN</Text>
-                  <Text style={styles.settingsItemValue}>
-                    {securityPin === '1234' ? 'Default (1234)' : 'Custom PIN'}
-                  </Text>
-                </View>
-                
-                <TouchableOpacity 
-                  style={styles.googleSheetsButton} 
-                  onPress={handlePinChange}
-                >
-                  <Text style={styles.googleSheetsButtonText}>🔐 Change PIN</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Google Sheets Integration Section - Full Width Below */}
-              <View style={styles.settingsSection}>
-                <Text style={styles.settingsSectionTitle}>📊 Google Sheets Integration</Text>
-                <Text style={styles.settingsSectionSubtitle}>Sync your weld data with Google Sheets</Text>
-                
-                <View style={styles.settingsItem}>
-                  <Text style={styles.settingsItemLabel}>Connection Status</Text>
-                  <Text style={styles.settingsItemValue}>
-                    {googleSheetsConnected ? '✅ Connected' : '❌ Not Connected'}
-                  </Text>
-                </View>
-                
-                {googleSheetsConnected && (
-                  <View style={styles.settingsItem}>
-                    <Text style={styles.settingsItemLabel}>Sync Status</Text>
-                    <Text style={styles.settingsItemValue}>
-                      {syncEnabled ? '🔄 Active' : '⏸️ Paused'}
-                    </Text>
-                  </View>
-                )}
-                
-                {googleSheetsConnected && (
-                  <TouchableOpacity 
-                    style={[styles.syncToggleButton, syncEnabled ? styles.syncEnabledButton : styles.syncDisabledButton]} 
-                    onPress={() => {
-                      const newSyncState = !syncEnabled;
-                      saveSyncSetting(newSyncState);
-                      showSuccess(
-                        'Sync ' + (newSyncState ? 'Enabled' : 'Disabled'),
-                        newSyncState 
-                          ? 'Google Sheets sync is now active. All changes will be automatically synced.' 
-                          : 'Google Sheets sync is now paused. Changes will be saved locally only.'
-                      );
-                    }}
-                  >
-                    <Text style={styles.syncToggleButtonText}>
-                      {syncEnabled ? '⏸️ Pause Sync' : '🔄 Enable Sync'}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-                
-                {googleSheetsConnected && (
-                  <Text style={styles.syncDescriptionText}>
-                    {syncEnabled 
-                      ? '📝 Auto-sync is active. All weld changes will be automatically saved to Google Sheets.'
-                      : '💾 Auto-sync is paused. Changes are saved locally only. Enable sync to connect with Google Sheets.'
-                    }
-                  </Text>
-                )}
-                
-                <TouchableOpacity style={styles.googleSheetsButton} onPress={openGoogleSheetsSettings}>
-                  <Text style={styles.googleSheetsButtonText}>
-                    {googleSheetsConnected ? '⚙️ Configure Sheets' : '🔗 Connect to Sheets'}
-                  </Text>
-                </TouchableOpacity>
-                
-                {googleSheetsConnected && (
-                  <TouchableOpacity 
-                    style={[styles.syncChangedButton, !syncEnabled && styles.disabledButton]} 
-                    onPress={() => syncChangedWeldsToGoogleSheets(welds)}
-                    disabled={!syncEnabled}
-                  >
-                    <Text style={styles.syncChangedButtonText}>🔄 Sync Changed Welds</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-              
-              {/* Bottom Spacer for better scroll */}
-              <View style={styles.bottomSpacer} />
-            </ScrollView>
-          </View>
+          <BulkWeldEditorScreen
+            welds={welds}
+            onSaveWelds={handleBulkSaveWelds}
+            onBack={handleBack}
+          />
         );
       default:
         return null;

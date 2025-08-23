@@ -79,12 +79,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         <View style={styles.titleSection}>
           <View style={styles.titleRow}>
             <Text style={styles.title}>jSteel Pro</Text>
-            <TouchableOpacity 
-              style={styles.settingsButton}
-              onPress={() => onNavigate('settings')}
-            >
-              <Icon name="settings-outline" size={24} color="#64748b" />
-            </TouchableOpacity>
           </View>
         </View>
         
