@@ -1,30 +1,32 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, TextInput, SafeAreaView, Platform, Image, Dimensions } from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons';
 import { Weld } from '../types/Weld';
+import { WeldCardData } from '../types/WeldCard';
 import { WeldCard } from '../components/WeldCard';
 
 interface HomeScreenProps {
-  welds: Weld[];
-  trashWelds: Weld[];
-  onAddWeld: () => void;
+  weldCards: WeldCardData[];
+  trashCards: WeldCardData[];
   onViewWeld: (weld: Weld) => void;
-  onEditWeld: (weld: Weld) => void;
+  onEditWeld: (weld: Weld, index: number) => void;
   onDeleteWeld: (weld: Weld) => void;
   onRecoverWeld: (weld: Weld) => void;
   onPermanentlyDeleteWeld: (weld: Weld) => void;
-  onNavigate: (screen: 'home' | 'add' | 'view' | 'settings') => void;
+  onClearTrash: () => void;
+  onTrashAll: () => void;
+  onNavigate: (screen: 'home' | 'view' | 'settings' | 'bulk-edit') => void;
 }
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({ 
-  welds, 
-  trashWelds,
-  onAddWeld, 
+  weldCards, 
+  trashCards,
   onViewWeld, 
   onEditWeld,
   onDeleteWeld,
   onRecoverWeld,
   onPermanentlyDeleteWeld,
+  onClearTrash,
+  onTrashAll,
   onNavigate
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -47,28 +49,33 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   const screenHeight = dimensions.height;
   const isLandscape = screenWidth > screenHeight;
   
-  // Determine optimal cards per row
-  let cardsPerRow = 2; // Default for small screens
-  if (screenWidth > 800) {
-    cardsPerRow = 4; // Large tablets
-  } else if (screenWidth > 600 || isLandscape) {
-    cardsPerRow = 3; // Medium tablets or landscape
+  // Determine optimal cards per row for landscape orientation
+  let cardsPerRow = 3; // Default for landscape (minimum 3 cards)
+  if (screenWidth > 1200) {
+    cardsPerRow = 6; // Very large landscape screens
+  } else if (screenWidth > 900) {
+    cardsPerRow = 5; // Large landscape screens
+  } else if (screenWidth > 700) {
+    cardsPerRow = 4; // Medium landscape screens
   }
-  // Phone portrait stays at 2 cards per row
+  // Landscape orientation ensures we can always fit at least 3 cards
   
   const canFitThreeCards = cardsPerRow >= 3;
   const canFitFourCards = cardsPerRow >= 4;
+  const canFitFiveCards = cardsPerRow >= 5;
+  const canFitSixCards = cardsPerRow >= 6;
 
-  // Filter welds based on search query (search by weld number or welder name)
-  const filteredWelds = useMemo(() => {
-    if (!searchQuery.trim()) return welds;
+  // Filter weld cards based on search query (search by weld number or WPS)
+  const filteredWeldCards = useMemo(() => {
+    if (!searchQuery.trim()) return weldCards;
     
-    return welds.filter(weld => 
-      (weld.weldNumber && weld.weldNumber.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (weld.welderName && weld.welderName.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (weld.wpsNumberAndTitle && weld.wpsNumberAndTitle.toLowerCase().includes(searchQuery.toLowerCase()))
+    return weldCards.filter(card => 
+      card.welds.some(weld => 
+        (weld.weldNumber && weld.weldNumber.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (weld.wpsNumberAndTitle && weld.wpsNumberAndTitle.toLowerCase().includes(searchQuery.toLowerCase()))
+      )
     );
-  }, [welds, searchQuery]);
+  }, [weldCards, searchQuery]);
 
   return (
     <SafeAreaView style={styles.safeContainer}>
@@ -107,59 +114,92 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           </TouchableOpacity>
         )}
       </View>
-      
-      {/* Active Welds */}
+
+      {/* Active Weld Cards */}
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Active Welds ({filteredWelds.length})</Text>
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionTitle}>Active Weld Cards ({filteredWeldCards.length})</Text>
+          {filteredWeldCards.length > 0 && (
+            <TouchableOpacity 
+              style={styles.trashAllButton} 
+              onPress={() => {
+                if (onTrashAll) {
+                  onTrashAll();
+                }
+              }}
+            >
+              <Text style={styles.trashAllButtonText}>🗑️ Trash All</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
       
       <View style={styles.weldsGrid}>
-        {filteredWelds.length === 0 ? (
+        {filteredWeldCards.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyTitle}>
-              {searchQuery.trim() ? 'No welds found' : 'No welds yet'}
+              {searchQuery.trim() ? 'No weld cards found' : 'No weld cards yet'}
             </Text>
             <Text style={styles.emptySubtitle}>
               {searchQuery.trim() 
-                ? `No welds found matching "${searchQuery}"`
-                : 'Add your first weld inspection to get started'
+                ? `No weld cards found matching "${searchQuery}"`
+                : 'Add your first weld card to get started'
               }
             </Text>
           </View>
         ) : (
-          filteredWelds.map((weld) => (
+          filteredWeldCards.map((card, index) => (
             <WeldCard
-              key={weld.id}
-              weld={weld}
+              key={card.cardId}
+              weld={card.welds[0]} // Show first weld for display purposes
+              weldIndex={index}
               onView={onViewWeld}
               onEdit={onEditWeld}
               onDelete={onDeleteWeld}
               canFitThreeCards={canFitThreeCards}
               canFitFourCards={canFitFourCards}
+              canFitFiveCards={canFitFiveCards}
+              canFitSixCards={canFitSixCards}
             />
           ))
         )}
       </View>
 
       {/* Trash Section */}
-      {trashWelds.length > 0 && (
+      {trashCards.length > 0 && (
         <>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>🗑️ Trash ({trashWelds.length})</Text>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionTitle}>🗑️ Trash ({trashCards.length})</Text>
+              <TouchableOpacity 
+                style={styles.clearTrashButton} 
+                onPress={() => {
+                  // Show confirmation dialog before clearing trash
+                  if (onClearTrash) {
+                    onClearTrash();
+                  }
+                }}
+              >
+                <Text style={styles.clearTrashButtonText}>🗑️ Empty Trash</Text>
+              </TouchableOpacity>
+            </View>
           </View>
           
           <View style={styles.weldsGrid}>
-            {trashWelds.map((weld) => (
+            {trashCards.map((card, index) => (
               <WeldCard
-                key={weld.id}
-                weld={weld}
+                key={card.cardId}
+                weld={card.welds[0]}
+                weldIndex={index}
                 onView={onViewWeld}
                 onEdit={onEditWeld}
                 onDelete={onPermanentlyDeleteWeld}
-                onRecover={onRecoverWeld}
+                onRecover={() => onRecoverWeld(card.welds[0])}
                 isTrash={true}
                 canFitThreeCards={canFitThreeCards}
                 canFitFourCards={canFitFourCards}
+                canFitFiveCards={canFitFiveCards}
+                canFitSixCards={canFitSixCards}
               />
             ))}
           </View>
@@ -285,11 +325,44 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginBottom: 8,
   },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '700',
     color: '#1f2937',
   },
+  clearTrashButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#fef2f2',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#fecaca',
+  },
+  clearTrashButtonText: {
+    fontSize: 12,
+    color: '#dc2626',
+    fontWeight: '600',
+  },
+  trashAllButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#fef3c7',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#fbbf24',
+  },
+  trashAllButtonText: {
+    fontSize: 12,
+    color: '#d97706',
+    fontWeight: '600',
+  },
+
   trashHelpText: {
     fontSize: 14,
     color: '#6b7280',

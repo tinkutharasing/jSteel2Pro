@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -12,42 +12,53 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { Weld } from '../types/Weld';
+import { WeldCardData } from '../types/WeldCard';
 import { DatePickerField } from '../components/DatePickerField';
+import { ImageUploadField } from '../components/ImageUploadField';
 
 interface BulkWeldEditorScreenProps {
-  welds: Weld[];
-  onSaveWelds: (welds: Weld[]) => void;
+  onSaveCard: (card: WeldCardData) => void;
   onBack: () => void;
+  existingCard?: WeldCardData; // For editing existing cards
 }
 
 const { width } = Dimensions.get('window');
 
 export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
-  welds,
-  onSaveWelds,
+  onSaveCard,
   onBack,
+  existingCard,
 }) => {
   const [editableWelds, setEditableWelds] = useState<Weld[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [headerData, setHeaderData] = useState({
     date: '',
-    welderName: '',
-    jobLocation: '',
+    weldSketch: '',
+    weldSketchDescription: '',
+    defectSketch: '',
+    defectSketchDescription: '',
   });
+  
+  // Refs for managing focus between input fields
+  const inputRefs = useRef<{ [key: string]: React.RefObject<any> }>({});
 
   useEffect(() => {
-    if (welds.length > 0) {
-      // Initialize with existing welds
-      setEditableWelds([...welds]);
-      // Set header data from first weld
+    if (existingCard) {
+      // Initialize with existing card data
+      setEditableWelds([...existingCard.welds]);
       setHeaderData({
-        date: welds[0].date || '',
-        welderName: welds[0].welderName || '',
-        jobLocation: welds[0].jobLocation || '',
+        date: existingCard.date || '',
+        weldSketch: existingCard.weldSketch || '',
+        weldSketchDescription: existingCard.weldSketchDescription || '',
+        defectSketch: existingCard.defectSketch || '',
+        defectSketchDescription: existingCard.defectSketchDescription || '',
       });
     } else {
-      // Create empty weld rows if none exist
+      // Create new card with empty weld rows
+      const cardId = `new-card-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       const emptyWelds: Weld[] = Array.from({ length: 10 }, (_, index) => ({
         id: `temp-${Date.now()}-${index}`,
+        cardId: cardId,
         weldNumber: '',
         widNumber: '',
         pipeSizeInches: '',
@@ -57,9 +68,7 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
         wpsNumberAndTitle: '',
         electrodeTypeBrand: '',
         rt: '',
-        welderName: '',
         date: '',
-        jobLocation: '',
         welderCompany: false,
         welderContractor: false,
         loaTccMod: '',
@@ -72,15 +81,22 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
         processUsed: '',
         butt: '',
         fillet: '',
-        status: 'pending',
         weldSketch: '',
         weldSketchDescription: '',
         defectSketch: '',
         defectSketchDescription: '',
       }));
       setEditableWelds(emptyWelds);
+      // Set default header data
+      setHeaderData({
+        date: new Date().toISOString().split('T')[0],
+        weldSketch: '',
+        weldSketchDescription: '',
+        defectSketch: '',
+        defectSketchDescription: '',
+      });
     }
-  }, [welds]);
+  }, [existingCard]);
 
   const updateHeaderField = (field: keyof typeof headerData, value: string) => {
     setHeaderData(prev => ({ ...prev, [field]: value }));
@@ -95,8 +111,10 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
   };
 
   const addNewWeldRow = () => {
+    const cardId = existingCard?.cardId || `card-${Date.now()}`;
     const newWeld: Weld = {
       id: `temp-${Date.now()}-${editableWelds.length}`,
+      cardId: cardId,
       weldNumber: '',
       widNumber: '',
       pipeSizeInches: '',
@@ -106,9 +124,7 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
       wpsNumberAndTitle: '',
       electrodeTypeBrand: '',
       rt: '',
-      welderName: headerData.welderName,
       date: headerData.date,
-      jobLocation: headerData.jobLocation,
       welderCompany: false,
       welderContractor: false,
       loaTccMod: '',
@@ -121,7 +137,7 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
       processUsed: '',
       butt: '',
       fillet: '',
-      status: 'pending',
+      
       weldSketch: '',
       weldSketchDescription: '',
       defectSketch: '',
@@ -130,9 +146,9 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
     setEditableWelds(prev => [...prev, newWeld]);
   };
 
-  const removeWeldRow = (index: number) => {
+  const removeWeldRow = (weldId: string) => {
     if (editableWelds.length > 1) {
-      setEditableWelds(prev => prev.filter((_, i) => i !== index));
+      setEditableWelds(prev => prev.filter(weld => weld.id !== weldId));
     }
   };
 
@@ -140,6 +156,7 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
     // Filter out empty weld rows
     const validWelds = editableWelds.filter(weld => 
       weld.weldNumber.trim() || 
+      weld.widNumber.trim() || 
       weld.widNumber.trim() || 
       weld.pipeSizeInches.trim() ||
       weld.typeOfWeld.trim()
@@ -150,37 +167,101 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
       return;
     }
 
-    // Update all welds with header data
-    const finalWelds = validWelds.map(weld => ({
-      ...weld,
-      welderName: headerData.welderName,
+    // Create card structure
+    const card: WeldCardData = {
+      cardId: existingCard?.cardId || `card-${Date.now()}`,
       date: headerData.date,
-      jobLocation: headerData.jobLocation,
-    }));
+      weldSketch: headerData.weldSketch,
+      weldSketchDescription: headerData.weldSketchDescription,
+      defectSketch: headerData.defectSketch,
+      defectSketchDescription: headerData.defectSketchDescription,
+      welds: validWelds.map(weld => ({
+        ...weld,
+        cardId: existingCard?.cardId || `card-${Date.now()}`,
+        date: headerData.date,
+      })),
+      createdAt: existingCard?.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
 
-    onSaveWelds(finalWelds);
-    Alert.alert('Success', `${finalWelds.length} welds saved successfully!`);
+    onSaveCard(card);
+    Alert.alert('Success', `Card with ${validWelds.length} welds saved successfully!`);
   };
 
-  const renderEditableCell = (weld: Weld, field: keyof Weld, weldIndex: number, placeholder: string) => (
-    <TextInput
-      style={styles.cellInput}
-      value={String(weld[field] || '')}
-      onChangeText={(value) => updateWeldField(weldIndex, field, value)}
-      placeholder={placeholder}
-      placeholderTextColor="#9ca3af"
-      multiline={false}
-    />
-  );
+  const renderEditableCell = (weld: Weld, field: keyof Weld, weldIndex: number, placeholder: string) => {
+    // Define the order of fields for tab navigation (excluding the delete button)
+    const fieldOrder = ['weldNumber', 'widNumber', 'pipeSizeInches', 'typeOfWeld', 'capSize', 'passes', 'wpsNumberAndTitle', 'electrodeTypeBrand', 'rt'];
+    const currentFieldIndex = fieldOrder.indexOf(field);
+    
+    // Create a unique key for this input field
+    const inputKey = `${weldIndex}-${field}`;
+    
+    // Initialize ref if it doesn't exist
+    if (!inputRefs.current[inputKey]) {
+      inputRefs.current[inputKey] = React.createRef();
+    }
+    
+    const handleSubmitEditing = () => {
+      // Move to next field in the same row
+      if (currentFieldIndex < fieldOrder.length - 1) {
+        const nextField = fieldOrder[currentFieldIndex + 1];
+        const nextInputKey = `${weldIndex}-${nextField}`;
+        const nextInputRef = inputRefs.current[nextInputKey];
+        if (nextInputRef?.current) {
+          nextInputRef.current.focus();
+        }
+      } else {
+        // Move to first field of next row
+        if (weldIndex < editableWelds.length - 1) {
+          const nextRowFirstField = fieldOrder[0];
+          const nextInputKey = `${weldIndex + 1}-${nextRowFirstField}`;
+          const nextInputRef = inputRefs.current[nextInputKey];
+          if (nextInputRef?.current) {
+            nextInputRef.current.focus();
+          }
+        }
+      }
+    };
+
+    return (
+      <TextInput
+        ref={inputRefs.current[inputKey]}
+        style={styles.cellInput}
+        value={String(weld[field] || '')}
+        onChangeText={(value) => updateWeldField(weldIndex, field, value)}
+        placeholder={placeholder}
+        placeholderTextColor="#9ca3af"
+        multiline={false}
+        returnKeyType={currentFieldIndex < fieldOrder.length - 1 ? 'next' : 'done'}
+        blurOnSubmit={false}
+        onSubmitEditing={handleSubmitEditing}
+      />
+    );
+  };
 
   return (
     <SafeAreaView style={styles.safeContainer}>
-      <ScrollView style={styles.container} horizontal showsHorizontalScrollIndicator={false}>
-        <ScrollView style={styles.verticalScroll} showsVerticalScrollIndicator={false}>
-          {/* Header Section */}
+      <View style={styles.container}>
+        <ScrollView 
+          style={styles.verticalScroll} 
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          {/* Screen Header with Back Button */}
+          <View style={styles.screenHeader}>
+            <TouchableOpacity style={styles.backButton} onPress={onBack}>
+              <Icon name="arrow-back" size={24} color="#3b82f6" />
+            </TouchableOpacity>
+            <Text style={styles.screenTitle}>
+              {existingCard ? 'Edit Weld Card' : 'Add New Weld Card'}
+            </Text>
+            <View style={styles.headerSpacer} />
+          </View>
+
+          {/* Form Header Section */}
           <View style={styles.headerSection}>
             <View style={styles.headerRow}>
-              <View style={styles.headerCell}>
+              <View style={styles.dateCell}>
                 <Text style={styles.headerLabel}>Date:</Text>
                 <DatePickerField
                   label=""
@@ -188,31 +269,55 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
                   onDateChange={(date) => updateHeaderField('date', date)}
                 />
               </View>
-              <View style={styles.headerCell}>
-                <Text style={styles.headerLabel}>Welder:</Text>
-                <TextInput
-                  style={styles.headerInput}
-                  value={headerData.welderName}
-                  onChangeText={(value) => updateHeaderField('welderName', value)}
-                  placeholder="Name"
-                  placeholderTextColor="#9ca3af"
-                />
-              </View>
-              <View style={styles.headerCell}>
-                <Text style={styles.headerLabel}>Location:</Text>
-                <TextInput
-                  style={styles.headerInput}
-                  value={headerData.jobLocation}
-                  onChangeText={(value) => updateHeaderField('jobLocation', value)}
-                  placeholder="Job Location"
-                  placeholderTextColor="#9ca3af"
-                />
+              <View style={styles.imagesContainer}>
+                <View style={styles.imageCell}>
+                  <Text style={styles.headerLabel}>Weld Sketch:</Text>
+                  <ImageUploadField
+                    label=""
+                    value={headerData.weldSketch || ''}
+                    onImageChange={(imageUri) => updateHeaderField('weldSketch', imageUri)}
+                    description={headerData.weldSketchDescription || ''}
+                    onDescriptionChange={(description) => updateHeaderField('weldSketchDescription', description)}
+                    placeholder="Upload Weld Sketch"
+                  />
+                </View>
+                <View style={styles.imageCell}>
+                  <Text style={styles.headerLabel}>Defect Sketch:</Text>
+                  <ImageUploadField
+                    label=""
+                    value={headerData.defectSketch || ''}
+                    onImageChange={(imageUri) => updateHeaderField('defectSketch', imageUri)}
+                    description={headerData.defectSketchDescription || ''}
+                    onDescriptionChange={(description) => updateHeaderField('defectSketchDescription', description)}
+                    placeholder="Upload Defect Sketch"
+                  />
+                </View>
               </View>
             </View>
           </View>
 
+          {/* Search Box */}
+          <View style={styles.searchSection}>
+            <View style={styles.searchContainer}>
+              <Icon name="search" size={20} color="#6b7280" style={styles.searchIcon} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search by Weld # or WID #..."
+                placeholderTextColor="#9ca3af"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearSearchButton}>
+                  <Icon name="close-circle" size={20} color="#6b7280" />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+
           {/* Table Container */}
-          <View style={styles.tableContainer}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={true} style={styles.tableScrollContainer}>
+            <View style={styles.tableContainer}>
             {/* Table Header */}
             <View style={styles.tableHeader}>
               <View style={styles.tableHeaderRow}>
@@ -230,13 +335,22 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
             </View>
 
             {/* Table Rows */}
-            {editableWelds.map((weld, index) => (
-              <View key={weld.id} style={styles.tableRow}>
+            {editableWelds
+              .filter(weld => 
+                searchQuery === '' || 
+                weld.weldNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                weld.widNumber?.toLowerCase().includes(searchQuery.toLowerCase())
+              )
+              .map((weld, index) => (
+              <View 
+                key={weld.id} 
+                style={styles.tableRow}
+              >
                 {/* Actions Column */}
                 <View style={[styles.tableCell, styles.actionCol]}>
                   <TouchableOpacity
                     style={styles.removeButton}
-                    onPress={() => removeWeldRow(index)}
+                    onPress={() => removeWeldRow(weld.id)}
                     disabled={editableWelds.length <= 1}
                   >
                     <Icon name="trash-outline" size={16} color="#ef4444" />
@@ -287,9 +401,14 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
                 <View style={[styles.tableCell, styles.rtCol]}>
                   {renderEditableCell(weld, 'rt', index, 'RT')}
                 </View>
+
+
+
+
               </View>
             ))}
-          </View>
+            </View>
+          </ScrollView>
 
           {/* Add Row Button */}
           <View style={styles.addRowSection}>
@@ -309,7 +428,7 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
             </TouchableOpacity>
           </View>
         </ScrollView>
-      </ScrollView>
+      </View>
     </SafeAreaView>
   );
 };
@@ -319,12 +438,66 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f8f9fa',
   },
+  screenHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    backgroundColor: '#3b82f6',
+    marginBottom: 16,
+    marginHorizontal: 16,
+    marginTop: 8,
+    borderRadius: 12,
+  },
+  backButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#ffffff',
+  },
+  screenTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#ffffff',
+  },
+  headerSpacer: {
+    width: 40, // Same width as back button for centering
+  },
+  searchSection: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#374151',
+  },
+  clearSearchButton: {
+    padding: 4,
+  },
   container: {
     flex: 1,
   },
   verticalScroll: {
     flex: 1,
-    minWidth: Math.max(width, 1200), // Ensure minimum width for table
+  },
+  scrollContent: {
+    paddingBottom: 100, // Add padding to ensure buttons are visible
+  },
+  tableScrollContainer: {
+    flex: 1,
   },
   headerSection: {
     backgroundColor: '#ffffff',
@@ -332,16 +505,27 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderRadius: 8,
     marginHorizontal: 16,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
   },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+  },
+  dateCell: {
+    flex: 0,
+    minWidth: 200,
+    marginRight: 16,
+  },
+  imagesContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    gap: 16,
+  },
+  imageCell: {
+    flex: 1,
+    minWidth: 180,
   },
   headerCell: {
     flex: 1,
@@ -365,11 +549,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     marginHorizontal: 16,
     borderRadius: 8,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    width: width - 32, // Use screen width minus margins
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
   },
   tableHeader: {
     backgroundColor: '#f3f4f6',
@@ -396,6 +578,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#f3f4f6',
   },
+
   tableCell: {
     padding: 8,
     justifyContent: 'center',
@@ -410,21 +593,38 @@ const styles = StyleSheet.create({
     color: '#374151',
     padding: 4,
   },
-  // Column widths
-  actionCol: { width: 60 },
-  weldNumberCol: { width: 80 },
-  widCol: { width: 80 },
-  pipeSizeCol: { width: 100 },
-  typeCol: { width: 120 },
-  capSizeCol: { width: 80 },
-  passesCol: { width: 80 },
-  wpsCol: { width: 120 },
-  electrodeCol: { width: 120 },
-  rtCol: { width: 60 },
+  // Column widths - proportional to screen width
+  actionCol: { width: (width - 32) * 0.07 }, // 7% of available width
+  weldNumberCol: { width: (width - 32) * 0.10 }, // 10% of available width
+  widCol: { width: (width - 32) * 0.10 }, // 10% of available width
+  pipeSizeCol: { width: (width - 32) * 0.11 }, // 11% of available width
+  typeCol: { width: (width - 32) * 0.12 }, // 12% of available width
+  capSizeCol: { width: (width - 32) * 0.10 }, // 10% of available width
+  passesCol: { width: (width - 32) * 0.08 }, // 8% of available width
+  wpsCol: { width: (width - 32) * 0.12 }, // 12% of available width
+  electrodeCol: { width: (width - 32) * 0.12 }, // 12% of available width
+  rtCol: { width: (width - 32) * 0.08, borderRightWidth: 0 }, // 8% of available width
+
   removeButton: {
     padding: 8,
     borderRadius: 4,
     backgroundColor: '#fef2f2',
+  },
+  confirmButtons: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  confirmButton: {
+    padding: 6,
+    borderRadius: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  confirmYesButton: {
+    backgroundColor: '#10b981',
+  },
+  confirmNoButton: {
+    backgroundColor: '#ef4444',
   },
   addRowSection: {
     padding: 16,
@@ -447,8 +647,14 @@ const styles = StyleSheet.create({
   actionSection: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    padding: 16,
-    marginBottom: 32,
+    paddingHorizontal: 16,
+    paddingVertical: 20,
+    marginBottom: 20,
+    backgroundColor: '#ffffff',
+    marginHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
   },
   cancelButton: {
     flex: 1,

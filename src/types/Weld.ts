@@ -1,10 +1,9 @@
 export interface Weld {
   id: string;
+  cardId: string; // Unique identifier for the card containing multiple welds
   
   // Header Information
-  welderName: string;
   date: string;
-  jobLocation: string;
   
   // Weld Table Columns - Simplified
   weldNumber: string;
@@ -38,16 +37,14 @@ export interface Weld {
   defectSketchDescription?: string;
   
   // Metadata
-  status: 'pending' | 'approved' | 'rejected';
   createdAt?: string;
   updatedAt?: string;
 }
 
 export interface WeldFormData {
   // Header Information
-  welderName: string;
+  cardId: string; // Unique identifier for the card containing multiple welds
   date: string;
-  jobLocation: string;
   
   // Weld Table Columns - Simplified
   weldNumber: string;
@@ -81,7 +78,6 @@ export interface WeldFormData {
   defectSketchDescription: string;
   
   // Metadata
-  status: 'pending' | 'approved' | 'rejected';
 }
 
-export type Screen = 'home' | 'add' | 'view' | 'settings' | 'bulk-edit';
+export type Screen = 'home' | 'view' | 'settings' | 'bulk-edit';

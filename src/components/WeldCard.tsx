@@ -5,66 +5,52 @@ import { formatDateToUS } from '../utils/dateUtils';
 
 interface WeldCardProps {
   weld: Weld;
+  weldIndex: number;
   onView: (weld: Weld) => void;
-  onEdit: (weld: Weld) => void;
+  onEdit: (weld: Weld, index: number) => void;
   onDelete: (weld: Weld) => void;
   onRecover?: (weld: Weld) => void;
   isTrash?: boolean;
   canFitThreeCards?: boolean;
   canFitFourCards?: boolean;
+  canFitFiveCards?: boolean;
+  canFitSixCards?: boolean;
 }
 
-export const WeldCard: React.FC<WeldCardProps> = ({ weld, onView, onEdit, onDelete, onRecover, isTrash = false, canFitThreeCards = false, canFitFourCards = false }) => {
-  // Get status color and text
-  const getStatusInfo = (status: string) => {
-    switch (status) {
-      case 'approved':
-        return { color: '#10b981', text: '✓ Approved', bgColor: '#ecfdf5' };
-      case 'rejected':
-        return { color: '#ef4444', text: '✗ Rejected', bgColor: '#fef2f2' };
-      case 'pending':
-      default:
-        return { color: '#f59e0b', text: '⏳ Pending', bgColor: '#fffbeb' };
-    }
-  };
-
-  const statusInfo = getStatusInfo(weld.status || 'pending');
+export const WeldCard: React.FC<WeldCardProps> = ({ weld, weldIndex, onView, onEdit, onDelete, onRecover, isTrash = false, canFitThreeCards = false, canFitFourCards = false, canFitFiveCards = false, canFitSixCards = false }) => {
 
   // Dynamic styles based on screen size
   const cardStyle = [
     styles.weldCard,
     canFitThreeCards && !canFitFourCards && styles.weldCardTablet,
-    canFitFourCards && styles.weldCardFour,
+    canFitFourCards && !canFitFiveCards && styles.weldCardFour,
+    canFitFiveCards && !canFitSixCards && styles.weldCardFive,
+    canFitSixCards && styles.weldCardSix,
     isTrash && styles.trashCard
   ];
 
   return (
     <View style={cardStyle}>
-      {/* Status Indicator */}
-      <View style={[styles.statusBadge, { backgroundColor: statusInfo.bgColor }]}>
-        <Text style={[styles.statusText, { color: statusInfo.color }]}>
-          {statusInfo.text}
-        </Text>
+      {/* Bigger Date Display */}
+      <Text style={styles.weldCardDate}>{formatDateToUS(weld.date)}</Text>
+      
+      {/* Weld IDs Display */}
+      <View style={styles.weldIdsContainer}>
+        <Text style={styles.weldIdText}>Weld: {weld.weldNumber}</Text>
+        <Text style={styles.weldIdText}>WID: {weld.widNumber}</Text>
       </View>
       
-      <Text style={styles.weldCardId}>{weld.weldNumber || 'No Weld #'}</Text>
-      <Text style={styles.weldCardWelder}>Welder: {weld.welderName || 'N/A'}</Text>
-      <Text style={styles.weldCardDate}>{formatDateToUS(weld.date)}</Text>
-      <Text style={styles.weldCardWPS}>WPS: {weld.wpsNumberAndTitle || 'N/A'}</Text>
-      <Text style={styles.weldCardLocation}>Location: {weld.jobLocation || 'N/A'}</Text>
-      <Text style={styles.weldCardInspector}>Inspector: {weld.weldingInspectorName || 'N/A'}</Text>
-      
+      {/* Compact Action Icons */}
       <View style={styles.cardActions}>
         <TouchableOpacity style={styles.iconButton} onPress={() => onView(weld)}>
           <Text style={styles.iconText}>👁️</Text>
         </TouchableOpacity>
         {!isTrash && (
-          <TouchableOpacity style={styles.iconButton} onPress={() => onEdit(weld)}>
+          <TouchableOpacity style={styles.iconButton} onPress={() => onEdit(weld, weldIndex)}>
             <Text style={styles.iconText}>✏️</Text>
           </TouchableOpacity>
         )}
         {!isTrash ? (
-          // Active weld - move to trash
           <TouchableOpacity 
             style={styles.iconButton} 
             onPress={() => onDelete(weld)}
@@ -72,7 +58,6 @@ export const WeldCard: React.FC<WeldCardProps> = ({ weld, onView, onEdit, onDele
             <Text style={styles.iconText}>🗑️</Text>
           </TouchableOpacity>
         ) : (
-          // Trashed item - show recover and permanent delete
           <>
             <TouchableOpacity 
               style={[styles.iconButton, styles.recoverButton]} 
@@ -96,31 +81,38 @@ export const WeldCard: React.FC<WeldCardProps> = ({ weld, onView, onEdit, onDele
 const styles = StyleSheet.create({
   weldCard: {
     width: '46%', // Default for mobile (2 columns) - reduced to fit with margin
-    backgroundColor: '#f8f9fa',
-    padding: 20,
-    borderRadius: 20,
+    backgroundColor: '#ffffff',
+    padding: 12,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(226, 232, 240, 0.6)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    elevation: 8,
-    minHeight: 160,
-    marginBottom: 16,
+    borderColor: '#e2e8f0',
+    minHeight: 120,
+    marginBottom: 12,
     marginRight: '4%', // Add right margin for spacing between cards
   },
   weldCardTablet: {
     width: '30%', // 3 columns for wider screens - reduced to fit with margin
-    minHeight: 180,
-    padding: 16,
+    minHeight: 120,
+    padding: 12,
     marginRight: '3.33%', // Add right margin for 3-column spacing
   },
   weldCardFour: {
     width: '22%', // 4 columns for large tablets - reduced to fit with margin
-    minHeight: 160,
+    minHeight: 120,
     padding: 12,
     marginRight: '2%', // Add right margin for 4-column spacing
+  },
+  weldCardFive: {
+    width: '18%', // 5 columns for very large landscape screens
+    minHeight: 120,
+    padding: 12,
+    marginRight: '1.6%', // Add right margin for 5-column spacing
+  },
+  weldCardSix: {
+    width: '15%', // 6 columns for extremely large landscape screens
+    minHeight: 120,
+    padding: 12,
+    marginRight: '1.33%', // Add right margin for 6-column spacing
   },
   trashCard: {
     backgroundColor: '#fef2f2',
@@ -140,10 +132,11 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   weldCardDate: {
-    fontSize: 14,
-    color: '#64748b',
-    fontWeight: '600',
-    marginBottom: 5,
+    fontSize: 18,
+    color: '#1e293b',
+    fontWeight: '700',
+    marginBottom: 12,
+    textAlign: 'center',
   },
   weldCardWPS: {
     fontSize: 12,
@@ -162,6 +155,17 @@ const styles = StyleSheet.create({
     color: '#64748b',
     fontWeight: '500',
     marginBottom: 15,
+  },
+  weldIdsContainer: {
+    marginBottom: 12,
+    alignItems: 'center',
+  },
+  weldIdText: {
+    fontSize: 11,
+    color: '#475569',
+    fontWeight: '500',
+    marginBottom: 2,
+    textAlign: 'center',
   },
   cardActions: {
     flexDirection: 'row',
@@ -191,19 +195,5 @@ const styles = StyleSheet.create({
   permanentDeleteIconText: {
     color: '#ef4444',
   },
-  statusBadge: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.1)',
-  },
-  statusText: {
-    fontSize: 10,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
+
 });

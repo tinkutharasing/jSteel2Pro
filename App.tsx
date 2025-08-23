@@ -3,10 +3,10 @@ import { SafeAreaView, KeyboardAvoidingView, Platform, StatusBar, View, Text, St
 import Icon from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Weld, WeldFormData, Screen } from './src/types/Weld';
+import { WeldCardData } from './src/types/WeldCard';
 import { HomeScreen } from './src/screens/HomeScreen';
-import { WeldFormScreen } from './src/screens/WeldFormScreen';
-import { WeldViewScreen } from './src/screens/WeldViewScreen';
 import { BulkWeldEditorScreen } from './src/screens/BulkWeldEditorScreen';
+import { WeldPrintView } from './src/screens/WeldPrintView';
 import { BottomNavigation } from './src/components/BottomNavigation';
 import { GoogleSheetsConfigModal } from './src/components/GoogleSheetsConfigModal';
 import { getCurrentDateISO } from './src/utils/dateUtils';
@@ -20,8 +20,10 @@ export default function App() {
   
   useEffect(() => {
     const checkScreenSize = () => {
-      const { width } = Dimensions.get('window');
-      setIsTablet(width > 768);
+      const { width, height } = Dimensions.get('window');
+      // In landscape mode, width is typically larger than height
+      // Consider it a tablet if width > 768 or if it's a landscape device
+      setIsTablet(width > 768 || (width > height && width > 600));
     };
     
     checkScreenSize();
@@ -51,17 +53,17 @@ export default function App() {
   const [confirmPinInput, setConfirmPinInput] = useState('');
 
   const [welds, setWelds] = useState<Weld[]>([]);
-
-
+  const [weldCards, setWeldCards] = useState<WeldCardData[]>([]);
 
   const [trashWelds, setTrashWelds] = useState<Weld[]>([]);
+  const [trashCards, setTrashCards] = useState<WeldCardData[]>([]);
   const [selectedWeld, setSelectedWeld] = useState<Weld | null>(null);
+  const [selectedCard, setSelectedCard] = useState<WeldCardData | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [formData, setFormData] = useState<WeldFormData>({
     // Header Information
-    welderName: '',
+    cardId: '',
     date: getCurrentDateISO(),
-    jobLocation: '',
     
     // Weld Table Columns - Simplified
     weldNumber: '',
@@ -95,7 +97,6 @@ export default function App() {
     defectSketchDescription: '',
     
     // Metadata
-    status: 'pending'
   });
 
   // Confirmation popup state
@@ -206,7 +207,9 @@ export default function App() {
   useEffect(() => {
     const initializeApp = async () => {
       await loadWelds();
+      await loadWeldCards();
       await loadTrashWelds();
+      await loadTrashCards();
       await loadGoogleSheetsConfig();
     };
     
@@ -247,6 +250,28 @@ export default function App() {
     }
   };
 
+  const loadWeldCards = async () => {
+    try {
+      const stored = await AsyncStorage.getItem('weldCards');
+      if (stored) {
+        setWeldCards(JSON.parse(stored));
+      } else {
+        console.log('No weld cards found in storage; leaving state empty');
+        setWeldCards([]);
+      }
+    } catch (error) {
+      console.error('Error loading weld cards:', error);
+    }
+  };
+
+  const saveWeldCards = async (cards: WeldCardData[]) => {
+    try {
+      await AsyncStorage.setItem('weldCards', JSON.stringify(cards));
+    } catch (error) {
+      console.error('Error saving weld cards:', error);
+    }
+  };
+
   const loadTrashWelds = async () => {
     try {
       const stored = await AsyncStorage.getItem('trashWelds');
@@ -259,6 +284,21 @@ export default function App() {
       }
     } catch (error) {
       console.error('Error loading trash welds:', error);
+    }
+  };
+
+  const loadTrashCards = async () => {
+    try {
+      const stored = await AsyncStorage.getItem('trashCards');
+      if (stored) {
+        setTrashCards(JSON.parse(stored));
+      } else {
+        // No stored data – do NOT auto-seed; keep empty
+        console.log('No trash cards found in storage; leaving state empty');
+        setTrashCards([]);
+      }
+    } catch (error) {
+      console.error('Error loading trash cards:', error);
     }
   };
 
@@ -601,8 +641,7 @@ export default function App() {
       defectSketch: '',
       defectSketchDescription: '',
       
-      // Metadata
-      status: 'pending'
+          // Metadata
     });
     setIsEditMode(false);
   };
@@ -687,50 +726,212 @@ export default function App() {
     }
   };
 
-  const editWeld = (weld: Weld) => {
-    setSelectedWeld(weld);
-    setFormData({
-      // Header Information
-      welderName: weld.welderName || '',
-      date: weld.date || '',
-      jobLocation: weld.jobLocation || '',
+  const handleBulkSaveWelds = async (bulkWelds: Weld[]) => {
+    try {
+      // Validate that all welds have required fields
+      const validWelds = bulkWelds.filter(weld => weld.weldNumber?.trim());
       
-      // Weld Table Columns - Simplified
-      weldNumber: weld.weldNumber || '',
-      widNumber: weld.widNumber || '',
-      pipeSizeInches: weld.pipeSizeInches || '',
-      typeOfWeld: weld.typeOfWeld || '',
-      capSize: weld.capSize || '',
-      passes: weld.passes || '',
-      wpsNumberAndTitle: weld.wpsNumberAndTitle || '',
-      electrodeTypeBrand: weld.electrodeTypeBrand || '',
-      rt: weld.rt || '',
+      if (validWelds.length === 0) {
+        showError('Validation Error', 'At least one weld with a weld number is required');
+        return;
+      }
+
+      // Check for duplicate weld numbers
+      const weldNumbers = validWelds.map(w => w.weldNumber.trim());
+      const duplicateNumbers = weldNumbers.filter((num, index) => weldNumbers.indexOf(num) !== index);
       
-      // Legacy fields (kept for compatibility)
-      welderCompany: weld.welderCompany || false,
-      welderContractor: weld.welderContractor || false,
-      loaTccMod: weld.loaTccMod || '',
-      weldingContractorName: weld.weldingContractorName || '',
-      woJoNumber: weld.woJoNumber || '',
-      weldingInspectorName: weld.weldingInspectorName || '',
-      weldingInspectionCompany: weld.weldingInspectionCompany || '',
-      numberOfWeldsMadeToday: weld.numberOfWeldsMadeToday || '',
-      stencilNumber: weld.stencilNumber || '',
-      processUsed: weld.processUsed || '',
-      butt: weld.butt || '',
-      fillet: weld.fillet || '',
+      if (duplicateNumbers.length > 0) {
+        showError('Duplicate Weld Numbers', `Duplicate weld numbers found: ${duplicateNumbers.join(', ')}`);
+        return;
+      }
+
+      // Check for conflicts with existing welds (excluding the welds being edited)
+      const existingWeldNumbers = welds.map(w => w.weldNumber);
+      const conflictingNumbers = validWelds
+        .filter(w => {
+          // Skip validation for new welds (temp IDs)
+          if (w.id.startsWith('temp-')) return false;
+          
+          // For existing welds, check if the weld number conflicts with OTHER existing welds
+          const otherExistingWelds = existingWeldNumbers.filter((_, index) => 
+            welds[index].id !== w.id
+          );
+          return otherExistingWelds.includes(w.weldNumber);
+        })
+        .map(w => w.weldNumber);
+
+      if (conflictingNumbers.length > 0) {
+        showError('Weld Number Conflict', `Weld numbers already exist: ${conflictingNumbers.join(', ')}`);
+        return;
+      }
+
+      // Process welds - update existing or create new
+      const updatedWelds = [...welds];
+      const newWelds: Weld[] = [];
+
+      for (const bulkWeld of validWelds) {
+        if (bulkWeld.id.startsWith('temp-')) {
+          // This is a new weld
+          const newWeld: Weld = {
+            ...bulkWeld,
+            id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+          newWelds.push(newWeld);
+          updatedWelds.push(newWeld);
+        } else {
+          // This is an existing weld being updated
+          const existingIndex = updatedWelds.findIndex(w => w.id === bulkWeld.id);
+          if (existingIndex !== -1) {
+            updatedWelds[existingIndex] = {
+              ...updatedWelds[existingIndex],
+              ...bulkWeld,
+              updatedAt: new Date().toISOString(),
+            };
+          }
+        }
+      }
+
+      // Save to local storage
+      setWelds(updatedWelds);
+      await saveWelds(updatedWelds);
+
+      // Sync to Google Sheets if connected and enabled
+      if (googleSheetsConnected && syncEnabled && newWelds.length > 0) {
+        try {
+          const sheetsService = new GoogleSheetsService();
+          for (const newWeld of newWelds) {
+            const result = await sheetsService.addWeld(newWeld);
+            if (!result.success) {
+              console.error(`Failed to sync weld ${newWeld.weldNumber} to Google Sheets:`, result.message);
+            }
+          }
+        } catch (error) {
+          console.error('Error syncing to Google Sheets:', error);
+        }
+      }
+
+      showSuccess('Success', `${validWelds.length} welds saved successfully!`);
+      setCurrentScreen('home');
       
-      // Image Fields
-      weldSketch: weld.weldSketch || '',
-      weldSketchDescription: weld.weldSketchDescription || '',
-      defectSketch: weld.defectSketch || '',
-      defectSketchDescription: weld.defectSketchDescription || '',
+    } catch (error) {
+      console.error('Error saving bulk welds:', error);
+      showError('Error', 'Failed to save welds');
+    }
+  };
+
+  const handleSaveCard = async (card: WeldCardData) => {
+    try {
+      // Validate card has welds
+      if (card.welds.length === 0) {
+        showError('No Welds', 'Please add at least one weld to the card before saving.');
+        return;
+      }
+
+      // Check for duplicate weld numbers within the card
+      const weldNumbers = card.welds.map(w => w.weldNumber.trim()).filter(n => n !== '');
+      const duplicateNumbers = weldNumbers.filter((number, index) => 
+        weldNumbers.indexOf(number) !== index
+      );
+
+      if (duplicateNumbers.length > 0) {
+        showError('Duplicate Weld Numbers', `The following weld numbers are duplicated: ${duplicateNumbers.join(', ')}. Please fix this before saving.`);
+        return;
+      }
+
+      // Update or create the weld card
+      const updatedWeldCards = [...weldCards];
       
-      // Metadata
-      status: weld.status || 'pending'
-    });
-    setIsEditMode(true);
-    setCurrentScreen('add');
+      // If cardId starts with "new-card-", always create a new card
+      if (card.cardId.startsWith('new-card-')) {
+        // Create new card with auto-incremental ID
+        const newCard: WeldCardData = {
+          ...card,
+          cardId: `card-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        updatedWeldCards.push(newCard);
+        console.log('Created new card:', newCard.cardId);
+      } else {
+        // Check if this is an existing card to update
+        const existingCardIndex = updatedWeldCards.findIndex(c => c.cardId === card.cardId);
+        
+        if (existingCardIndex !== -1) {
+          // Update existing card
+          updatedWeldCards[existingCardIndex] = {
+            ...card,
+            updatedAt: new Date().toISOString(),
+          };
+          console.log('Updated existing card:', card.cardId);
+        } else {
+          // Create new card with auto-incremental ID (fallback)
+          const newCard: WeldCardData = {
+            ...card,
+            cardId: `card-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+          updatedWeldCards.push(newCard);
+          console.log('Created new card:', newCard.cardId);
+        }
+      }
+
+      // Update weld cards state and save to storage
+      setWeldCards(updatedWeldCards);
+      await saveWeldCards(updatedWeldCards);
+
+      // Also update individual welds for backward compatibility
+      const allWelds: Weld[] = [];
+      updatedWeldCards.forEach(cardData => {
+        cardData.welds.forEach(weld => {
+          allWelds.push({
+            ...weld,
+            cardId: cardData.cardId,
+            date: cardData.date,
+          });
+        });
+      });
+      
+      setWelds(allWelds);
+      await saveWelds(allWelds);
+
+      showSuccess('Success', `Card with ${card.welds.length} welds saved successfully!`);
+      setCurrentScreen('home');
+    } catch (error) {
+      console.error('Error saving card:', error);
+      showError('Error', 'Failed to save card');
+    }
+  };
+
+  const editWeld = (weld: Weld, index: number) => {
+    // Find the card that contains this weld
+    const parentCard = weldCards.find(card => 
+      card.welds.some(w => w.id === weld.id)
+    );
+    
+    if (parentCard) {
+      // Set the selected card to edit
+      setSelectedCard(parentCard);
+      // Navigate to bulk edit with the existing card
+      setCurrentScreen('bulk-edit');
+    } else {
+      // Fallback: if no card found, create a new card with this weld
+      const newCard: WeldCardData = {
+        cardId: `card-${Date.now()}`,
+        date: weld.date,
+        weldSketch: weld.weldSketch || '',
+        weldSketchDescription: weld.weldSketchDescription || '',
+        defectSketch: weld.defectSketch || '',
+        defectSketchDescription: weld.defectSketchDescription || '',
+        welds: [weld],
+        createdAt: weld.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      setSelectedCard(newCard);
+      setCurrentScreen('bulk-edit');
+    }
   };
 
   const viewWeld = (weld: Weld) => {
@@ -852,6 +1053,66 @@ export default function App() {
     });
   };
 
+  const clearAllTrash = () => {
+    showConfirm({
+      title: 'Empty Trash',
+      message: `Are you sure you want to permanently delete all ${trashCards.length} items in trash? This action cannot be undone.`,
+      confirmText: 'Empty Trash',
+      cancelText: 'Cancel',
+      onConfirm: async () => {
+        try {
+          setConfirmLoading(true);
+          
+          // Clear all trash cards
+          setTrashCards([]);
+          await AsyncStorage.removeItem('trashCards');
+          await AsyncStorage.setItem('trashCards', JSON.stringify([]));
+          
+          showSuccess('Trash Emptied', 'All items in trash have been permanently deleted');
+        } catch (error) {
+          console.error('Error clearing trash:', error);
+          showError('Error', 'Failed to empty trash');
+        } finally {
+          hideConfirm();
+        }
+      }
+    });
+  };
+
+  const trashAllWelds = () => {
+    showConfirm({
+      title: 'Move All to Trash',
+      message: `Are you sure you want to move all ${weldCards.length} active weld cards to trash? You can recover them later.`,
+      confirmText: 'Move All to Trash',
+      cancelText: 'Cancel',
+      onConfirm: async () => {
+        try {
+          setConfirmLoading(true);
+          
+          // Move all active weld cards to trash as complete cards
+          const cardsToTrash = weldCards.map(card => ({ ...card, deletedAt: new Date().toISOString() }));
+          const updatedTrashCards = [...trashCards, ...cardsToTrash];
+          
+          setTrashCards(updatedTrashCards);
+          setWeldCards([]);
+          setWelds([]);
+          
+          // Save to storage
+          await AsyncStorage.setItem('weldCards', JSON.stringify([]));
+          await AsyncStorage.setItem('welds', JSON.stringify([]));
+          await AsyncStorage.setItem('trashCards', JSON.stringify(updatedTrashCards));
+          
+          showSuccess('Moved to Trash', `All ${weldCards.length} weld cards have been moved to trash`);
+        } catch (error) {
+          console.error('Error moving all weld cards to trash:', error);
+          showError('Error', 'Failed to move weld cards to trash');
+        } finally {
+          hideConfirm();
+        }
+      }
+    });
+  };
+
   const recoverWeld = (weld: Weld) => {
     showConfirm({
       title: 'Recover Weld',
@@ -862,6 +1123,17 @@ export default function App() {
         try {
           // Set loading state for confirmation button (don't hide dialog yet)
           setConfirmLoading(true);
+          
+          // Find the parent card in trash that contains this weld
+          const parentCard = trashCards.find(card => 
+            card.welds.some(w => w.id === weld.id)
+          );
+          
+          if (!parentCard) {
+            showError('Error', 'Could not find the parent card for this weld');
+            hideConfirm();
+            return;
+          }
           
           // If connected to Google Sheets and sync enabled, add the weld back to the sheet
           if (googleSheetsConnected && syncEnabled) {
@@ -883,17 +1155,20 @@ export default function App() {
             }
           }
           
-          const updatedTrashWelds = trashWelds.filter(w => w.id !== weld.id);
-          const updatedWelds = [weld, ...welds];
+          // Remove the card from trash
+          const updatedTrashCards = trashCards.filter(card => card.cardId !== parentCard.cardId);
+          
+          // Add the recovered card back to active cards
+          const updatedWeldCards = [parentCard, ...weldCards];
           
           // Update local state first
-          setTrashWelds(updatedTrashWelds);
-          setWelds(updatedWelds);
+          setTrashCards(updatedTrashCards);
+          setWeldCards(updatedWeldCards);
           
           // Save directly to AsyncStorage without triggering auto-sync (since we're just recovering from trash)
           try {
-            await AsyncStorage.setItem('trashWelds', JSON.stringify(updatedTrashWelds));
-            await AsyncStorage.setItem('welds', JSON.stringify(updatedWelds));
+            await AsyncStorage.setItem('trashCards', JSON.stringify(updatedTrashCards));
+            await AsyncStorage.setItem('weldCards', JSON.stringify(updatedWeldCards));
           } catch (error) {
             console.error('Error saving to AsyncStorage:', error);
           }
@@ -937,11 +1212,25 @@ export default function App() {
             console.log(`Permanently deleting weld ${weld.weldNumber} (already removed from Google Sheets when trashed)`);
           }
           
-          const updatedTrashWelds = trashWelds.filter(w => w.id !== weld.id);
+          // Find the parent card in trash that contains this weld
+          const parentCard = trashCards.find(card => 
+            card.welds.some(w => w.id === weld.id)
+          );
+          
+          if (!parentCard) {
+            showError('Error', 'Could not find the parent card for this weld');
+            hideConfirm();
+            return;
+          }
+          
+          // Remove the card from trash
+          const updatedTrashCards = trashCards.filter(card => card.cardId !== parentCard.cardId);
           
           // Update local state first
-          setTrashWelds(updatedTrashWelds);
-          saveTrashWelds(updatedTrashWelds);
+          setTrashCards(updatedTrashCards);
+          
+          // Save to storage
+          await AsyncStorage.setItem('trashCards', JSON.stringify(updatedTrashCards));
           
           showSuccess('Deleted', `${weld.weldNumber} has been permanently deleted from the app.`);
           
@@ -961,13 +1250,13 @@ export default function App() {
     });
   };
 
-  const handleAddWeld = () => {
-    resetForm();
-    setCurrentScreen('add');
-  };
+
 
   const handleBack = () => {
     setCurrentScreen('home');
+    // Clear selected weld when going back to home to avoid persistent highlighting
+    setSelectedWeld(null);
+    // Reset form data
     resetForm();
   };
 
@@ -1659,78 +1948,61 @@ export default function App() {
     }
   }, []);
 
-  // Utility function to convert app status to Google Sheets status
-  const convertStatusToSheet = (status: string): string => {
-    switch (status) {
-      case 'deleted':
-        return 'Deleted';
-      case 'pending':
-      case 'approved':
-      case 'rejected':
-        return 'Active';
-      default:
-        return 'Active';
-    }
-  };
 
-  // Utility function to convert Google Sheets status to app status
-  const convertStatusFromSheet = (status: string): string => {
-    switch (status) {
-      case 'Deleted':
-        return 'deleted';
-      case 'Active':
-        return 'pending'; // Default to pending for active items
-      default:
-        return 'pending';
-    }
-  };
 
   const renderScreen = () => {
     switch (currentScreen) {
       case 'home':
         return (
           <HomeScreen
-            welds={welds}
-            trashWelds={trashWelds}
-            onAddWeld={handleAddWeld}
+            weldCards={weldCards}
+            trashCards={trashCards}
             onViewWeld={viewWeld}
             onEditWeld={editWeld}
             onDeleteWeld={deleteWeld}
             onRecoverWeld={recoverWeld}
             onPermanentlyDeleteWeld={permanentlyDeleteWeld}
+            onClearTrash={clearAllTrash}
+            onTrashAll={trashAllWelds}
             onNavigate={setCurrentScreen}
           />
         );
-      case 'add':
-        return (
-          <KeyboardAvoidingView 
-            style={{ flex: 1 }} 
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
-            enabled={true}
-          >
-            <WeldFormScreen
-              formData={formData}
-              isEditMode={isEditMode}
-              onUpdateField={updateField}
-              onSave={addWeld}
-              onBack={handleBack}
-            />
-          </KeyboardAvoidingView>
-        );
+
       case 'view':
         return selectedWeld ? (
-          <WeldViewScreen
-            weld={selectedWeld}
-            onEdit={editWeld}
+          <WeldPrintView
+            card={(() => {
+              // Find the card that contains this weld
+              const parentCard = weldCards.find(card => 
+                card.welds.some(w => w.id === selectedWeld.id)
+              );
+              
+              if (parentCard) {
+                return parentCard;
+              } else {
+                // Fallback: create a card from the individual weld
+                return {
+                  cardId: `card-${selectedWeld.id}`,
+                  date: selectedWeld.date,
+                  weldSketch: selectedWeld.weldSketch || '',
+                  weldSketchDescription: selectedWeld.weldSketchDescription || '',
+                  defectSketch: selectedWeld.defectSketch || '',
+                  defectSketchDescription: selectedWeld.defectSketchDescription || '',
+                  welds: [selectedWeld],
+                  createdAt: selectedWeld.createdAt || new Date().toISOString(),
+                  updatedAt: selectedWeld.updatedAt || new Date().toISOString(),
+                };
+              }
+            })()}
             onBack={handleBack}
           />
         ) : null;
       case 'bulk-edit':
         return (
           <BulkWeldEditorScreen
-            welds={welds}
-            onSaveWelds={handleBulkSaveWelds}
+            onSaveCard={handleSaveCard}
             onBack={handleBack}
+            existingCard={selectedCard || undefined}
           />
         );
       default:
@@ -1752,11 +2024,12 @@ export default function App() {
         <BottomNavigation
           currentScreen={currentScreen}
           onNavigate={(screen) => {
-            if (screen === 'add') {
-              setCurrentScreen('add');
-            } else {
-              setCurrentScreen(screen);
+            // Clear selected weld and card when navigating to bulk-edit from bottom nav
+            if (screen === 'bulk-edit') {
+              setSelectedWeld(null);
+              setSelectedCard(null);
             }
+            setCurrentScreen(screen);
           }}
         />
       )}

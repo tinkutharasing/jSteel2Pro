@@ -2,8 +2,8 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 
 interface BottomNavigationProps {
-  currentScreen: 'home' | 'add' | 'settings';
-  onNavigate: (screen: 'home' | 'add' | 'settings') => void;
+  currentScreen: 'home' | 'settings' | 'bulk-edit';
+  onNavigate: (screen: 'home' | 'settings' | 'bulk-edit') => void;
 }
 
 export const BottomNavigation: React.FC<BottomNavigationProps> = ({ 
@@ -16,18 +16,18 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
 
 
 
-      {/* Add Tab - Absolutely positioned at center edge */}
-      <TouchableOpacity 
-        style={[styles.addTab, currentScreen === 'add' && styles.activeAddTab]} 
-        onPress={() => onNavigate('add')}
-      >
-        <Text style={[styles.addIcon, currentScreen === 'add' && styles.activeAddIcon]}>
-          +
-        </Text>
-        <Text style={[styles.addLabel, currentScreen === 'add' && styles.activeAddLabel]}>
-          Add Weld
-        </Text>
-      </TouchableOpacity>
+      {/* Bulk Edit Tab - Absolutely positioned at center edge */}
+              <TouchableOpacity 
+          style={[styles.addTab, currentScreen === 'bulk-edit' && styles.activeAddTab]} 
+          onPress={() => onNavigate('bulk-edit')}
+        >
+          <Text style={[styles.addIcon, currentScreen === 'bulk-edit' && styles.activeAddIcon]}>
+            🔥
+          </Text>
+          <Text style={[styles.addLabel, currentScreen === 'bulk-edit' && styles.activeAddLabel]}>
+            Add Weld
+          </Text>
+        </TouchableOpacity>
     </View>
   );
 };
@@ -35,24 +35,24 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    backgroundColor: '#ffffff',
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
     borderTopWidth: 1,
-    borderTopColor: '#e2e8f0',
-    paddingBottom: 21, // Reduced from 30 (30% reduction)
-    paddingTop: 10,    // Reduced from 15 (30% reduction)
-    minHeight: 80,     // Added minimum height
+    borderTopColor: 'rgba(226, 232, 240, 0.5)',
+    paddingBottom: 0,
+    paddingTop: 0,
+    minHeight: 0,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOffset: { width: 0, height: -1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
     position: 'relative', // Added for absolute positioning of add button
   },
   tab: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 6, // Reduced from 8 (30% reduction)
+    paddingVertical: 0, // Reduced to half
   },
   activeTab: {
     // Active state styling
@@ -77,22 +77,22 @@ const styles = StyleSheet.create({
   addTab: {
     position: 'absolute',
     left: '50%',
-    top: -45, // Position at the edge of the bottom bar
+    top: -115, // Moved upwards from -45
     transform: [{ translateX: -40 }], // Center horizontally (adjust for button width)
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 12,
     paddingHorizontal: 22,
-    backgroundColor: '#667eea',
+    backgroundColor: '#3b82f6',
     borderRadius: 20,
-    shadowColor: '#667eea',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   activeAddTab: {
-    backgroundColor: '#5a67d8',
+    backgroundColor: '#1e40af',
   },
   addIcon: {
     fontSize: 28,
