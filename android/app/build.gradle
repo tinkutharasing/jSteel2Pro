@@ -95,7 +95,7 @@ android {
         release {
             storeFile file('release.keystore')
             storePassword 'jsteelpro123'
-            keyAlias 'jsteelpro2-release'
+            keyAlias 'jsteelpro-release'
             keyPassword 'jsteelpro123'
         }
     }
