@@ -375,10 +375,10 @@ const styles = StyleSheet.create({
     borderColor: '#e2e8f0',
     borderStyle: 'dashed',
     borderRadius: 12,
-    padding: 24,
+    padding: 16,
     alignItems: 'center',
     backgroundColor: '#f8fafc',
-    minHeight: 120,
+    minHeight: 80,
     justifyContent: 'center',
   },
   uploadButtonText: {
@@ -407,7 +407,7 @@ const styles = StyleSheet.create({
   descriptionInput: {
     fontSize: 14,
     color: '#1e293b',
-    minHeight: 60,
+    minHeight: 40,
     textAlignVertical: 'top',
     padding: 0,
   },
@@ -417,7 +417,7 @@ const styles = StyleSheet.create({
   },
   imagePreview: {
     width: '100%',
-    height: 200,
+    height: 120,
     borderWidth: 1,
     borderColor: '#e2e8f0',
     borderRadius: 8,

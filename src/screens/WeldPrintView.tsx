@@ -79,7 +79,7 @@ export const WeldPrintView: React.FC<WeldPrintViewProps> = ({
               onPress={captureScreenshot}
               disabled={isCapturing}
             >
-              <Icon name="camera-outline" size={24} color="#10b981" />
+              <Icon name="camera" size={24} color="#10b981" />
             </TouchableOpacity>
             <TouchableOpacity 
               style={[styles.headerButton, styles.printButton]} 
@@ -88,7 +88,7 @@ export const WeldPrintView: React.FC<WeldPrintViewProps> = ({
                 console.log('Print functionality to be implemented');
               }}
             >
-              <Icon name="print-outline" size={24} color="#3b82f6" />
+              <Icon name="print" size={24} color="#3b82f6" />
             </TouchableOpacity>
           </View>
         </View>
