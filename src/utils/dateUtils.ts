@@ -2,19 +2,18 @@
 
 /**
  * Converts ISO date string (YYYY-MM-DD) to US format (MM/DD/YYYY)
+ * Fixed to prevent timezone issues
  */
 export const formatDateToUS = (dateString: string): string => {
   if (!dateString) return '';
   
   try {
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return dateString; // Return original if invalid
+    // Parse ISO date safely without timezone conversion
+    const [year, month, day] = dateString.split('-').map(Number);
+    if (!year || !month || !day) return dateString;
     
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const year = date.getFullYear();
-    
-    return `${month}/${day}/${year}`;
+    // Format as MM/DD/YYYY
+    return `${String(month).padStart(2, '0')}/${String(day).padStart(2, '0')}/${year}`;
   } catch (error) {
     console.error('Error formatting date:', error);
     return dateString; // Return original if error
@@ -23,6 +22,7 @@ export const formatDateToUS = (dateString: string): string => {
 
 /**
  * Converts US format date (MM/DD/YYYY) to ISO string (YYYY-MM-DD)
+ * Fixed to prevent timezone issues
  */
 export const formatDateToISO = (usDateString: string): string => {
   if (!usDateString) return '';
@@ -31,14 +31,17 @@ export const formatDateToISO = (usDateString: string): string => {
     // Handle MM/DD/YYYY format
     const parts = usDateString.split('/');
     if (parts.length === 3) {
-      const month = parseInt(parts[0]) - 1; // Month is 0-indexed
+      const month = parseInt(parts[0]);
       const day = parseInt(parts[1]);
       const year = parseInt(parts[2]);
       
-      const date = new Date(year, month, day);
-      if (isNaN(date.getTime())) return usDateString; // Return original if invalid
+      // Validate the date parts
+      if (month < 1 || month > 12 || day < 1 || day > 31 || year < 1900 || year > 2100) {
+        return usDateString; // Return original if invalid
+      }
       
-      return date.toISOString().split('T')[0];
+      // Return in YYYY-MM-DD format without timezone conversion
+      return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     }
     
     return usDateString; // Return original if not in expected format
@@ -50,9 +53,14 @@ export const formatDateToISO = (usDateString: string): string => {
 
 /**
  * Gets current date in ISO format (YYYY-MM-DD)
+ * Fixed to prevent timezone issues
  */
 export const getCurrentDateISO = (): string => {
-  return new Date().toISOString().split('T')[0];
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
 
 /**

@@ -2,7 +2,6 @@ import React from 'react';
 import {
   View,
   Text,
-  ScrollView,
   TouchableOpacity,
   StyleSheet,
   Dimensions,
@@ -12,6 +11,7 @@ import { FormField, CheckboxField } from '../components/FormField';
 import { DatePickerField } from '../components/DatePickerField';
 import { ImageUploadField } from '../components/ImageUploadField';
 import { WeldFormData } from '../types/Weld';
+import KeyboardAwareScrollView from '../components/KeyboardAwareScrollView';
 
 interface WeldFormScreenProps {
   formData: WeldFormData;
@@ -39,7 +39,7 @@ export const WeldFormScreen: React.FC<WeldFormScreenProps> = ({
   };
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <KeyboardAwareScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Header Section - Fixed at top */}
       <View style={styles.headerSection}>
         <View style={styles.headerRow}>
@@ -190,7 +190,7 @@ export const WeldFormScreen: React.FC<WeldFormScreenProps> = ({
           <Text style={styles.saveButtonText}>Save Weld</Text>
         </TouchableOpacity>
       </View>
-    </ScrollView>
+    </KeyboardAwareScrollView>
   );
 };
 

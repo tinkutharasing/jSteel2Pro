@@ -2,19 +2,20 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
-  ScrollView,
   TouchableOpacity,
   StyleSheet,
   TextInput,
   Alert,
   SafeAreaView,
   Dimensions,
+  ScrollView,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { Weld } from '../types/Weld';
 import { WeldCardData } from '../types/WeldCard';
 import { DatePickerField } from '../components/DatePickerField';
 import { ImageUploadField } from '../components/ImageUploadField';
+import KeyboardAwareScrollView from '../components/KeyboardAwareScrollView';
 
 interface BulkWeldEditorScreenProps {
   onSaveCard: (card: WeldCardData) => void;
@@ -242,7 +243,7 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
   return (
     <SafeAreaView style={styles.safeContainer}>
       <View style={styles.container}>
-        <ScrollView 
+        <KeyboardAwareScrollView 
           style={styles.verticalScroll} 
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
@@ -427,7 +428,7 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
               <Text style={styles.saveButtonText}>Save All Welds</Text>
             </TouchableOpacity>
           </View>
-        </ScrollView>
+        </KeyboardAwareScrollView>
       </View>
     </SafeAreaView>
   );

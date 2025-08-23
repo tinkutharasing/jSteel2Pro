@@ -139,6 +139,30 @@ const WeldPrintView: React.FC<WeldPrintViewProps> = ({ card, onBack }) => {
 
   const handlePrint = async () => {
     try {
+      // Convert images to base64 for print compatibility
+      let weldSketchBase64 = '';
+      let defectSketchBase64 = '';
+      
+      if (card.weldSketch) {
+        try {
+          const weldImageData = await RNFS.readFile(card.weldSketch, 'base64');
+          weldSketchBase64 = `data:image/png;base64,${weldImageData}`;
+        } catch (error) {
+          console.log('Failed to convert weld sketch to base64:', error);
+          weldSketchBase64 = card.weldSketch; // Fallback to original URI
+        }
+      }
+      
+      if (card.defectSketch) {
+        try {
+          const defectImageData = await RNFS.readFile(card.defectSketch, 'base64');
+          defectSketchBase64 = `data:image/png;base64,${defectImageData}`;
+        } catch (error) {
+          console.log('Failed to convert defect sketch to base64:', error);
+          defectSketchBase64 = card.defectSketch; // Fallback to original URI
+        }
+      }
+
       // Generate HTML content for printing
       const htmlContent = `
         <!DOCTYPE html>
@@ -163,17 +187,7 @@ const WeldPrintView: React.FC<WeldPrintViewProps> = ({ card, onBack }) => {
               border-bottom: 2px solid #3b82f6;
               padding-bottom: 20px;
             }
-            .back-button {
-              margin-top: 20px;
-              text-align: center;
-              padding: 10px;
-              background-color: #f0f9ff;
-              border: 2px solid #3b82f6;
-              border-radius: 8px;
-              display: inline-block;
-              margin-left: auto;
-              margin-right: auto;
-            }
+
             .company-name {
               font-size: 28px;
               font-weight: bold;
@@ -232,26 +246,88 @@ const WeldPrintView: React.FC<WeldPrintViewProps> = ({ card, onBack }) => {
               margin-top: 30px;
             }
             .image-row {
-              display: flex;
-              margin: 20px 0;
-              align-items: flex-start;
-            }
-            .image-info {
-              margin-right: 30px;
+              margin: 30px 0;
+              page-break-inside: avoid;
             }
             .image-title {
               font-weight: bold;
-              margin-bottom: 10px;
+              margin-bottom: 15px;
               color: #374151;
+              font-size: 16px;
+              border-bottom: 1px solid #e5e7eb;
+              padding-bottom: 8px;
+            }
+            .image-container {
+              margin: 15px 0;
+              text-align: center;
+            }
+            .image-container img {
+              max-width: 100%;
+              height: auto;
+              border: 1px solid #e5e7eb;
+              border-radius: 8px;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .image-container img {
+              max-width: 100%;
+              height: auto;
+              border: 1px solid #e5e7eb;
+              border-radius: 8px;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            
+            /* Auto-rotate portrait images for better print layout */
+            .image-container img[style*="height"] {
+              /* If image has explicit height, it might be portrait */
+              max-width: 80%;
+              margin: 20px auto;
+              display: block;
+            }
+            
+            /* CSS-only portrait detection using aspect ratio */
+            @media print {
+              .image-container img {
+                max-width: 100%;
+                page-break-inside: avoid;
+              }
+              
+              /* Auto-rotate landscape images to portrait for space efficiency */
+              .image-container img {
+                max-width: 60%;
+                max-height: 500px;
+                width: auto;
+                height: auto;
+                margin: 15px auto;
+                display: block;
+                transform: rotate(90deg);
+                transform-origin: center center;
+              }
+              
+              /* Ensure images don't overflow page boundaries */
+              .image-container {
+                overflow: hidden;
+                padding: 20px;
+              }
+            }
+            .no-image {
+              text-align: center;
+              padding: 40px 20px;
+              background: #f8fafc;
+              border: 2px dashed #d1d5db;
+              border-radius: 8px;
+              color: #9ca3af;
+              font-style: italic;
+              margin: 15px 0;
             }
             .description {
-              max-width: 400px;
-              padding: 10px;
+              margin-top: 15px;
+              padding: 15px;
               background: #f8fafc;
               border: 1px solid #e2e8f0;
               border-radius: 6px;
               font-size: 12px;
               color: #64748b;
+              line-height: 1.5;
             }
             @media print {
               body {
@@ -275,11 +351,6 @@ const WeldPrintView: React.FC<WeldPrintViewProps> = ({ card, onBack }) => {
           <div class="header">
             <div class="company-name">jSteel Pro</div>
             <div class="company-subtitle">Weld Inspection Management</div>
-            <div class="back-button">
-              <strong style="color: #3b82f6; font-size: 16px; font-weight: 600; display: inline-block; padding: 12px 20px; border: 2px solid #3b82f6; border-radius: 8px; background-color: #f0f9ff; text-align: center; min-width: 200px;">
-                ← BACK TO PREVIOUS PAGE
-              </strong>
-            </div>
           </div>
 
           <div class="card-info">
@@ -344,27 +415,75 @@ const WeldPrintView: React.FC<WeldPrintViewProps> = ({ card, onBack }) => {
 
           <div class="section-title">Images and Sketches</div>
           <div class="images-section">
-            <div class="image-row">
-              <div class="image-info">
+            ${weldSketchBase64 ? `
+              <div class="image-row">
                 <div class="image-title">Weld Sketch</div>
+                <div class="image-container">
+                  <img src="${weldSketchBase64}" alt="Weld Sketch" class="weld-image" style="border: 1px solid #e5e7eb; border-radius: 8px;" />
+                </div>
                 <div class="description">
                   ${card.weldSketchDescription || 'No weld sketch description available'}
                 </div>
               </div>
-            </div>
-            <div class="image-row">
-              <div class="image-info">
+            ` : `
+              <div class="image-row">
+                <div class="image-title">Weld Sketch</div>
+                <div class="no-image">No Weld Sketch Image Available</div>
+                <div class="description">
+                  ${card.weldSketchDescription || 'No weld sketch description available'}
+                </div>
+              </div>
+            `}
+            
+            ${defectSketchBase64 ? `
+              <div class="image-row">
                 <div class="image-title">Defect Sketch</div>
+                <div class="image-container">
+                  <img src="${defectSketchBase64}" alt="Defect Sketch" class="defect-image" style="border: 1px solid #e5e7eb; border-radius: 8px;" />
+                </div>
                 <div class="description">
                   ${card.defectSketchDescription || 'No defect sketch description available'}
                 </div>
               </div>
-            </div>
+            ` : `
+              <div class="image-row">
+                <div class="image-title">Defect Sketch</div>
+                <div class="no-image">No Defect Sketch Image Available</div>
+                <div class="description">
+                  ${card.defectSketchDescription || 'No defect sketch description available'}
+                </div>
+              </div>
+            `}
           </div>
 
           <div style="margin-top: 40px; text-align: center; font-size: 12px; color: #9ca3af;">
             Generated on ${new Date().toLocaleString()}
           </div>
+          
+          <script>
+            // Auto-rotate landscape images to save horizontal space
+            document.addEventListener('DOMContentLoaded', function() {
+              const images = document.querySelectorAll('.image-container img');
+              images.forEach(function(img) {
+                img.onload = function() {
+                  if (this.naturalWidth > this.naturalHeight) {
+                    // Landscape image - rotate to portrait to save space
+                    this.style.transform = 'rotate(90deg)';
+                    this.style.maxWidth = '60%';
+                    this.style.maxHeight = '500px';
+                    this.style.margin = '20px auto';
+                    this.style.display = 'block';
+                  } else {
+                    // Portrait image - keep as is
+                    this.style.maxWidth = '80%';
+                    this.style.maxHeight = '400px';
+                    this.style.margin = '15px auto';
+                    this.style.display = 'block';
+                  }
+                };
+              });
+            });
+          </script>
         </body>
         </html>
       `;
@@ -374,6 +493,22 @@ const WeldPrintView: React.FC<WeldPrintViewProps> = ({ card, onBack }) => {
         html: htmlContent,
         jobName: `WeldCard_${card.cardId}_${new Date().toISOString().split('T')[0]}`,
       });
+
+      // Show success message and option to go back
+      Alert.alert(
+        'Print Successful',
+        'Document has been sent to printer. Would you like to go back to the previous page?',
+        [
+          {
+            text: 'Stay Here',
+            style: 'cancel'
+          },
+          {
+            text: 'Go Back',
+            onPress: onBack
+          }
+        ]
+      );
 
     } catch (error) {
       console.error('Print error:', error);

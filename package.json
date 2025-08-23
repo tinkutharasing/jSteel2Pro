@@ -5,6 +5,9 @@
   "scripts": {
     "android": "react-native run-android",
     "ios": "react-native run-ios",
+    "ios:tablet": "react-native run-ios --simulator=\"iPad Pro (12.9-inch)\"",
+    "ios:tablet-mini": "react-native run-ios --simulator=\"iPad mini (6th generation)\"",
+    "android:tablet": "react-native run-android --deviceId=tablet",
     "lint": "eslint .",
     "start": "react-native start"
   },

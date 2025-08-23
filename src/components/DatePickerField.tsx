@@ -17,21 +17,37 @@ export const DatePickerField: React.FC<DatePickerFieldProps> = ({
   placeholder = "MM/DD/YYYY",
   required = false 
 }) => {
-  const [showPicker, setShowPicker] = useState(false);
-  const [currentMonth, setCurrentMonth] = useState<Date>(value ? new Date(value) : new Date());
-  const [selectedDate, setSelectedDate] = useState<Date>(value ? new Date(value) : new Date());
+  // Parse ISO date string safely - Fixed to prevent timezone issues
+  const parseISODate = (isoString: string): Date => {
+    if (!isoString) return new Date();
+    
+    // Split the ISO string and create date in local timezone
+    const [year, month, day] = isoString.split('-').map(Number);
+    return new Date(year, month - 1, day); // month is 0-indexed
+  };
 
-  // Convert date to US format (MM/DD/YYYY)
+  const [showPicker, setShowPicker] = useState(false);
+  const [currentMonth, setCurrentMonth] = useState<Date>(value ? parseISODate(value) : new Date());
+  const [selectedDate, setSelectedDate] = useState<Date>(value ? parseISODate(value) : new Date());
+
+  // Convert date to US format (MM/DD/YYYY) - Fixed to prevent timezone issues
   const formatDateToUS = (date: Date): string => {
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const year = date.getFullYear();
+    // Use UTC methods to avoid timezone shifts
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    const year = date.getUTCFullYear();
     return `${month}/${day}/${year}`;
   };
 
-  // Convert US format date back to ISO string for storage
+  // Convert US format date back to ISO string for storage - Fixed timezone handling
   const formatDateToISO = (date: Date): string => {
-    return date.toISOString().split('T')[0]; // YYYY-MM-DD format for storage
+    // Create date in local timezone to avoid shifts
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const day = date.getDate();
+    
+    // Create date string in YYYY-MM-DD format without timezone conversion
+    return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
   };
 
   // Generate calendar data for the current month
@@ -100,8 +116,8 @@ export const DatePickerField: React.FC<DatePickerFieldProps> = ({
 
   // Handle date cancel
   const handleDateCancel = () => {
-    setSelectedDate(value ? new Date(value) : new Date());
-    setCurrentMonth(value ? new Date(value) : new Date());
+    setSelectedDate(value ? parseISODate(value) : new Date());
+    setCurrentMonth(value ? parseISODate(value) : new Date());
     setShowPicker(false);
   };
 
@@ -120,7 +136,7 @@ export const DatePickerField: React.FC<DatePickerFieldProps> = ({
            date.getFullYear() === selectedDate.getFullYear();
   };
 
-  const displayValue = value ? formatDateToUS(new Date(value)) : '';
+  const displayValue = value ? formatDateToUS(parseISODate(value)) : '';
 
   return (
     <View style={styles.formField}>
