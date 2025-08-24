@@ -320,9 +320,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderRadius: 16,
     padding: 20,
-    width: '90%',
-    maxWidth: 350,
-    maxHeight: '70%',
+    width: '95%',
+    maxWidth: 400,
+    maxHeight: '85%',
+    minHeight: 500,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -375,7 +376,7 @@ const styles = StyleSheet.create({
   calendarRow: {
     flexDirection: 'row',
     gap: 1,
-    minHeight: 34,
+    minHeight: 40,
   },
   calendarDay: {
     flex: 1,
@@ -386,8 +387,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fafc',
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    minHeight: 32,
-    minWidth: 32,
+    minHeight: 36,
+    minWidth: 36,
   },
   emptyDay: {
     backgroundColor: 'transparent',
@@ -435,8 +436,12 @@ const styles = StyleSheet.create({
   },
   modalActions: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
     gap: 8,
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#e2e8f0',
   },
   cancelButton: {
     paddingVertical: 10,

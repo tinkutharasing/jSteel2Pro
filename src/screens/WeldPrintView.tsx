@@ -75,7 +75,7 @@ const WeldPrintView: React.FC<WeldPrintViewProps> = ({ card, onBack }) => {
     }
     
     if (!imageToCapture || !refToUse) {
-      Alert.alert('No Image Available', 'No weld or defect sketch images available to capture.');
+      Alert.alert('No Image Available', 'No weld or defect sketch images available to capture. Please add a sketch image first.');
       return;
     }
 
@@ -93,30 +93,30 @@ const WeldPrintView: React.FC<WeldPrintViewProps> = ({ card, onBack }) => {
       let savedPath = '';
       
       try {
-        // First try DCIM folder (most reliable for gallery)
-        const dcimPath = `${RNFS.DCIMDirectoryPath}/Camera/${fileName}`;
-        console.log('Trying DCIM path:', dcimPath);
-        await RNFS.copyFile(uri, dcimPath);
-        savedPath = dcimPath;
-        console.log('Successfully saved to DCIM:', savedPath);
-      } catch (dcimError) {
-        console.log('DCIM save failed, trying Pictures folder:', dcimError);
+        // First try Pictures folder (most reliable for gallery)
+        const picturesPath = `${RNFS.PicturesDirectoryPath}/${fileName}`;
+        console.log('Trying Pictures path:', picturesPath);
+        await RNFS.copyFile(uri, picturesPath);
+        savedPath = picturesPath;
+        console.log('Successfully saved to Pictures:', savedPath);
+      } catch (picturesError) {
+        console.log('Pictures save failed, trying Downloads folder:', picturesError);
         
         try {
-          // Fallback to Pictures folder
-          const picturesPath = `${RNFS.PicturesDirectoryPath}/${fileName}`;
-          console.log('Trying Pictures path:', picturesPath);
-          await RNFS.copyFile(uri, picturesPath);
-          savedPath = picturesPath;
-          console.log('Successfully saved to Pictures:', savedPath);
-        } catch (picturesError) {
-          console.log('Pictures save failed, trying Downloads folder:', picturesError);
-          
-          // Final fallback to Downloads
+          // Fallback to Downloads folder
           const downloadsPath = `${RNFS.DownloadDirectoryPath}/${fileName}`;
           console.log('Trying Downloads path:', downloadsPath);
           await RNFS.copyFile(uri, downloadsPath);
           savedPath = downloadsPath;
+          console.log('Successfully saved to Downloads:', savedPath);
+        } catch (downloadsError) {
+          console.log('Downloads save failed, trying Documents folder:', downloadsError);
+          
+          // Final fallback to Documents
+          const documentsPath = `${RNFS.DocumentDirectoryPath}/${fileName}`;
+          console.log('Trying Documents path:', documentsPath);
+          await RNFS.copyFile(uri, documentsPath);
+          savedPath = documentsPath;
           console.log('Successfully saved to Downloads:', savedPath);
         }
       }
@@ -276,37 +276,60 @@ const WeldPrintView: React.FC<WeldPrintViewProps> = ({ card, onBack }) => {
               box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             }
             
-            /* Auto-rotate portrait images for better print layout */
-            .image-container img[style*="height"] {
-              /* If image has explicit height, it might be portrait */
-              max-width: 80%;
-              margin: 20px auto;
-              display: block;
+            /* Enhanced image styling for print layout */
+            .image-container img {
+              transition: all 0.3s ease;
+              page-break-inside: avoid;
+              break-inside: avoid;
             }
             
-            /* CSS-only portrait detection using aspect ratio */
+            /* Portrait images will be rotated to landscape for print */
+            .image-container img.portrait-rotate {
+              transform: rotate(90deg);
+              transform-origin: center center;
+              max-width: 70%;
+              max-height: 500px;
+              margin: 30px auto;
+            }
+            
+            /* Landscape images optimized for print */
+            .image-container img.landscape-optimized {
+              max-width: 90%;
+              max-height: 600px;
+              margin: 15px auto;
+            }
+            
+            /* Print-specific optimizations */
             @media print {
-              .image-container img {
-                max-width: 100%;
-                page-break-inside: avoid;
-              }
-              
-              /* Auto-rotate landscape images to portrait for space efficiency */
-              .image-container img {
-                max-width: 60%;
-                max-height: 500px;
-                width: auto;
-                height: auto;
-                margin: 15px auto;
-                display: block;
-                transform: rotate(90deg);
-                transform-origin: center center;
-              }
-              
-              /* Ensure images don't overflow page boundaries */
               .image-container {
+                page-break-inside: avoid;
+                break-inside: avoid;
+                margin: 20px 0;
                 overflow: hidden;
                 padding: 20px;
+              }
+              
+              .image-container img {
+                page-break-inside: avoid;
+                break-inside: avoid;
+                border: 2px solid #e5e7eb !important;
+                border-radius: 8px !important;
+                box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
+              }
+              
+              /* Ensure rotated images don't break across pages */
+              .image-container img.portrait-rotate {
+                transform: rotate(90deg) !important;
+                transform-origin: center center !important;
+                max-width: 70% !important;
+                max-height: 500px !important;
+                margin: 30px auto !important;
+              }
+              
+              .image-container img.landscape-optimized {
+                max-width: 90% !important;
+                max-height: 600px !important;
+                margin: 15px auto !important;
               }
             }
             .no-image {
@@ -461,26 +484,58 @@ const WeldPrintView: React.FC<WeldPrintViewProps> = ({ card, onBack }) => {
           </div>
           
           <script>
-            // Auto-rotate landscape images to save horizontal space
+            // Auto-rotate images for optimal print layout - always landscape orientation
             document.addEventListener('DOMContentLoaded', function() {
               const images = document.querySelectorAll('.image-container img');
               images.forEach(function(img) {
                 img.onload = function() {
-                  if (this.naturalWidth > this.naturalHeight) {
-                    // Landscape image - rotate to portrait to save space
-                    this.style.transform = 'rotate(90deg)';
-                    this.style.maxWidth = '60%';
-                    this.style.maxHeight = '500px';
-                    this.style.margin = '20px auto';
-                    this.style.display = 'block';
-                  } else {
-                    // Portrait image - keep as is
-                    this.style.maxWidth = '80%';
-                    this.style.maxHeight = '400px';
+                  const isLandscape = this.naturalWidth > this.naturalHeight;
+                  
+                  if (isLandscape) {
+                    // Original image is landscape - keep as is, optimize for print
+                    this.classList.add('landscape-optimized');
+                    this.style.maxWidth = '90%';
+                    this.style.maxHeight = '600px';
+                    this.style.width = 'auto';
+                    this.style.height = 'auto';
+                    this.style.transform = 'none';
                     this.style.margin = '15px auto';
                     this.style.display = 'block';
+                    this.style.pageBreakInside = 'avoid';
+                  } else {
+                    // Original image is portrait - rotate to landscape for print
+                    this.classList.add('portrait-rotate');
+                    this.style.maxWidth = '70%';
+                    this.style.maxHeight = '500px';
+                    this.style.width = 'auto';
+                    this.style.height = 'auto';
+                    this.style.transform = 'rotate(90deg)';
+                    this.style.margin = '30px auto';
+                    this.style.display = 'block';
+                    this.style.pageBreakInside = 'avoid';
+                    this.style.transformOrigin = 'center center';
                   }
+                  
+                  // Add print-specific styles
+                  this.style.border = '2px solid #e5e7eb';
+                  this.style.borderRadius = '8px';
+                  this.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
                 };
+                
+                // Handle images that might already be loaded
+                if (img.complete) {
+                  img.onload();
+                }
+              });
+            });
+            
+            // Additional print optimization
+            window.addEventListener('beforeprint', function() {
+              const images = document.querySelectorAll('.image-container img');
+              images.forEach(function(img) {
+                // Ensure all images are properly sized for print
+                img.style.pageBreakInside = 'avoid';
+                img.style.breakInside = 'avoid';
               });
             });
           </script>
