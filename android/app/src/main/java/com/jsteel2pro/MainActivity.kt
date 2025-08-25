@@ -1,4 +1,4 @@
-package com.jsteelpro2
+package com.jsteel2pro
 
 import android.os.Bundle
 import android.view.WindowInsets
@@ -32,7 +32,7 @@ class MainActivity : ReactActivity() {
    * Returns the name of the main component registered from JavaScript. This is used to schedule
    * rendering of the component.
    */
-  override fun getMainComponentName(): String = "jSteelPro2"
+  override fun getMainComponentName(): String = "jSteel2Pro"
 
   /**
    * Returns the instance of the [ReactActivityDelegate]. We use [DefaultReactActivityDelegate]

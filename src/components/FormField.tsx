@@ -91,6 +91,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     backgroundColor: '#ffffff',
     color: '#1f2937',
+    minWidth: 60, // Ensure minimum width
+    flex: 1, // Allow flexible width
   },
   multilineInput: {
     minHeight: 80,

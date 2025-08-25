@@ -15,6 +15,7 @@ import ViewShot from 'react-native-view-shot';
 import RNFS from 'react-native-fs';
 import RNPrint from 'react-native-print';
 import { WeldCardData } from '../types/WeldCard';
+import { formatDateToUS } from '../utils/dateUtils';
 
 interface WeldPrintViewProps {
   card: WeldCardData;
@@ -572,8 +573,7 @@ const WeldPrintView: React.FC<WeldPrintViewProps> = ({ card, onBack }) => {
   };
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString();
+    return formatDateToUS(dateString);
   };
 
   return (

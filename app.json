@@ -1,9 +1,9 @@
 {
-  "name": "jSteelPro2",
-  "displayName": "jSteelPro2",
+  "name": "jSteel2Pro",
+  "displayName": "jSteel2Pro",
       "expo": {
-      "name": "jSteelPro2",
-      "slug": "jsteelpro2",
+      "name": "jSteel2Pro",
+      "slug": "jsteel2pro",
       "version": "0.0.1",
       "orientation": "default",
     "icon": "./android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png",
@@ -18,7 +18,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.jsteelpro2",
+      "bundleIdentifier": "com.jsteel2pro",
       "icon": "./ios/WeldingInspector/Images.xcassets/AppIcon.appiconset/1024.png"
     },
     "android": {
@@ -26,7 +26,7 @@
         "foregroundImage": "./android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.jsteelpro2",
+      "package": "com.jsteel2pro",
       "icon": "./android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png"
     },
     "web": {

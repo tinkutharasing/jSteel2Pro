@@ -210,10 +210,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    flexWrap: 'wrap', // Allow wrapping in landscape
   },
   headerCell: {
     flex: 1,
     marginHorizontal: 8,
+    minWidth: 150, // Ensure minimum width for header cells
   },
   headerLabel: {
     fontSize: 14,
@@ -252,20 +254,21 @@ const styles = StyleSheet.create({
   },
   tableCell: {
     paddingVertical: 8,
-    paddingHorizontal: 4,
+    paddingHorizontal: 6,
     justifyContent: 'center',
     alignItems: 'center',
+    minWidth: 60, // Ensure minimum cell width
   },
-  // Column widths optimized for tablet
-  weldNumberCol: { width: width * 0.08 },
-  widCol: { width: width * 0.08 },
-  pipeSizeCol: { width: width * 0.09 },
-  typeCol: { width: width * 0.12 },
-  capSizeCol: { width: width * 0.09 },
-  passesCol: { width: width * 0.08 },
-  wpsCol: { width: width * 0.12 },
-  electrodeCol: { width: width * 0.14 },
-  rtCol: { width: width * 0.10 },
+  // Column widths optimized for responsive design
+  weldNumberCol: { flex: 0.8, minWidth: 80 },
+  widCol: { flex: 0.8, minWidth: 80 },
+  pipeSizeCol: { flex: 0.9, minWidth: 90 },
+  typeCol: { flex: 1.2, minWidth: 120 },
+  capSizeCol: { flex: 0.9, minWidth: 90 },
+  passesCol: { flex: 0.8, minWidth: 80 },
+  wpsCol: { flex: 1.2, minWidth: 120 },
+  electrodeCol: { flex: 1.4, minWidth: 140 },
+  rtCol: { flex: 1.0, minWidth: 100 },
   actionSection: {
     flexDirection: 'row',
     justifyContent: 'space-between',

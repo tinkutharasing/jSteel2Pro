@@ -77,13 +77,13 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.jsteelpro2"
+    namespace "com.jsteel2pro"
     defaultConfig {
-        applicationId "com.jsteelpro2"
+        applicationId "com.jsteel2pro"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 2
-        versionName "2.0"
+        versionCode 4
+        versionName "2.2"
     }
     signingConfigs {
         debug {
@@ -94,9 +94,9 @@ android {
         }
         release {
             storeFile file('release.keystore')
-            storePassword 'jsteelpro123'
-            keyAlias 'jsteelpro-release'
-            keyPassword 'jsteelpro123'
+            storePassword 'jsteel2pro123'
+            keyAlias 'jsteel2pro-release'
+            keyPassword 'jsteel2pro123'
         }
     }
     buildTypes {
