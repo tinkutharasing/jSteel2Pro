@@ -380,6 +380,40 @@ export default function App() {
     setPendingDestructiveAction(null);
   };
 
+  // Recover all trashed cards function
+  const recoverAllTrashCards = async () => {
+    try {
+      console.log('Attempting to recover all trashed cards...');
+      
+      if (trashCards.length === 0) {
+        showError('No Trash Data', 'No trashed cards to recover');
+        return;
+      }
+      
+      // Move all trash cards back to active weld cards
+      const updatedWeldCards = [...weldCards, ...trashCards];
+      const updatedTrashCards: WeldCardData[] = [];
+      
+      // Update local state
+      setWeldCards(updatedWeldCards);
+      setTrashCards(updatedTrashCards);
+      
+      // Save to AsyncStorage
+      try {
+        await AsyncStorage.setItem('weldCards', JSON.stringify(updatedWeldCards));
+        await AsyncStorage.setItem('trashCards', JSON.stringify(updatedTrashCards));
+        showSuccess('Recovery Successful', `Successfully recovered ${trashCards.length} trashed cards!`);
+      } catch (error) {
+        console.error('Error saving to AsyncStorage:', error);
+        showError('Save Error', 'Failed to save recovered cards');
+      }
+      
+    } catch (error) {
+      console.error('Error during recovery:', error);
+      showError('Recovery Failed', `Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
   const handlePinChange = () => {
     setShowPinChangeModal(true);
     setNewPinInput('');
@@ -996,17 +1030,61 @@ export default function App() {
             console.log('Google Sheets not connected, skipping delete operation');
           }
           
-          const updatedWelds = welds.filter(w => w.id !== weld.id);
-          const updatedTrashWelds = [weld, ...trashWelds];
+          // Find the parent card that contains this weld
+          const parentCard = weldCards.find(card => 
+            card.welds.some(w => w.id === weld.id)
+          );
           
-          // Update local state first
-          setWelds(updatedWelds);
-          setTrashWelds(updatedTrashWelds);
+          if (!parentCard) {
+            showError('Error', 'Could not find the parent card for this weld');
+            hideConfirm();
+            return;
+          }
           
-          // Save welds without triggering auto-sync (since we're just moving to trash)
+          // Remove the weld from the parent card
+          const updatedParentCard = {
+            ...parentCard,
+            welds: parentCard.welds.filter(w => w.id !== weld.id)
+          };
+          
+          // If the parent card still has other welds, keep it in active cards
+          // If it's empty, move the entire card to trash
+          let updatedWeldCards = [...weldCards];
+          let updatedTrashCards = [...trashCards];
+          
+          if (updatedParentCard.welds.length === 0) {
+            // Card is empty, remove it completely
+            updatedWeldCards = weldCards.filter(card => card.cardId !== parentCard.cardId);
+          } else {
+            // Card still has welds, update it
+            updatedWeldCards = weldCards.map(card => 
+              card.cardId === parentCard.cardId ? updatedParentCard : card
+            );
+          }
+          
+          // Add the deleted weld to trash (as a single-weld card)
+          const trashCard: WeldCardData = {
+            cardId: `trash-${weld.id}-${Date.now()}`,
+            date: weld.date,
+            weldSketch: weld.weldSketch || '',
+            weldSketchDescription: weld.weldSketchDescription || '',
+            defectSketch: weld.defectSketch || '',
+            defectSketchDescription: weld.defectSketchDescription || '',
+            welds: [weld],
+            createdAt: weld.createdAt,
+            updatedAt: new Date().toISOString()
+          };
+          
+          updatedTrashCards = [trashCard, ...trashCards];
+          
+          // Update local state
+          setWeldCards(updatedWeldCards);
+          setTrashCards(updatedTrashCards);
+          
+          // Save all data without triggering auto-sync (since we're just moving to trash)
           try {
-            await AsyncStorage.setItem('welds', JSON.stringify(updatedWelds));
-            await AsyncStorage.setItem('trashWelds', JSON.stringify(updatedTrashWelds));
+            await AsyncStorage.setItem('weldCards', JSON.stringify(updatedWeldCards));
+            await AsyncStorage.setItem('trashCards', JSON.stringify(updatedTrashCards));
           } catch (error) {
             console.error('Error saving to AsyncStorage:', error);
           }
@@ -1964,6 +2042,7 @@ export default function App() {
             onPermanentlyDeleteWeld={permanentlyDeleteWeld}
             onClearTrash={clearAllTrash}
             onTrashAll={trashAllWelds}
+            onRecoverAll={recoverAllTrashCards}
             onNavigate={setCurrentScreen}
           />
         );

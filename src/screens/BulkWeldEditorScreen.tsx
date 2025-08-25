@@ -40,6 +40,9 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
     defectSketchDescription: '',
   });
   
+  // State for responsive dimensions
+  const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
+  
   // Refs for managing focus between input fields
   const inputRefs = useRef<{ [key: string]: React.RefObject<any> }>({});
 
@@ -98,6 +101,40 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
       });
     }
   }, [existingCard]);
+
+  // Listen for screen dimension changes (rotation)
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }) => {
+      setScreenWidth(window.width);
+    });
+    
+    return () => subscription?.remove();
+  }, []);
+
+  // Create dynamic styles based on current screen width
+  const dynamicStyles = StyleSheet.create({
+    // Column widths - action column fixed width, rest distributed proportionally
+    // Action column: fixed width for delete button
+    // Data columns: distribute remaining width proportionally
+    actionCol: { width: 60 }, // Fixed width for delete button
+    weldNumberCol: { width: Math.max(80, (screenWidth - 32 - 60) * 0.11) }, // 11% of remaining width
+    widCol: { width: Math.max(80, (screenWidth - 32 - 60) * 0.11) }, // 11% of remaining width
+    pipeSizeCol: { width: Math.max(90, (screenWidth - 32 - 60) * 0.12) }, // 12% of remaining width
+    typeCol: { width: Math.max(100, (screenWidth - 32 - 60) * 0.13) }, // 13% of remaining width
+    capSizeCol: { width: Math.max(80, (screenWidth - 32 - 60) * 0.11) }, // 11% of remaining width
+    passesCol: { width: Math.max(70, (screenWidth - 32 - 60) * 0.10) }, // 10% of remaining width
+    wpsCol: { width: Math.max(100, (screenWidth - 32 - 60) * 0.13) }, // 13% of remaining width
+    electrodeCol: { width: Math.max(100, (screenWidth - 32 - 60) * 0.13) }, // 13% of remaining width
+    rtCol: { width: Math.max(70, (screenWidth - 32 - 60) * 0.10), borderRightWidth: 0 }, // 10% of remaining width
+    tableContainer: {
+      backgroundColor: '#ffffff',
+      marginHorizontal: 16,
+      borderRadius: 8,
+      width: 'auto', // Let content determine width
+      borderWidth: 1,
+      borderColor: '#f1f5f9',
+    },
+  });
 
   const updateHeaderField = (field: keyof typeof headerData, value: string) => {
     setHeaderData(prev => ({ ...prev, [field]: value }));
@@ -318,20 +355,20 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
 
           {/* Table Container */}
           <ScrollView horizontal showsHorizontalScrollIndicator={true} style={styles.tableScrollContainer}>
-            <View style={styles.tableContainer}>
+            <View style={dynamicStyles.tableContainer}>
             {/* Table Header */}
             <View style={styles.tableHeader}>
               <View style={styles.tableHeaderRow}>
-                <Text style={[styles.tableHeaderCell, styles.actionCol]}>Actions</Text>
-                <Text style={[styles.tableHeaderCell, styles.weldNumberCol]}>WELD #</Text>
-                <Text style={[styles.tableHeaderCell, styles.widCol]}>WID #</Text>
-                <Text style={[styles.tableHeaderCell, styles.pipeSizeCol]}>PIPE SIZE</Text>
-                <Text style={[styles.tableHeaderCell, styles.typeCol]}>TYPE OF WELD</Text>
-                <Text style={[styles.tableHeaderCell, styles.capSizeCol]}>CAP SIZE</Text>
-                <Text style={[styles.tableHeaderCell, styles.passesCol]}>PASSES</Text>
-                <Text style={[styles.tableHeaderCell, styles.wpsCol]}>WPS</Text>
-                <Text style={[styles.tableHeaderCell, styles.electrodeCol]}>ELECTRODE</Text>
-                <Text style={[styles.tableHeaderCell, styles.rtCol]}>RT</Text>
+                <Text style={[styles.tableHeaderCell, dynamicStyles.actionCol]}>Actions</Text>
+                <Text style={[styles.tableHeaderCell, dynamicStyles.weldNumberCol]}>WELD #</Text>
+                <Text style={[styles.tableHeaderCell, dynamicStyles.widCol]}>WID #</Text>
+                <Text style={[styles.tableHeaderCell, dynamicStyles.pipeSizeCol]}>PIPE SIZE</Text>
+                <Text style={[styles.tableHeaderCell, dynamicStyles.typeCol]}>TYPE OF WELD</Text>
+                <Text style={[styles.tableHeaderCell, dynamicStyles.capSizeCol]}>CAP SIZE</Text>
+                <Text style={[styles.tableHeaderCell, dynamicStyles.passesCol]}>PASSES</Text>
+                <Text style={[styles.tableHeaderCell, dynamicStyles.wpsCol]}>WPS</Text>
+                <Text style={[styles.tableHeaderCell, dynamicStyles.electrodeCol]}>ELECTRODE</Text>
+                <Text style={[styles.tableHeaderCell, dynamicStyles.rtCol]}>RT</Text>
               </View>
             </View>
 
@@ -348,7 +385,7 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
                 style={styles.tableRow}
               >
                 {/* Actions Column */}
-                <View style={[styles.tableCell, styles.actionCol]}>
+                <View style={[styles.tableCell, dynamicStyles.actionCol]}>
                   <TouchableOpacity
                     style={styles.removeButton}
                     onPress={() => removeWeldRow(weld.id)}
@@ -359,47 +396,47 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
                 </View>
 
                 {/* WELD # */}
-                <View style={[styles.tableCell, styles.weldNumberCol]}>
+                <View style={[styles.tableCell, dynamicStyles.weldNumberCol]}>
                   {renderEditableCell(weld, 'weldNumber', index, 'Weld #')}
                 </View>
 
                 {/* WID # */}
-                <View style={[styles.tableCell, styles.widCol]}>
+                <View style={[styles.tableCell, dynamicStyles.widCol]}>
                   {renderEditableCell(weld, 'widNumber', index, 'WID #')}
                 </View>
 
                 {/* PIPE SIZE */}
-                <View style={[styles.tableCell, styles.pipeSizeCol]}>
+                <View style={[styles.tableCell, dynamicStyles.pipeSizeCol]}>
                   {renderEditableCell(weld, 'pipeSizeInches', index, 'Size')}
                 </View>
 
                 {/* TYPE OF WELD */}
-                <View style={[styles.tableCell, styles.typeCol]}>
+                <View style={[styles.tableCell, dynamicStyles.typeCol]}>
                   {renderEditableCell(weld, 'typeOfWeld', index, 'Type')}
                 </View>
 
                 {/* CAP SIZE */}
-                <View style={[styles.tableCell, styles.capSizeCol]}>
+                <View style={[styles.tableCell, dynamicStyles.capSizeCol]}>
                   {renderEditableCell(weld, 'capSize', index, 'Cap Size')}
                 </View>
 
                 {/* PASSES */}
-                <View style={[styles.tableCell, styles.passesCol]}>
+                <View style={[styles.tableCell, dynamicStyles.passesCol]}>
                   {renderEditableCell(weld, 'passes', index, 'Passes')}
                 </View>
 
                 {/* WPS */}
-                <View style={[styles.tableCell, styles.wpsCol]}>
+                <View style={[styles.tableCell, dynamicStyles.wpsCol]}>
                   {renderEditableCell(weld, 'wpsNumberAndTitle', index, 'WPS #')}
                 </View>
 
                 {/* ELECTRODE */}
-                <View style={[styles.tableCell, styles.electrodeCol]}>
+                <View style={[styles.tableCell, dynamicStyles.electrodeCol]}>
                   {renderEditableCell(weld, 'electrodeTypeBrand', index, 'Electrode')}
                 </View>
 
                 {/* RT */}
-                <View style={[styles.tableCell, styles.rtCol]}>
+                <View style={[styles.tableCell, dynamicStyles.rtCol]}>
                   {renderEditableCell(weld, 'rt', index, 'RT')}
                 </View>
 
@@ -594,17 +631,7 @@ const styles = StyleSheet.create({
     color: '#374151',
     padding: 4,
   },
-  // Column widths - proportional to screen width
-  actionCol: { width: (width - 32) * 0.07 }, // 7% of available width
-  weldNumberCol: { width: (width - 32) * 0.10 }, // 10% of available width
-  widCol: { width: (width - 32) * 0.10 }, // 10% of available width
-  pipeSizeCol: { width: (width - 32) * 0.11 }, // 11% of available width
-  typeCol: { width: (width - 32) * 0.12 }, // 12% of available width
-  capSizeCol: { width: (width - 32) * 0.10 }, // 10% of available width
-  passesCol: { width: (width - 32) * 0.08 }, // 8% of available width
-  wpsCol: { width: (width - 32) * 0.12 }, // 12% of available width
-  electrodeCol: { width: (width - 32) * 0.12 }, // 12% of available width
-  rtCol: { width: (width - 32) * 0.08, borderRightWidth: 0 }, // 8% of available width
+
 
   removeButton: {
     padding: 8,

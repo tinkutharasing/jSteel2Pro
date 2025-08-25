@@ -80,15 +80,15 @@ export const WeldCard: React.FC<WeldCardProps> = ({ weld, weldIndex, onView, onE
 
 const styles = StyleSheet.create({
   weldCard: {
-    width: '46%', // Default for mobile (2 columns) - reduced to fit with margin
+    width: '48%', // Perfect width for 2 columns with space-between
     backgroundColor: '#ffffff',
-    padding: 12,
+    padding: 16,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    minHeight: 120,
-    marginBottom: 12,
-    marginRight: '4%', // Add right margin for spacing between cards
+    minHeight: 140,
+    marginBottom: 16,
+    // No right margin needed with space-between layout
     // Remove any shadows
     elevation: 0,
     shadowColor: 'transparent',
@@ -200,17 +200,19 @@ const styles = StyleSheet.create({
   cardActions: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    gap: 12,
+    gap: 8,
+    paddingHorizontal: 4,
   },
   iconButton: {
-    padding: 8,
+    padding: 6,
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: 32,
-    minHeight: 32,
+    minWidth: 28,
+    minHeight: 28,
+    borderRadius: 6,
   },
   iconText: {
-    fontSize: 20,
+    fontSize: 18,
     color: '#3b82f6',
   },
   recoverButton: {

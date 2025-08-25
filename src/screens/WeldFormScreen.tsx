@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -30,6 +30,34 @@ export const WeldFormScreen: React.FC<WeldFormScreenProps> = ({
   onSave,
   onBack,
 }) => {
+  // State for responsive dimensions
+  const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
+
+  // Listen for screen dimension changes (rotation)
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }) => {
+      setScreenWidth(window.width);
+    });
+    
+    return () => subscription?.remove();
+  }, []);
+
+  // Create dynamic styles based on current screen width
+  const dynamicStyles = StyleSheet.create({
+    // Column widths - distribute width proportionally with reasonable minimums
+    // Total columns: 9 (weldNumber, wid, pipeSize, type, capSize, passes, wps, electrode, rt)
+    // Use flex for better distribution, with reasonable minimum widths
+    weldNumberCol: { flex: 1, minWidth: 70 },
+    widCol: { flex: 1, minWidth: 70 },
+    pipeSizeCol: { flex: 1.1, minWidth: 80 },
+    typeCol: { flex: 1.3, minWidth: 90 },
+    capSizeCol: { flex: 1, minWidth: 70 },
+    passesCol: { flex: 0.9, minWidth: 60 },
+    wpsCol: { flex: 1.3, minWidth: 90 },
+    electrodeCol: { flex: 1.4, minWidth: 100 },
+    rtCol: { flex: 0.9, minWidth: 60 },
+  });
+
   const handleSave = () => {
     if (!formData.weldNumber?.trim()) {
       Alert.alert('Required Field', 'Weld Number is required');
@@ -55,8 +83,8 @@ export const WeldFormScreen: React.FC<WeldFormScreenProps> = ({
             <Text style={styles.headerLabel}>Welder:</Text>
             <FormField
               label=""
-              value={formData.welderName || ''}
-              onChangeText={(value) => onUpdateField('welderName', value)}
+              value={formData.weldingContractorName || ''}
+              onChangeText={(value) => onUpdateField('weldingContractorName', value)}
               placeholder="Name"
             />
           </View>
@@ -64,8 +92,8 @@ export const WeldFormScreen: React.FC<WeldFormScreenProps> = ({
             <Text style={styles.headerLabel}>Location:</Text>
             <FormField
               label=""
-              value={formData.jobLocation || ''}
-              onChangeText={(value) => onUpdateField('jobLocation', value)}
+              value={formData.woJoNumber || ''}
+              onChangeText={(value) => onUpdateField('woJoNumber', value)}
               placeholder="Job Location"
             />
           </View>
@@ -75,22 +103,22 @@ export const WeldFormScreen: React.FC<WeldFormScreenProps> = ({
       {/* Table Header */}
       <View style={styles.tableHeader}>
         <View style={styles.tableHeaderRow}>
-          <Text style={[styles.tableHeaderCell, styles.weldNumberCol]}>WELD #</Text>
-          <Text style={[styles.tableHeaderCell, styles.widCol]}>WID #</Text>
-          <Text style={[styles.tableHeaderCell, styles.pipeSizeCol]}>PIPE SIZE</Text>
-          <Text style={[styles.tableHeaderCell, styles.typeCol]}>TYPE OF WELD</Text>
-          <Text style={[styles.tableHeaderCell, styles.capSizeCol]}>CAP SIZE</Text>
-          <Text style={[styles.tableHeaderCell, styles.passesCol]}>PASSES</Text>
-          <Text style={[styles.tableHeaderCell, styles.wpsCol]}>WPS</Text>
-          <Text style={[styles.tableHeaderCell, styles.electrodeCol]}>ELECTRODE</Text>
-          <Text style={[styles.tableHeaderCell, styles.rtCol]}>RT</Text>
+          <Text style={[styles.tableHeaderCell, dynamicStyles.weldNumberCol]}>WELD #</Text>
+          <Text style={[styles.tableHeaderCell, dynamicStyles.widCol]}>WID #</Text>
+          <Text style={[styles.tableHeaderCell, dynamicStyles.pipeSizeCol]}>PIPE SIZE</Text>
+          <Text style={[styles.tableHeaderCell, dynamicStyles.typeCol]}>TYPE OF WELD</Text>
+          <Text style={[styles.tableHeaderCell, dynamicStyles.capSizeCol]}>CAP SIZE</Text>
+          <Text style={[styles.tableHeaderCell, dynamicStyles.passesCol]}>PASSES</Text>
+          <Text style={[styles.tableHeaderCell, dynamicStyles.wpsCol]}>WPS</Text>
+          <Text style={[styles.tableHeaderCell, dynamicStyles.electrodeCol]}>ELECTRODE</Text>
+          <Text style={[styles.tableHeaderCell, dynamicStyles.rtCol]}>RT</Text>
         </View>
       </View>
 
       {/* Table Row - Single row for now, can be expanded */}
       <View style={styles.tableRow}>
         {/* WELD # */}
-        <View style={[styles.tableCell, styles.weldNumberCol]}>
+        <View style={[styles.tableCell, dynamicStyles.weldNumberCol]}>
           <FormField
             label=""
             value={formData.weldNumber || ''}
@@ -101,7 +129,7 @@ export const WeldFormScreen: React.FC<WeldFormScreenProps> = ({
         </View>
 
         {/* WID # */}
-        <View style={[styles.tableCell, styles.widCol]}>
+        <View style={[styles.tableCell, dynamicStyles.widCol]}>
           <FormField
             label=""
             value={formData.widNumber || ''}
@@ -111,7 +139,7 @@ export const WeldFormScreen: React.FC<WeldFormScreenProps> = ({
         </View>
 
         {/* PIPE SIZE */}
-        <View style={[styles.tableCell, styles.pipeSizeCol]}>
+        <View style={[styles.tableCell, dynamicStyles.pipeSizeCol]}>
           <FormField
             label=""
             value={formData.pipeSizeInches || ''}
@@ -121,7 +149,7 @@ export const WeldFormScreen: React.FC<WeldFormScreenProps> = ({
         </View>
 
         {/* TYPE OF WELD */}
-        <View style={[styles.tableCell, styles.typeCol]}>
+        <View style={[styles.tableCell, dynamicStyles.typeCol]}>
           <FormField
             label=""
             value={formData.typeOfWeld || ''}
@@ -131,7 +159,7 @@ export const WeldFormScreen: React.FC<WeldFormScreenProps> = ({
         </View>
 
         {/* CAP SIZE */}
-        <View style={[styles.tableCell, styles.capSizeCol]}>
+        <View style={[styles.tableCell, dynamicStyles.capSizeCol]}>
           <FormField
             label=""
             value={formData.capSize || ''}
@@ -141,7 +169,7 @@ export const WeldFormScreen: React.FC<WeldFormScreenProps> = ({
         </View>
 
         {/* PASSES */}
-        <View style={[styles.tableCell, styles.passesCol]}>
+        <View style={[styles.tableCell, dynamicStyles.passesCol]}>
           <FormField
             label=""
             value={formData.passes || ''}
@@ -151,7 +179,7 @@ export const WeldFormScreen: React.FC<WeldFormScreenProps> = ({
         </View>
 
         {/* WPS */}
-        <View style={[styles.tableCell, styles.wpsCol]}>
+        <View style={[styles.tableCell, dynamicStyles.wpsCol]}>
           <FormField
             label=""
             value={formData.wpsNumberAndTitle || ''}
@@ -161,7 +189,7 @@ export const WeldFormScreen: React.FC<WeldFormScreenProps> = ({
         </View>
 
         {/* ELECTRODE */}
-        <View style={[styles.tableCell, styles.electrodeCol]}>
+        <View style={[styles.tableCell, dynamicStyles.electrodeCol]}>
           <FormField
             label=""
             value={formData.electrodeTypeBrand || ''}
@@ -171,7 +199,7 @@ export const WeldFormScreen: React.FC<WeldFormScreenProps> = ({
         </View>
 
         {/* RT */}
-        <View style={[styles.tableCell, styles.rtCol]}>
+        <View style={[styles.tableCell, dynamicStyles.rtCol]}>
           <FormField
             label=""
             value={formData.rt || ''}
@@ -259,16 +287,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     minWidth: 60, // Ensure minimum cell width
   },
-  // Column widths optimized for responsive design
-  weldNumberCol: { flex: 0.8, minWidth: 80 },
-  widCol: { flex: 0.8, minWidth: 80 },
-  pipeSizeCol: { flex: 0.9, minWidth: 90 },
-  typeCol: { flex: 1.2, minWidth: 120 },
-  capSizeCol: { flex: 0.9, minWidth: 90 },
-  passesCol: { flex: 0.8, minWidth: 80 },
-  wpsCol: { flex: 1.2, minWidth: 120 },
-  electrodeCol: { flex: 1.4, minWidth: 140 },
-  rtCol: { flex: 1.0, minWidth: 100 },
+
   actionSection: {
     flexDirection: 'row',
     justifyContent: 'space-between',

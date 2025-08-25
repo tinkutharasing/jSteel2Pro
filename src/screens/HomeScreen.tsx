@@ -14,6 +14,7 @@ interface HomeScreenProps {
   onPermanentlyDeleteWeld: (weld: Weld) => void;
   onClearTrash: () => void;
   onTrashAll: () => void;
+  onRecoverAll: () => void;
   onNavigate: (screen: 'home' | 'view' | 'settings' | 'bulk-edit') => void;
 }
 
@@ -27,6 +28,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   onPermanentlyDeleteWeld,
   onClearTrash,
   onTrashAll,
+  onRecoverAll,
   onNavigate
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -49,16 +51,18 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   const screenHeight = dimensions.height;
   const isLandscape = screenWidth > screenHeight;
   
-  // Determine optimal cards per row for landscape orientation
-  let cardsPerRow = 3; // Default for landscape (minimum 3 cards)
+  // Determine optimal cards per row - force 2 columns on mobile, more on larger screens
+  let cardsPerRow = 2; // Default for mobile (2 columns)
   if (screenWidth > 1200) {
     cardsPerRow = 6; // Very large landscape screens
   } else if (screenWidth > 900) {
     cardsPerRow = 5; // Large landscape screens
   } else if (screenWidth > 700) {
     cardsPerRow = 4; // Medium landscape screens
+  } else if (screenWidth > 500) {
+    cardsPerRow = 3; // Small tablets
   }
-  // Landscape orientation ensures we can always fit at least 3 cards
+  // Mobile devices (width <= 500) will always use 2 columns
   
   const canFitThreeCards = cardsPerRow >= 3;
   const canFitFourCards = cardsPerRow >= 4;
@@ -182,6 +186,17 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               >
                 <Text style={styles.clearTrashButtonText}>🗑️ Empty Trash</Text>
               </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.clearTrashButton, styles.recoverButton]} 
+                onPress={() => {
+                  // Call recover all function
+                  if (onRecoverAll) {
+                    onRecoverAll();
+                  }
+                }}
+              >
+                <Text style={styles.recoverButtonText}>♻️ Recover All</Text>
+              </TouchableOpacity>
             </View>
           </View>
           
@@ -262,12 +277,10 @@ const styles = StyleSheet.create({
   weldsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'flex-start',
-    padding: 15,
-    paddingHorizontal: 15,
-    // Debug: add border to see grid container
-    // borderWidth: 1,
-    // borderColor: 'red',
+    justifyContent: 'space-between',
+    padding: 16,
+    paddingHorizontal: 16,
+    // Use space-between for reliable 2-column layout
   },
   emptyState: {
     width: '100%',
@@ -347,6 +360,15 @@ const styles = StyleSheet.create({
   clearTrashButtonText: {
     fontSize: 12,
     color: '#dc2626',
+    fontWeight: '600',
+  },
+  recoverButton: {
+    backgroundColor: '#10b981', // Green color for recovery
+    marginLeft: 8,
+  },
+  recoverButtonText: {
+    fontSize: 12,
+    color: '#ffffff',
     fontWeight: '600',
   },
   trashAllButton: {
