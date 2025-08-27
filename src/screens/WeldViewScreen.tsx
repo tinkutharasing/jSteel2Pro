@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Image } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { Weld } from '../types/Weld';
 import { formatDateToUS } from '../utils/dateUtils';
@@ -174,16 +174,20 @@ export const WeldViewScreen: React.FC<WeldViewScreenProps> = ({ weld, onBack, on
           )}
           
           <View style={styles.viewRow}>
-            <Text style={styles.viewLabel}>Defect Sketch:</Text>
-            <Text style={styles.viewValue}>{weld.defectSketch ? 'Uploaded' : 'Not uploaded'}</Text>
-          </View>
-          
-          {weld.defectSketchDescription && (
-            <View style={styles.viewRow}>
-              <Text style={styles.viewLabel}>Defect Sketch Description:</Text>
-              <Text style={styles.viewValue}>{weld.defectSketchDescription}</Text>
-            </View>
-          )}
+                    <Text style={styles.viewLabel}>Welder Signature:</Text>
+        <Text style={styles.viewValue}>{weld.welderSignature ? 'Signed' : 'Not signed'}</Text>
+      </View>
+      
+      {weld.welderSignature && (
+        <View style={styles.viewRow}>
+          <Text style={styles.viewLabel}>Signature Image:</Text>
+          <Image 
+            source={{ uri: weld.welderSignature }} 
+            style={styles.signatureImage}
+            resizeMode="contain"
+          />
+        </View>
+      )}
         </View>
       </ScrollView>
     </View>
@@ -303,6 +307,13 @@ const styles = StyleSheet.create({
   },
   statusRejected: {
     backgroundColor: '#fee2e2',
+  },
+  signatureImage: {
+    width: 200,
+    height: 100,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
   },
 });
 

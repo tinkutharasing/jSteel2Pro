@@ -14,6 +14,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import { Weld } from '../types/Weld';
 import { WeldCardData } from '../types/WeldCard';
 import { DatePickerField } from '../components/DatePickerField';
+import { SignatureField } from '../components/SignatureField';
 import { ImageUploadField } from '../components/ImageUploadField';
 import KeyboardAwareScrollView from '../components/KeyboardAwareScrollView';
 
@@ -36,8 +37,7 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
     date: '',
     weldSketch: '',
     weldSketchDescription: '',
-    defectSketch: '',
-    defectSketchDescription: '',
+    welderSignature: '',
   });
   
   // State for responsive dimensions
@@ -54,8 +54,8 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
         date: existingCard.date || '',
         weldSketch: existingCard.weldSketch || '',
         weldSketchDescription: existingCard.weldSketchDescription || '',
-        defectSketch: existingCard.defectSketch || '',
-        defectSketchDescription: existingCard.defectSketchDescription || '',
+        welderSignature: existingCard.welderSignature || '',
+        inspectorSignature: existingCard.inspectorSignature || '',
       });
     } else {
       // Create new card with empty weld rows
@@ -87,8 +87,8 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
         fillet: '',
         weldSketch: '',
         weldSketchDescription: '',
-        defectSketch: '',
-        defectSketchDescription: '',
+        welderSignature: '',
+        inspectorSignature: '',
       }));
       setEditableWelds(emptyWelds);
       // Set default header data
@@ -96,8 +96,8 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
         date: new Date().toISOString().split('T')[0],
         weldSketch: '',
         weldSketchDescription: '',
-        defectSketch: '',
-        defectSketchDescription: '',
+        welderSignature: '',
+        inspectorSignature: '',
       });
     }
   }, [existingCard]);
@@ -178,8 +178,8 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
       
       weldSketch: '',
       weldSketchDescription: '',
-      defectSketch: '',
-      defectSketchDescription: '',
+      welderSignature: '',
+      inspectorSignature: '',
     };
     setEditableWelds(prev => [...prev, newWeld]);
   };
@@ -211,8 +211,8 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
       date: headerData.date,
       weldSketch: headerData.weldSketch,
       weldSketchDescription: headerData.weldSketchDescription,
-      defectSketch: headerData.defectSketch,
-      defectSketchDescription: headerData.defectSketchDescription,
+      welderSignature: headerData.welderSignature,
+      inspectorSignature: headerData.inspectorSignature,
       welds: validWelds.map(weld => ({
         ...weld,
         cardId: existingCard?.cardId || `card-${Date.now()}`,
@@ -320,16 +320,15 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
                   />
                 </View>
                 <View style={styles.imageCell}>
-                  <Text style={styles.headerLabel}>Defect Sketch:</Text>
-                  <ImageUploadField
+                  <Text style={styles.headerLabel}>Welder Signature:</Text>
+                  <SignatureField
                     label=""
-                    value={headerData.defectSketch || ''}
-                    onImageChange={(imageUri) => updateHeaderField('defectSketch', imageUri)}
-                    description={headerData.defectSketchDescription || ''}
-                    onDescriptionChange={(description) => updateHeaderField('defectSketchDescription', description)}
-                    placeholder="Upload Defect Sketch"
+                    value={headerData.welderSignature || ''}
+                    onSignatureCaptured={(signature) => updateHeaderField('welderSignature', signature)}
+                    onClear={() => updateHeaderField('welderSignature', '')}
                   />
                 </View>
+
               </View>
             </View>
           </View>

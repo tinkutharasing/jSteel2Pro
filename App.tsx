@@ -94,8 +94,8 @@ export default function App() {
     // Image Fields
     weldSketch: '',
     weldSketchDescription: '',
-    defectSketch: '',
-    defectSketchDescription: '',
+    welderSignature: '',
+    inspectorSignature: '',
     
     // Metadata
   });
@@ -690,10 +690,9 @@ export default function App() {
       // Image Fields
       weldSketch: '',
       weldSketchDescription: '',
-      defectSketch: '',
-      defectSketchDescription: '',
+      welderSignature: '',
       
-          // Metadata
+      // Metadata
     });
     setIsEditMode(false);
   };
@@ -975,8 +974,7 @@ export default function App() {
         date: weld.date,
         weldSketch: weld.weldSketch || '',
         weldSketchDescription: weld.weldSketchDescription || '',
-        defectSketch: weld.defectSketch || '',
-        defectSketchDescription: weld.defectSketchDescription || '',
+        welderSignature: weld.welderSignature || '',
         welds: [weld],
         createdAt: weld.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -1086,8 +1084,7 @@ export default function App() {
             date: weld.date,
             weldSketch: weld.weldSketch || '',
             weldSketchDescription: weld.weldSketchDescription || '',
-            defectSketch: weld.defectSketch || '',
-            defectSketchDescription: weld.defectSketchDescription || '',
+            welderSignature: weld.welderSignature || '',
             welds: [weld],
             createdAt: weld.createdAt,
             updatedAt: new Date().toISOString()
@@ -2083,8 +2080,8 @@ export default function App() {
                   date: selectedWeld.date,
                   weldSketch: selectedWeld.weldSketch || '',
                   weldSketchDescription: selectedWeld.weldSketchDescription || '',
-                  defectSketch: selectedWeld.defectSketch || '',
-                  defectSketchDescription: selectedWeld.defectSketchDescription || '',
+                          welderSignature: selectedWeld.welderSignature || '',
+        inspectorSignature: selectedWeld.inspectorSignature || '',
                   welds: [selectedWeld],
                   createdAt: selectedWeld.createdAt || new Date().toISOString(),
                   updatedAt: selectedWeld.updatedAt || new Date().toISOString(),

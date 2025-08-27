@@ -5,8 +5,7 @@ export interface WeldCardData {
   date: string;
   weldSketch?: string;
   weldSketchDescription?: string;
-  defectSketch?: string;
-  defectSketchDescription?: string;
+  welderSignature?: string;
   welds: Weld[];
   createdAt?: string;
   updatedAt?: string;

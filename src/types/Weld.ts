@@ -33,8 +33,9 @@ export interface Weld {
   // Image Fields
   weldSketch?: string;
   weldSketchDescription?: string;
-  defectSketch?: string;
-  defectSketchDescription?: string;
+  
+  // Signature Fields
+  welderSignature?: string;
   
   // Metadata
   createdAt?: string;
@@ -74,8 +75,9 @@ export interface WeldFormData {
   // Image Fields
   weldSketch: string;
   weldSketchDescription: string;
-  defectSketch: string;
-  defectSketchDescription: string;
+  
+  // Signature Fields
+  welderSignature: string;
   
   // Metadata
 }

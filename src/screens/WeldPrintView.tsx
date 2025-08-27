@@ -30,16 +30,15 @@ const WeldPrintView: React.FC<WeldPrintViewProps> = ({ card, onBack }) => {
     title: string;
   } | null>(null);
   const weldSketchRef = useRef<ViewShot>(null);
-  const defectSketchRef = useRef<ViewShot>(null);
+  const welderSignatureRef = useRef<ViewShot>(null);
 
   // Debug logging
   console.log('WeldPrintView rendered with props:', { card, onBack });
   console.log('Card type:', typeof card);
   console.log('Card content:', JSON.stringify(card, null, 2));
   console.log('Weld Sketch:', card.weldSketch);
-  console.log('Defect Sketch:', card.defectSketch);
+  console.log('Welder Signature:', card.welderSignature);
   console.log('Weld Sketch Description:', card.weldSketchDescription);
-  console.log('Defect Sketch Description:', card.defectSketchDescription);
 
   // Validate props
   if (!card) {
@@ -65,19 +64,19 @@ const WeldPrintView: React.FC<WeldPrintViewProps> = ({ card, onBack }) => {
 
   const handleScreenshot = async () => {
     // Determine which image to capture based on availability
-    let imageToCapture: 'weldSketch' | 'defectSketch' | null = null;
+    let imageToCapture: 'weldSketch' | 'welderSignature' | null = null;
     let refToUse: ViewShot | null = null;
     
     if (card.weldSketch) {
       imageToCapture = 'weldSketch';
       refToUse = weldSketchRef.current;
-    } else if (card.defectSketch) {
-      imageToCapture = 'defectSketch';
-      refToUse = defectSketchRef.current;
+    } else if (card.welderSignature) {
+      imageToCapture = 'welderSignature';
+      refToUse = welderSignatureRef.current;
     }
     
     if (!imageToCapture || !refToUse) {
-      Alert.alert('No Image Available', 'No weld or defect sketch images available to capture. Please add a sketch image first.');
+      Alert.alert('No Image Available', 'No weld or welder signature drawing field images available to capture. Please add a sketch image first.');
       return;
     }
 
@@ -118,7 +117,7 @@ const WeldPrintView: React.FC<WeldPrintViewProps> = ({ card, onBack }) => {
     try {
       // Use original image URIs for print compatibility
       const weldSketchBase64 = card.weldSketch || '';
-      const defectSketchBase64 = card.defectSketch || '';
+      const welderSignatureBase64 = card.welderSignature || '';
 
       // Generate HTML content for printing
       const htmlContent = `
@@ -415,23 +414,17 @@ const WeldPrintView: React.FC<WeldPrintViewProps> = ({ card, onBack }) => {
               </div>
             `}
             
-            ${defectSketchBase64 ? `
+            ${welderSignatureBase64 ? `
               <div class="image-row">
-                <div class="image-title">Defect Sketch</div>
+                <div class="image-title">Welder Signature</div>
                 <div class="image-container">
-                  <img src="${defectSketchBase64}" alt="Defect Sketch" class="defect-image" style="border: 1px solid #e5e7eb; border-radius: 8px;" />
-                </div>
-                <div class="description">
-                  ${card.defectSketchDescription || 'No defect sketch description available'}
+                  <img src="${welderSignatureBase64}" alt="Welder Signature" class="signature-image" style="border: 1px solid #e5e7eb; border-radius: 8px;" />
                 </div>
               </div>
             ` : `
               <div class="image-row">
-                <div class="image-title">Defect Sketch</div>
-                <div class="no-image">No Defect Sketch Image Available</div>
-                <div class="description">
-                  ${card.defectSketchDescription || 'No defect sketch description available'}
-                </div>
+                <div class="image-title">Welder Signature</div>
+                <div class="no-image">No Signature Available</div>
               </div>
             `}
           </div>
@@ -680,49 +673,39 @@ const WeldPrintView: React.FC<WeldPrintViewProps> = ({ card, onBack }) => {
               </View>
             </View>
 
-            {/* Defect Sketch Row */}
+            {/* Welder Signature Row */}
             <View style={styles.imageRow}>
-              {/* Defect Sketch Image */}
+              {/* Welder Signature Image */}
               <View style={styles.imageColumn}>
                 <View style={styles.imageContainer}>
-                  {card.defectSketch ? (
+                  {card.welderSignature ? (
                     <TouchableOpacity
                       onPress={() => setSelectedImageForPreview({
-                        uri: card.defectSketch!,
-                        title: 'Defect Sketch'
+                        uri: card.welderSignature!,
+                        title: 'Welder Signature'
                       })}
                       style={styles.imageTouchable}
                     >
                       <ViewShot
-                        ref={defectSketchRef}
+                        ref={welderSignatureRef}
                         style={styles.imageWrapper}
                       >
                         <Image 
-                          source={{ uri: card.defectSketch }} 
+                          source={{ uri: card.welderSignature }} 
                           style={styles.actualImage}
                           resizeMode="contain"
-                          onError={(error) => console.log('Defect sketch image error:', error)}
+                          onError={(error) => console.log('Welder signature image error:', error)}
                         />
                       </ViewShot>
                     </TouchableOpacity>
                   ) : (
                     <View style={styles.noImageContainer}>
                       <Icon name="image-outline" size={32} color="#9ca3af" />
-                      <Text style={styles.noImageText}>No Defect Sketch</Text>
+                      <Text style={styles.noImageText}>No Signature Available</Text>
                     </View>
                   )}
                 </View>
-                <Text style={styles.imageDescription}>Defect Sketch</Text>
-              </View>
-
-              {/* Defect Sketch Description */}
-              <View style={styles.descriptionColumn}>
-                <View style={styles.descriptionContainer}>
-                  <Text style={styles.descriptionText}>
-                    {card.defectSketchDescription || 'No defect sketch description available'}
-                  </Text>
-                </View>
-                <Text style={styles.imageDescription}>Description</Text>
+                <Text style={styles.imageDescription}>Welder Signature</Text>
               </View>
             </View>
           </View>
