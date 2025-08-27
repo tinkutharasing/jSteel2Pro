@@ -89,7 +89,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         {/* Title Section */}
         <View style={styles.titleSection}>
           <View style={styles.titleRow}>
-            <Text style={styles.title}>jSteel Pro</Text>
+            <Text style={styles.title}>Inspector Sham Pro</Text>
           </View>
         </View>
         
@@ -252,11 +252,8 @@ const styles = StyleSheet.create({
     width: '100%',
     marginBottom: 8,
   },
-  settingsButton: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: '#f1f5f9',
-  },
+
+
   title: {
     fontSize: 32,
     fontWeight: '900',
@@ -277,10 +274,10 @@ const styles = StyleSheet.create({
   weldsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     padding: 16,
     paddingHorizontal: 16,
-    // Use space-between for reliable 2-column layout
+    // Use flex-start for left-aligned cards
   },
   emptyState: {
     width: '100%',

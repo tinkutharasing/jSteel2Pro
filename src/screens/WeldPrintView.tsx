@@ -9,10 +9,11 @@ import {
   Dimensions,
   Image,
   Modal,
+  Share,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import ViewShot from 'react-native-view-shot';
-import RNFS from 'react-native-fs';
+
 import RNPrint from 'react-native-print';
 import { WeldCardData } from '../types/WeldCard';
 import { formatDateToUS } from '../utils/dateUtils';
@@ -90,46 +91,21 @@ const WeldPrintView: React.FC<WeldPrintViewProps> = ({ card, onBack }) => {
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const fileName = `weld_card_${imageToCapture}_${timestamp}.png`;
       
-      // Try multiple save locations to ensure it appears in gallery
-      let savedPath = '';
-      
+      // Share the captured image
       try {
-        // First try Pictures folder (most reliable for gallery)
-        const picturesPath = `${RNFS.PicturesDirectoryPath}/${fileName}`;
-        console.log('Trying Pictures path:', picturesPath);
-        await RNFS.copyFile(uri, picturesPath);
-        savedPath = picturesPath;
-        console.log('Successfully saved to Pictures:', savedPath);
-      } catch (picturesError) {
-        console.log('Pictures save failed, trying Downloads folder:', picturesError);
-        
-        try {
-          // Fallback to Downloads folder
-          const downloadsPath = `${RNFS.DownloadDirectoryPath}/${fileName}`;
-          console.log('Trying Downloads path:', downloadsPath);
-          await RNFS.copyFile(uri, downloadsPath);
-          savedPath = downloadsPath;
-          console.log('Successfully saved to Downloads:', savedPath);
-        } catch (downloadsError) {
-          console.log('Downloads save failed, trying Documents folder:', downloadsError);
-          
-          // Final fallback to Documents
-          const documentsPath = `${RNFS.DocumentDirectoryPath}/${fileName}`;
-          console.log('Trying Documents path:', documentsPath);
-          await RNFS.copyFile(uri, documentsPath);
-          savedPath = documentsPath;
-          console.log('Successfully saved to Downloads:', savedPath);
-        }
+        await Share.share({
+          url: uri,
+          title: `Weld Card ${imageToCapture.charAt(0).toUpperCase() + imageToCapture.slice(1)}`,
+          message: `Weld card ${imageToCapture} screenshot: ${fileName}`,
+        });
+      } catch (shareError) {
+        console.log('Share failed:', shareError);
+        Alert.alert(
+          'Screenshot Captured',
+          `Screenshot captured successfully!\n\nTo save: Use your device's share menu to save to gallery or files.`,
+          [{ text: 'OK' }]
+        );
       }
-      
-      // Clean up temporary file
-      await RNFS.unlink(uri);
-
-      Alert.alert(
-        'Screenshot Saved',
-        `Screenshot saved as ${fileName}\n\nLocation: ${savedPath}\n\nNote: It may take a few moments to appear in your gallery.`,
-        [{ text: 'OK' }]
-      );
     } catch (error: any) {
       console.error('Screenshot error:', error);
       Alert.alert('Error', 'Failed to capture screenshot: ' + error.message);
@@ -140,29 +116,9 @@ const WeldPrintView: React.FC<WeldPrintViewProps> = ({ card, onBack }) => {
 
   const handlePrint = async () => {
     try {
-      // Convert images to base64 for print compatibility
-      let weldSketchBase64 = '';
-      let defectSketchBase64 = '';
-      
-      if (card.weldSketch) {
-        try {
-          const weldImageData = await RNFS.readFile(card.weldSketch, 'base64');
-          weldSketchBase64 = `data:image/png;base64,${weldImageData}`;
-        } catch (error) {
-          console.log('Failed to convert weld sketch to base64:', error);
-          weldSketchBase64 = card.weldSketch; // Fallback to original URI
-        }
-      }
-      
-      if (card.defectSketch) {
-        try {
-          const defectImageData = await RNFS.readFile(card.defectSketch, 'base64');
-          defectSketchBase64 = `data:image/png;base64,${defectImageData}`;
-        } catch (error) {
-          console.log('Failed to convert defect sketch to base64:', error);
-          defectSketchBase64 = card.defectSketch; // Fallback to original URI
-        }
-      }
+      // Use original image URIs for print compatibility
+      const weldSketchBase64 = card.weldSketch || '';
+      const defectSketchBase64 = card.defectSketch || '';
 
       // Generate HTML content for printing
       const htmlContent = `
@@ -373,7 +329,7 @@ const WeldPrintView: React.FC<WeldPrintViewProps> = ({ card, onBack }) => {
         </head>
         <body>
           <div class="header">
-            <div class="company-name">jSteel Pro</div>
+            <div class="company-name">Inspector Sham Pro</div>
             <div class="company-subtitle">Weld Inspection Management</div>
           </div>
 
@@ -581,9 +537,9 @@ const WeldPrintView: React.FC<WeldPrintViewProps> = ({ card, onBack }) => {
       <ScrollView>
         {/* Header Section - Two Columns */}
         <View style={styles.headerSection}>
-          {/* Left Column - jSteel Pro Info */}
+          {/* Left Column - Inspector Sham Pro Info */}
           <View style={styles.leftColumn}>
-            <Text style={styles.companyName}>jSteel Pro</Text>
+            <Text style={styles.companyName}>Inspector Sham Pro</Text>
             <Text style={styles.companySubtitle}>Weld Inspection Management</Text>
           </View>
 
@@ -829,7 +785,7 @@ const styles = StyleSheet.create({
     shadowRadius: 0,
   },
   
-  // Left Column - jSteel Pro Info
+          // Left Column - Inspector Sham Pro Info
   leftColumn: {
     flex: 1,
     marginRight: 20,

@@ -7,6 +7,7 @@ import { WeldCardData } from './src/types/WeldCard';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { BulkWeldEditorScreen } from './src/screens/BulkWeldEditorScreen';
 import WeldPrintView from './src/screens/WeldPrintView';
+
 import { BottomNavigation } from './src/components/BottomNavigation';
 import { GoogleSheetsConfigModal } from './src/components/GoogleSheetsConfigModal';
 import { getCurrentDateISO } from './src/utils/dateUtils';
@@ -379,6 +380,23 @@ export default function App() {
     setPinInput('');
     setPendingDestructiveAction(null);
   };
+
+  // Import data function
+  const importData = useCallback((importedCards: WeldCardData[]) => {
+    try {
+      // Merge imported cards with existing ones
+      const updatedWeldCards = [...weldCards, ...importedCards];
+      setWeldCards(updatedWeldCards);
+      
+      // Save to AsyncStorage
+      AsyncStorage.setItem('weldCards', JSON.stringify(updatedWeldCards));
+      
+      showSuccess('Import Successful', `Successfully imported ${importedCards.length} cards!`);
+    } catch (error) {
+      console.error('Error importing data:', error);
+      showError('Import Failed', 'Failed to import data');
+    }
+  }, [weldCards]);
 
   // Recover all trashed cards function
   const recoverAllTrashCards = async () => {
@@ -2084,6 +2102,7 @@ export default function App() {
             existingCard={selectedCard || undefined}
           />
         );
+
       default:
         return null;
     }

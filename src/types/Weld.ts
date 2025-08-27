@@ -80,4 +80,4 @@ export interface WeldFormData {
   // Metadata
 }
 
-export type Screen = 'home' | 'view' | 'settings' | 'bulk-edit';
+export type Screen = 'home' | 'view' | 'bulk-edit';

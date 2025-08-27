@@ -19,6 +19,18 @@ interface WeldCardProps {
 
 export const WeldCard: React.FC<WeldCardProps> = ({ weld, weldIndex, onView, onEdit, onDelete, onRecover, isTrash = false, canFitThreeCards = false, canFitFourCards = false, canFitFiveCards = false, canFitSixCards = false }) => {
 
+  // Calculate if this is the last card in a row
+  const getCardsPerRow = () => {
+    if (canFitSixCards) return 6;
+    if (canFitFiveCards) return 5;
+    if (canFitFourCards) return 4;
+    if (canFitThreeCards) return 3;
+    return 2; // Default for mobile
+  };
+  
+  const cardsPerRow = getCardsPerRow();
+  const isLastInRow = (weldIndex + 1) % cardsPerRow === 0;
+
   // Dynamic styles based on screen size
   const cardStyle = [
     styles.weldCard,
@@ -26,7 +38,8 @@ export const WeldCard: React.FC<WeldCardProps> = ({ weld, weldIndex, onView, onE
     canFitFourCards && !canFitFiveCards && styles.weldCardFour,
     canFitFiveCards && !canFitSixCards && styles.weldCardFive,
     canFitSixCards && styles.weldCardSix,
-    isTrash && styles.trashCard
+    isTrash && styles.trashCard,
+    isLastInRow && styles.lastCardInRow
   ];
 
   return (
@@ -80,7 +93,7 @@ export const WeldCard: React.FC<WeldCardProps> = ({ weld, weldIndex, onView, onE
 
 const styles = StyleSheet.create({
   weldCard: {
-    width: '48%', // Perfect width for 2 columns with space-between
+    width: '48%', // Perfect width for 2 columns
     backgroundColor: '#ffffff',
     padding: 16,
     borderRadius: 12,
@@ -88,13 +101,16 @@ const styles = StyleSheet.create({
     borderColor: '#e2e8f0',
     minHeight: 140,
     marginBottom: 16,
-    // No right margin needed with space-between layout
+    marginRight: '4%', // Add right margin for proper spacing
     // Remove any shadows
     elevation: 0,
     shadowColor: 'transparent',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0,
     shadowRadius: 0,
+  },
+  lastCardInRow: {
+    marginRight: 0, // Remove right margin for last card in row
   },
   weldCardTablet: {
     width: '30%', // 3 columns for wider screens - reduced to fit with margin

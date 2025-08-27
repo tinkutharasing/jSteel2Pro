@@ -95,7 +95,7 @@ export const GoogleSheetsConfigModal: React.FC<GoogleSheetsConfigModalProps> = (
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           <Text style={styles.description}>
-            Connect your jSteel Pro app to Google Sheets for automatic data synchronization.
+            Connect your Inspector Sham Pro app to Google Sheets for automatic data synchronization.
           </Text>
 
           <View style={styles.section}>
