@@ -115,9 +115,39 @@ const WeldPrintView: React.FC<WeldPrintViewProps> = ({ card, onBack }) => {
 
   const handlePrint = async () => {
     try {
-      // Use original image URIs for print compatibility
-      const weldSketchBase64 = card.weldSketch || '';
-      const welderSignatureBase64 = card.welderSignature || '';
+      // For React Native, we need to handle both base64 and URI formats
+      let weldSketchBase64 = '';
+      let welderSignatureBase64 = '';
+      
+      // Check if weld sketch is already base64 or needs conversion
+      if (card.weldSketch) {
+        if (card.weldSketch.startsWith('data:image/')) {
+          // Already base64
+          weldSketchBase64 = card.weldSketch;
+        } else if (card.weldSketch.startsWith('file://') || card.weldSketch.startsWith('content://')) {
+          // Local file URI - for now, we'll skip it in print but log the issue
+          console.warn('Weld sketch is a local file URI, cannot convert to base64 for print. Consider using base64 storage.');
+          weldSketchBase64 = '';
+        } else {
+          // Remote URL - try to use as is
+          weldSketchBase64 = card.weldSketch;
+        }
+      }
+      
+      // Check if welder signature is already base64 or needs conversion
+      if (card.welderSignature) {
+        if (card.welderSignature.startsWith('data:image/')) {
+          // Already base64
+          welderSignatureBase64 = card.welderSignature;
+        } else if (card.welderSignature.startsWith('file://') || card.welderSignature.startsWith('content://')) {
+          // Local file URI - for now, we'll skip it in print but log the issue
+          console.warn('Welder signature is a local file URI, cannot convert to base64 for print. Consider using base64 storage.');
+          welderSignatureBase64 = '';
+        } else {
+          // Remote URL - try to use as is
+          welderSignatureBase64 = card.welderSignature;
+        }
+      }
 
       // Generate HTML content for printing
       const htmlContent = `
@@ -201,6 +231,23 @@ const WeldPrintView: React.FC<WeldPrintViewProps> = ({ card, onBack }) => {
             .images-section {
               margin-top: 30px;
             }
+            .images-row {
+              display: flex;
+              flex-direction: row;
+              gap: 20px;
+              margin: 30px 0;
+              page-break-inside: avoid;
+            }
+            .sketch-column {
+              flex: 0 0 70%;
+              min-width: 300px;
+              page-break-inside: avoid;
+              break-inside: avoid;
+            }
+            .signature-column {
+              flex: 0 0 30%;
+              min-width: 150px;
+            }
             .image-row {
               margin: 30px 0;
               page-break-inside: avoid;
@@ -219,17 +266,31 @@ const WeldPrintView: React.FC<WeldPrintViewProps> = ({ card, onBack }) => {
             }
             .image-container img {
               max-width: 100%;
+              min-width: 200px;
+              min-height: 150px;
               height: auto;
-              border: 1px solid #e5e7eb;
-              border-radius: 8px;
-              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+              border: none;
+              border-radius: 0;
+              box-shadow: none;
+              object-fit: contain;
             }
-            .image-container img {
+            
+            .weld-image {
               max-width: 100%;
+              min-width: 250px;
+              min-height: 200px;
               height: auto;
-              border: 1px solid #e5e7eb;
-              border-radius: 8px;
-              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+              object-fit: contain;
+              page-break-inside: avoid;
+              break-inside: avoid;
+            }
+            
+            .signature-image {
+              max-width: 100%;
+              min-width: 120px;
+              min-height: 80px;
+              height: auto;
+              object-fit: contain;
             }
             
             /* Enhanced image styling for print layout */
@@ -246,6 +307,9 @@ const WeldPrintView: React.FC<WeldPrintViewProps> = ({ card, onBack }) => {
               max-width: 70%;
               max-height: 500px;
               margin: 30px auto;
+              border: none;
+              border-radius: 0;
+              box-shadow: none;
             }
             
             /* Landscape images optimized for print */
@@ -253,6 +317,9 @@ const WeldPrintView: React.FC<WeldPrintViewProps> = ({ card, onBack }) => {
               max-width: 90%;
               max-height: 600px;
               margin: 15px auto;
+              border: none;
+              border-radius: 0;
+              box-shadow: none;
             }
             
             /* Print-specific optimizations */
@@ -268,9 +335,9 @@ const WeldPrintView: React.FC<WeldPrintViewProps> = ({ card, onBack }) => {
               .image-container img {
                 page-break-inside: avoid;
                 break-inside: avoid;
-                border: 2px solid #e5e7eb !important;
-                border-radius: 8px !important;
-                box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
+                border: none !important;
+                border-radius: 0 !important;
+                box-shadow: none !important;
               }
               
               /* Ensure rotated images don't break across pages */
@@ -394,39 +461,35 @@ const WeldPrintView: React.FC<WeldPrintViewProps> = ({ card, onBack }) => {
 
           <div class="section-title">Images and Sketches</div>
           <div class="images-section">
-            ${weldSketchBase64 ? `
-              <div class="image-row">
+            <div class="images-row">
+              <div class="sketch-column">
                 <div class="image-title">Weld Sketch</div>
-                <div class="image-container">
-                  <img src="${weldSketchBase64}" alt="Weld Sketch" class="weld-image" style="border: 1px solid #e5e7eb; border-radius: 8px;" />
-                </div>
-                <div class="description">
-                  ${card.weldSketchDescription || 'No weld sketch description available'}
-                </div>
+                ${weldSketchBase64 ? `
+                  <div class="image-container">
+                    <img src="${weldSketchBase64}" alt="Weld Sketch" class="weld-image" />
+                  </div>
+                  <div class="description">
+                    ${card.weldSketchDescription || 'No weld sketch description available'}
+                  </div>
+                ` : `
+                  <div class="no-image">No Weld Sketch Image Available</div>
+                  <div class="description">
+                    ${card.weldSketchDescription || 'No weld sketch description available'}
+                  </div>
+                `}
               </div>
-            ` : `
-              <div class="image-row">
-                <div class="image-title">Weld Sketch</div>
-                <div class="no-image">No Weld Sketch Image Available</div>
-                <div class="description">
-                  ${card.weldSketchDescription || 'No weld sketch description available'}
-                </div>
-              </div>
-            `}
-            
-            ${welderSignatureBase64 ? `
-              <div class="image-row">
+              
+              <div class="signature-column">
                 <div class="image-title">Welder Signature</div>
-                <div class="image-container">
-                  <img src="${welderSignatureBase64}" alt="Welder Signature" class="signature-image" style="border: 1px solid #e5e7eb; border-radius: 8px;" />
-                </div>
+                ${welderSignatureBase64 ? `
+                  <div class="image-container">
+                    <img src="${welderSignatureBase64}" alt="Welder Signature" class="signature-image" />
+                  </div>
+                ` : `
+                  <div class="no-image">No Signature Available</div>
+                `}
               </div>
-            ` : `
-              <div class="image-row">
-                <div class="image-title">Welder Signature</div>
-                <div class="no-image">No Signature Available</div>
-              </div>
-            `}
+            </div>
           </div>
 
           <div style="margin-top: 40px; text-align: center; font-size: 12px; color: #9ca3af;">

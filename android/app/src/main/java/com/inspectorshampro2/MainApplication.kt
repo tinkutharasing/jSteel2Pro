@@ -1,4 +1,4 @@
-package com.jsteel2pro
+package com.inspectorshampro2
 
 import android.app.Application
 import com.facebook.react.PackageList

@@ -77,9 +77,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.jsteel2pro"
+    namespace "com.inspectorshampro2"
     defaultConfig {
-        applicationId "com.jsteel2pro"
+        applicationId "com.inspectorshampro2"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 4
@@ -94,9 +94,9 @@ android {
         }
         release {
             storeFile file('release.keystore')
-            storePassword 'jsteel2pro123'
-            keyAlias 'jsteel2pro-release'
-            keyPassword 'jsteel2pro123'
+            storePassword 'inspectorshampro2123'
+            keyAlias 'inspectorshampro2-release'
+            keyPassword 'inspectorshampro2123'
         }
     }
     buildTypes {

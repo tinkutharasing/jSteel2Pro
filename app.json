@@ -2,8 +2,8 @@
   "name": "InspectorShamPro2",
   "displayName": "Inspector Sham Pro2",
       "expo": {
-      "name": "jSteel2Pro",
-      "slug": "jsteel2pro",
+      "name": "InspectorShamPro2",
+      "slug": "inspectorshampro2",
       "version": "0.0.1",
       "orientation": "default",
     "icon": "./android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png",
@@ -18,7 +18,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.jsteel2pro",
+      "bundleIdentifier": "com.inspectorshampro2",
       "icon": "./ios/WeldingInspector/Images.xcassets/AppIcon.appiconset/1024.png"
     },
     "android": {
@@ -26,7 +26,7 @@
         "foregroundImage": "./android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.jsteel2pro",
+      "package": "com.inspectorshampro2",
       "icon": "./android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png"
     },
     "web": {

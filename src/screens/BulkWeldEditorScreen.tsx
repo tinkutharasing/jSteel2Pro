@@ -55,7 +55,7 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
         weldSketch: existingCard.weldSketch || '',
         weldSketchDescription: existingCard.weldSketchDescription || '',
         welderSignature: existingCard.welderSignature || '',
-        inspectorSignature: existingCard.inspectorSignature || '',
+  
       });
     } else {
       // Create new card with empty weld rows
@@ -88,7 +88,6 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
         weldSketch: '',
         weldSketchDescription: '',
         welderSignature: '',
-        inspectorSignature: '',
       }));
       setEditableWelds(emptyWelds);
       // Set default header data
@@ -97,7 +96,6 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
         weldSketch: '',
         weldSketchDescription: '',
         welderSignature: '',
-        inspectorSignature: '',
       });
     }
   }, [existingCard]);
@@ -133,6 +131,17 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
       width: 'auto', // Let content determine width
       borderWidth: 1,
       borderColor: '#f1f5f9',
+    },
+    // Mobile responsive image container
+    imagesContainer: {
+      flexDirection: screenWidth < 768 ? 'column' : 'row',
+      gap: screenWidth < 768 ? 12 : 16,
+      flexWrap: 'wrap',
+    },
+    imageCell: {
+      width: screenWidth < 768 ? '100%' : 'auto',
+      minWidth: screenWidth < 768 ? '100%' : 180,
+      maxWidth: screenWidth < 768 ? '100%' : '50%',
     },
   });
 
@@ -179,7 +188,6 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
       weldSketch: '',
       weldSketchDescription: '',
       welderSignature: '',
-      inspectorSignature: '',
     };
     setEditableWelds(prev => [...prev, newWeld]);
   };
@@ -212,7 +220,6 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
       weldSketch: headerData.weldSketch,
       weldSketchDescription: headerData.weldSketchDescription,
       welderSignature: headerData.welderSignature,
-      inspectorSignature: headerData.inspectorSignature,
       welds: validWelds.map(weld => ({
         ...weld,
         cardId: existingCard?.cardId || `card-${Date.now()}`,
@@ -307,8 +314,8 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
                   onDateChange={(date) => updateHeaderField('date', date)}
                 />
               </View>
-              <View style={styles.imagesContainer}>
-                <View style={styles.imageCell}>
+              <View style={[styles.imagesContainer, dynamicStyles.imagesContainer]}>
+                <View style={[styles.imageCell, dynamicStyles.imageCell]}>
                   <Text style={styles.headerLabel}>Weld Sketch:</Text>
                   <ImageUploadField
                     label=""
@@ -319,7 +326,7 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
                     placeholder="Upload Weld Sketch"
                   />
                 </View>
-                <View style={styles.imageCell}>
+                <View style={[styles.imageCell, dynamicStyles.imageCell]}>
                   <Text style={styles.headerLabel}>Welder Signature:</Text>
                   <SignatureField
                     label=""
@@ -559,10 +566,12 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     gap: 16,
+    flexWrap: 'wrap',
   },
   imageCell: {
     flex: 1,
     minWidth: 180,
+    marginBottom: 16,
   },
   headerCell: {
     flex: 1,

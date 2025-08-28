@@ -173,13 +173,19 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
         const result: ImagePickerResponse = await launchCamera({
           mediaType: 'photo' as MediaType,
           quality: 0.8,
-          includeBase64: false,
+          includeBase64: true,
           saveToPhotos: true,
         });
 
         if (result.assets && result.assets.length > 0) {
           const asset = result.assets[0];
-          if (asset.uri) {
+          if (asset.base64) {
+            // Use base64 data for better compatibility with printing
+            const base64Image = `data:${asset.type || 'image/jpeg'};base64,${asset.base64}`;
+            onImageChange(base64Image);
+            setShowOptions(false);
+          } else if (asset.uri) {
+            // Fallback to URI if base64 is not available
             onImageChange(asset.uri);
             setShowOptions(false);
           }
@@ -197,12 +203,18 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
         const result: ImagePickerResponse = await launchImageLibrary({
           mediaType: 'photo' as MediaType,
           quality: 0.8,
-          includeBase64: false,
+          includeBase64: true,
         });
 
         if (result.assets && result.assets.length > 0) {
           const asset = result.assets[0];
-          if (asset.uri) {
+          if (asset.base64) {
+            // Use base64 data for better compatibility with printing
+            const base64Image = `data:${asset.type || 'image/jpeg'};base64,${asset.base64}`;
+            onImageChange(base64Image);
+            setShowOptions(false);
+          } else if (asset.uri) {
+            // Fallback to URI if base64 is not available
             onImageChange(asset.uri);
             setShowOptions(false);
           }

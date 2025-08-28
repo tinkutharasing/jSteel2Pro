@@ -183,12 +183,14 @@ const styles = StyleSheet.create({
   signatureActions: {
     flexDirection: 'row',
     gap: 8,
+    flexWrap: 'wrap',
   },
   drawButton: {
     backgroundColor: '#3b82f6',
     padding: 12,
     borderRadius: 8,
     flex: 1,
+    minWidth: 120,
     alignItems: 'center',
   },
   drawButtonText: {
@@ -259,12 +261,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderTopWidth: 1,
     borderTopColor: '#e2e8f0',
+    flexWrap: 'wrap',
   },
   cancelButton: {
     backgroundColor: '#6b7280',
     padding: 16,
     borderRadius: 12,
     flex: 1,
+    minWidth: 100,
     alignItems: 'center',
   },
   cancelButtonText: {
@@ -277,6 +281,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     flex: 1,
+    minWidth: 100,
     alignItems: 'center',
   },
   clearModalButtonText: {
