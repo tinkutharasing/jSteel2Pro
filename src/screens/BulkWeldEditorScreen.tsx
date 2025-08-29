@@ -202,7 +202,7 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
     // Filter out empty weld rows
     const validWelds = editableWelds.filter(weld => 
       weld.weldNumber.trim() || 
-      weld.widNumber.trim() || 
+      weld.weldNumber.trim() || 
       weld.widNumber.trim() || 
       weld.pipeSizeInches.trim() ||
       weld.typeOfWeld.trim()
@@ -231,6 +231,41 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
 
     onSaveCard(card);
     Alert.alert('Success', `Card with ${validWelds.length} welds saved successfully!`);
+  };
+
+  const handleSaveAs = () => {
+    // Filter out empty weld rows
+    const validWelds = editableWelds.filter(weld => 
+      weld.weldNumber.trim() || 
+      weld.widNumber.trim() || 
+      weld.pipeSizeInches.trim() ||
+      weld.typeOfWeld.trim()
+    );
+
+    if (validWelds.length === 0) {
+      Alert.alert('No Data', 'Please add at least one weld entry');
+      return;
+    }
+
+    // Create a duplicate card with a new ID and timestamp
+    const duplicateCard: WeldCardData = {
+      cardId: `duplicate-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      date: headerData.date,
+      weldSketch: headerData.weldSketch,
+      weldSketchDescription: headerData.weldSketchDescription,
+      welderSignature: headerData.welderSignature,
+      welds: validWelds.map(weld => ({
+        ...weld,
+        id: `duplicate-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        cardId: `duplicate-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        date: headerData.date,
+      })),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    onSaveCard(duplicateCard);
+    Alert.alert('Success', `Duplicate card with ${validWelds.length} welds saved successfully!`);
   };
 
   const renderEditableCell = (weld: Weld, field: keyof Weld, weldIndex: number, placeholder: string) => {
@@ -464,6 +499,9 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
 
           {/* Action Buttons */}
           <View style={styles.actionSection}>
+            <TouchableOpacity style={styles.saveAsButton} onPress={handleSaveAs}>
+              <Text style={styles.saveAsButtonText}>Save As</Text>
+            </TouchableOpacity>
             <TouchableOpacity style={styles.cancelButton} onPress={onBack}>
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
@@ -692,12 +730,26 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#f1f5f9',
   },
+  saveAsButton: {
+    flex: 1,
+    backgroundColor: '#10b981',
+    padding: 16,
+    borderRadius: 8,
+    marginRight: 8,
+    alignItems: 'center',
+  },
+  saveAsButtonText: {
+    color: '#ffffff',
+    fontWeight: '600',
+    fontSize: 16,
+  },
   cancelButton: {
     flex: 1,
     backgroundColor: '#f3f4f6',
     padding: 16,
     borderRadius: 8,
     marginRight: 8,
+    marginLeft: 8,
     alignItems: 'center',
   },
   cancelButtonText: {
