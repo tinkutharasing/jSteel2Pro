@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,8 @@ import ViewShot from 'react-native-view-shot';
 import RNPrint from 'react-native-print';
 import { WeldCardData } from '../types/WeldCard';
 import { formatDateToUS } from '../utils/dateUtils';
+import { FieldConfig } from '../types/FieldConfig';
+import FieldConfigService from '../services/FieldConfigService';
 
 interface WeldPrintViewProps {
   card: WeldCardData;
@@ -29,8 +31,66 @@ const WeldPrintView: React.FC<WeldPrintViewProps> = ({ card, onBack }) => {
     uri: string;
     title: string;
   } | null>(null);
+  const [fieldConfigs, setFieldConfigs] = useState<{
+    header: FieldConfig[];
+    table: FieldConfig[];
+    footer: FieldConfig[];
+  }>({ header: [], table: [], footer: [] });
   const weldSketchRef = useRef<ViewShot>(null);
   const welderSignatureRef = useRef<ViewShot>(null);
+
+  useEffect(() => {
+    loadFieldConfigs();
+  }, []);
+
+  const loadFieldConfigs = async () => {
+    try {
+      const fieldService = FieldConfigService.getInstance();
+      await fieldService.initialize();
+      
+      const headerFields = fieldService.getVisibleFields('header');
+      const tableFields = fieldService.getVisibleFields('table');
+      const footerFields = fieldService.getVisibleFields('footer');
+      
+      console.log('=== PRINT VIEW FIELD CONFIGS ===');
+      console.log('Header fields:', headerFields.map(f => ({ key: f.key, label: f.label })));
+      console.log('Table fields:', tableFields.map(f => ({ key: f.key, label: f.label })));
+      console.log('Footer fields:', footerFields.map(f => ({ key: f.key, label: f.label })));
+      console.log('Total table fields:', tableFields.length);
+      console.log('Card welds count:', card.welds?.length);
+      console.log('First weld data:', card.welds?.[0]);
+      console.log('First weld keys:', card.welds?.[0] ? Object.keys(card.welds[0]) : 'No welds');
+      
+      // Check if custom fields are in the weld data
+      if (card.welds && card.welds.length > 0) {
+        const firstWeld = card.welds[0];
+        const customFields = Object.keys(firstWeld).filter(key => 
+          !['id', 'cardId', 'date', 'weldNumber', 'widNumber', 'pipeSizeInches', 'typeOfWeld', 'capSize', 'passes', 'wpsNumberAndTitle', 'electrodeTypeBrand', 'rt', 'htNumber', 'welderCompany', 'welderContractor', 'loaTccMod', 'weldingContractorName', 'woJoNumber', 'weldingInspectorName', 'weldingInspectionCompany', 'numberOfWeldsMadeToday', 'stencilNumber', 'processUsed', 'butt', 'fillet', 'weldSketch', 'weldSketchDescription', 'welderSignature', 'createdAt', 'updatedAt'].includes(key)
+        );
+        console.log('Custom fields in weld data:', customFields);
+      }
+      
+      setFieldConfigs({
+        header: headerFields,
+        table: tableFields,
+        footer: footerFields,
+      });
+    } catch (error) {
+      console.error('Error loading field configs:', error);
+    }
+  };
+
+  const renderFieldValue = (field: FieldConfig, data?: any) => {
+    const source = data || card;
+    const value = (source as any)[field.key];
+    
+    // Field value rendered
+    
+    if (value === null || value === undefined || value === '') {
+      return 'N/A';
+    }
+    return String(value);
+  };
 
   // Debug logging
   console.log('WeldPrintView rendered with props:', { card, onBack });
@@ -83,7 +143,10 @@ const WeldPrintView: React.FC<WeldPrintViewProps> = ({ card, onBack }) => {
     setIsCapturing(true);
     try {
       console.log(`Capturing ${imageToCapture}...`);
-      const uri = await refToUse.capture();
+      if (!refToUse) {
+        throw new Error(`Reference for ${imageToCapture} is not available`);
+      }
+      const uri = await refToUse.capture?.();
       console.log(`${imageToCapture} captured:`, uri);
 
       // Generate filename with timestamp
@@ -429,12 +492,13 @@ const WeldPrintView: React.FC<WeldPrintViewProps> = ({ card, onBack }) => {
                 <th>Weld #</th>
                 <th>WID #</th>
                 <th>Pipe Size</th>
-                <th>Type</th>
+                <th>MFG</th>
                 <th>Cap Size</th>
                 <th>Passes</th>
                 <th>WPS</th>
                 <th>Electrode</th>
                 <th>RT</th>
+                <th>HT #</th>
               </tr>
             </thead>
             <tbody>
@@ -450,10 +514,11 @@ const WeldPrintView: React.FC<WeldPrintViewProps> = ({ card, onBack }) => {
                     <td>${weld.wpsNumberAndTitle || 'N/A'}</td>
                     <td>${weld.electrodeTypeBrand || 'N/A'}</td>
                     <td>${weld.rt || 'N/A'}</td>
+                    <td>${weld.htNumber || 'N/A'}</td>
                   </tr>
                 `).join('') : 
                 `<tr>
-                  <td colspan="9">No welds available</td>
+                  <td colspan="10">No welds available</td>
                 </tr>`
               }
             </tbody>
@@ -621,7 +686,7 @@ const WeldPrintView: React.FC<WeldPrintViewProps> = ({ card, onBack }) => {
           
           <View style={styles.rightActions}>
             <TouchableOpacity
-              style={[styles.actionButton, styles.screenshotButton]}
+              style={[styles.headerActionButton, styles.screenshotButton]}
               onPress={handleScreenshot}
               disabled={isCapturing}
             >
@@ -632,7 +697,7 @@ const WeldPrintView: React.FC<WeldPrintViewProps> = ({ card, onBack }) => {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.actionButton, styles.printButton]}
+              style={[styles.headerActionButton, styles.printButton]}
               onPress={handlePrint}
             >
               <Icon name="print" size={20} color="#3b82f6" />
@@ -644,46 +709,55 @@ const WeldPrintView: React.FC<WeldPrintViewProps> = ({ card, onBack }) => {
         {/* Table Section */}
         <View style={styles.tableSection}>
           <Text style={styles.sectionTitle}>Weld Details</Text>
-          <View style={styles.table}>
-            <View style={styles.tableHeader}>
-              <Text style={[styles.headerCell, { borderRightWidth: 1, borderRightColor: '#e5e7eb' }]}>Weld #</Text>
-              <Text style={[styles.headerCell, { borderRightWidth: 1, borderRightColor: '#e5e7eb' }]}>WID #</Text>
-              <Text style={[styles.headerCell, { borderRightWidth: 1, borderRightColor: '#e5e7eb' }]}>Pipe Size</Text>
-              <Text style={[styles.headerCell, { borderRightWidth: 1, borderRightColor: '#e5e7eb' }]}>Type</Text>
-              <Text style={[styles.headerCell, { borderRightWidth: 1, borderRightColor: '#e5e7eb' }]}>Cap Size</Text>
-              <Text style={[styles.headerCell, { borderRightWidth: 1, borderRightColor: '#e5e7eb' }]}>Passes</Text>
-              <Text style={[styles.headerCell, { borderRightWidth: 1, borderRightColor: '#e5e7eb' }]}>WPS</Text>
-              <Text style={[styles.headerCell, { borderRightWidth: 1, borderRightColor: '#e5e7eb' }]}>Electrode</Text>
-              <Text style={styles.headerCell}>RT</Text>
-            </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={true} style={styles.tableScrollView}>
+            <View style={styles.table}>
+              <View style={styles.tableHeader}>
+                {fieldConfigs.table.map((field, index) => (
+                  <Text 
+                    key={field.id} 
+                    style={[
+                      styles.headerCell, 
+                      index < fieldConfigs.table.length - 1 && { borderRightWidth: 1, borderRightColor: '#e5e7eb' }
+                    ]}
+                  >
+                    {field.label}
+                  </Text>
+                ))}
+              </View>
             {card.welds && card.welds.length > 0 ? (
               card.welds.map((weld: any, index: number) => (
                 <View key={index} style={styles.tableRow}>
-                  <Text style={[styles.cell, { borderRightWidth: 1, borderRightColor: '#e5e7eb' }]}>{weld.weldNumber || 'N/A'}</Text>
-                  <Text style={[styles.cell, { borderRightWidth: 1, borderRightColor: '#e5e7eb' }]}>{weld.widNumber || 'N/A'}</Text>
-                  <Text style={[styles.cell, { borderRightWidth: 1, borderRightColor: '#e5e7eb' }]}>{weld.pipeSizeInches || 'N/A'}</Text>
-                  <Text style={[styles.cell, { borderRightWidth: 1, borderRightColor: '#e5e7eb' }]}>{weld.typeOfWeld || 'N/A'}</Text>
-                  <Text style={[styles.cell, { borderRightWidth: 1, borderRightColor: '#e5e7eb' }]}>{weld.capSize || 'N/A'}</Text>
-                  <Text style={[styles.cell, { borderRightWidth: 1, borderRightColor: '#e5e7eb' }]}>{weld.passes || 'N/A'}</Text>
-                  <Text style={[styles.cell, { borderRightWidth: 1, borderRightColor: '#e5e7eb' }]}>{weld.wpsNumberAndTitle || 'N/A'}</Text>
-                  <Text style={[styles.cell, { borderRightWidth: 1, borderRightColor: '#e5e7eb' }]}>{weld.electrodeTypeBrand || 'N/A'}</Text>
-                  <Text style={styles.cell}>{weld.rt || 'N/A'}</Text>
+                  {fieldConfigs.table.map((field, fieldIndex) => (
+                    <Text 
+                      key={field.id} 
+                      style={[
+                        styles.cell, 
+                        fieldIndex < fieldConfigs.table.length - 1 && { borderRightWidth: 1, borderRightColor: '#e5e7eb' }
+                      ]}
+                    >
+                      {renderFieldValue(field, weld)}
+                    </Text>
+                  ))}
                 </View>
               ))
             ) : (
               <View style={styles.tableRow}>
                 <Text style={[styles.cell, { borderRightWidth: 1, borderRightColor: '#e5e7eb' }]}>No welds</Text>
-                <Text style={[styles.cell, { borderRightWidth: 1, borderRightColor: '#e5e7eb' }]}>-</Text>
-                <Text style={[styles.cell, { borderRightWidth: 1, borderRightColor: '#e5e7eb' }]}>-</Text>
-                <Text style={[styles.cell, { borderRightWidth: 1, borderRightColor: '#e5e7eb' }]}>-</Text>
-                <Text style={[styles.cell, { borderRightWidth: 1, borderRightColor: '#e5e7eb' }]}>-</Text>
-                <Text style={[styles.cell, { borderRightWidth: 1, borderRightColor: '#e5e7eb' }]}>-</Text>
-                <Text style={[styles.cell, { borderRightWidth: 1, borderRightColor: '#e5e7eb' }]}>-</Text>
-                <Text style={[styles.cell, { borderRightWidth: 1, borderRightColor: '#e5e7eb' }]}>-</Text>
-                <Text style={styles.cell}>-</Text>
+                {fieldConfigs.table.slice(1).map((field, fieldIndex) => (
+                  <Text 
+                    key={field.id} 
+                    style={[
+                      styles.cell, 
+                      fieldIndex < fieldConfigs.table.length - 2 && { borderRightWidth: 1, borderRightColor: '#e5e7eb' }
+                    ]}
+                  >
+                    -
+                  </Text>
+                ))}
               </View>
             )}
-          </View>
+            </View>
+          </ScrollView>
         </View>
 
         {/* Images Section - 4 Columns */}
@@ -897,11 +971,16 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   
+  tableScrollView: {
+    maxHeight: 300,
+  },
+  
   table: {
     borderWidth: 1,
     borderColor: '#e5e7eb',
     borderRadius: 8,
     overflow: 'hidden',
+    minWidth: '100%',
   },
   
   tableHeader: {
@@ -912,9 +991,9 @@ const styles = StyleSheet.create({
   },
   
   headerCell: {
-    flex: 1,
+    width: 120,
     padding: 12,
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
     color: '#374151',
     textAlign: 'center',
@@ -928,9 +1007,9 @@ const styles = StyleSheet.create({
   },
   
   cell: {
-    flex: 1,
+    width: 120,
     padding: 12,
-    fontSize: 14,
+    fontSize: 12,
     color: '#374151',
     textAlign: 'center',
   },
@@ -1054,7 +1133,7 @@ const styles = StyleSheet.create({
     shadowRadius: 0,
   },
   
-  actionButton: {
+  headerActionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 12,
@@ -1111,7 +1190,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
 
-  headerActionButton: {
+  navigationActionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 8,

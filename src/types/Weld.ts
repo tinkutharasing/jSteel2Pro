@@ -15,6 +15,7 @@ export interface Weld {
   wpsNumberAndTitle: string;
   electrodeTypeBrand: string;
   rt: string;
+  htNumber?: string;
   
   // Legacy fields (kept for compatibility)
   welderCompany: boolean;
@@ -40,6 +41,9 @@ export interface Weld {
   // Metadata
   createdAt?: string;
   updatedAt?: string;
+  
+  // Allow additional custom fields
+  [key: string]: any;
 }
 
 export interface WeldFormData {
@@ -57,6 +61,7 @@ export interface WeldFormData {
   wpsNumberAndTitle: string;
   electrodeTypeBrand: string;
   rt: string;
+  htNumber?: string;
   
   // Legacy fields (kept for compatibility)
   welderCompany: boolean;

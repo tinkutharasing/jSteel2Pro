@@ -17,6 +17,10 @@ import { DatePickerField } from '../components/DatePickerField';
 import { SignatureField } from '../components/SignatureField';
 import { ImageUploadField } from '../components/ImageUploadField';
 import KeyboardAwareScrollView from '../components/KeyboardAwareScrollView';
+import { FieldConfig } from '../types/FieldConfig';
+import FieldConfigService from '../services/FieldConfigService';
+import DynamicFieldRenderer from '../components/DynamicFieldRenderer';
+import FieldManagementModal from '../components/FieldManagementModal';
 
 interface BulkWeldEditorScreenProps {
   onSaveCard: (card: WeldCardData) => void;
@@ -42,6 +46,14 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
   
   // State for responsive dimensions
   const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
+  
+  // Field configuration state
+  const [fieldConfigs, setFieldConfigs] = useState<{
+    header: FieldConfig[];
+    table: FieldConfig[];
+    footer: FieldConfig[];
+  }>({ header: [], table: [], footer: [] });
+  const [showFieldManagement, setShowFieldManagement] = useState(false);
   
   // Refs for managing focus between input fields
   const inputRefs = useRef<{ [key: string]: React.RefObject<any> }>({});
@@ -109,21 +121,63 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
     return () => subscription?.remove();
   }, []);
 
+  // Load field configurations
+  useEffect(() => {
+    const loadFieldConfigs = async () => {
+      try {
+        const fieldService = FieldConfigService.getInstance();
+        await fieldService.initialize();
+        
+        const headerFields = fieldService.getVisibleFields('header');
+        const tableFields = fieldService.getVisibleFields('table');
+        const footerFields = fieldService.getVisibleFields('footer');
+        
+        setFieldConfigs({
+          header: headerFields,
+          table: tableFields,
+          footer: footerFields,
+        });
+      } catch (error) {
+        console.error('Error loading field configs:', error);
+      }
+    };
+
+    loadFieldConfigs();
+  }, []);
+
+  const handleFieldConfigChanged = async () => {
+    try {
+      const fieldService = FieldConfigService.getInstance();
+      const headerFields = fieldService.getVisibleFields('header');
+      const tableFields = fieldService.getVisibleFields('table');
+      const footerFields = fieldService.getVisibleFields('footer');
+      
+      setFieldConfigs({
+        header: headerFields,
+        table: tableFields,
+        footer: footerFields,
+      });
+    } catch (error) {
+      console.error('Error reloading field configs:', error);
+    }
+  };
+
   // Create dynamic styles based on current screen width
   const dynamicStyles = StyleSheet.create({
     // Column widths - action column fixed width, rest distributed proportionally
     // Action column: fixed width for delete button
-    // Data columns: distribute remaining width proportionally
+    // Data columns: distribute remaining width proportionally (10 columns total)
     actionCol: { width: 60 }, // Fixed width for delete button
-    weldNumberCol: { width: Math.max(80, (screenWidth - 32 - 60) * 0.11) }, // 11% of remaining width
-    widCol: { width: Math.max(80, (screenWidth - 32 - 60) * 0.11) }, // 11% of remaining width
-    pipeSizeCol: { width: Math.max(90, (screenWidth - 32 - 60) * 0.12) }, // 12% of remaining width
-    typeCol: { width: Math.max(100, (screenWidth - 32 - 60) * 0.13) }, // 13% of remaining width
-    capSizeCol: { width: Math.max(80, (screenWidth - 32 - 60) * 0.11) }, // 11% of remaining width
-    passesCol: { width: Math.max(70, (screenWidth - 32 - 60) * 0.10) }, // 10% of remaining width
-    wpsCol: { width: Math.max(100, (screenWidth - 32 - 60) * 0.13) }, // 13% of remaining width
-    electrodeCol: { width: Math.max(100, (screenWidth - 32 - 60) * 0.13) }, // 13% of remaining width
-    rtCol: { width: Math.max(70, (screenWidth - 32 - 60) * 0.10), borderRightWidth: 0 }, // 10% of remaining width
+    weldNumberCol: { width: Math.max(80, (screenWidth - 32 - 60) * 0.10) }, // 10% of remaining width
+    widCol: { width: Math.max(80, (screenWidth - 32 - 60) * 0.10) }, // 10% of remaining width
+    pipeSizeCol: { width: Math.max(90, (screenWidth - 32 - 60) * 0.11) }, // 11% of remaining width
+    typeCol: { width: Math.max(100, (screenWidth - 32 - 60) * 0.12) }, // 12% of remaining width
+    capSizeCol: { width: Math.max(80, (screenWidth - 32 - 60) * 0.10) }, // 10% of remaining width
+    passesCol: { width: Math.max(90, (screenWidth - 32 - 60) * 0.12) }, // 12% of remaining width (made wider)
+    wpsCol: { width: Math.max(100, (screenWidth - 32 - 60) * 0.12) }, // 12% of remaining width
+    electrodeCol: { width: Math.max(100, (screenWidth - 32 - 60) * 0.12) }, // 12% of remaining width
+    rtCol: { width: Math.max(70, (screenWidth - 32 - 60) * 0.09) }, // 9% of remaining width
+    htCol: { width: Math.max(90, (screenWidth - 32 - 60) * 0.12), borderRightWidth: 0 }, // 12% of remaining width (made wider)
     tableContainer: {
       backgroundColor: '#ffffff',
       marginHorizontal: 16,
@@ -151,10 +205,19 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
     setEditableWelds(prev => prev.map(weld => ({ ...weld, [field]: value })));
   };
 
-  const updateWeldField = (weldIndex: number, field: keyof Weld, value: string | boolean) => {
-    setEditableWelds(prev => prev.map((weld, index) => 
-      index === weldIndex ? { ...weld, [field]: value } : weld
-    ));
+  const updateWeldField = (weldIndex: number, field: string, value: string | boolean) => {
+    console.log('=== UPDATING WELD FIELD ===');
+    console.log('Weld index:', weldIndex);
+    console.log('Field:', field);
+    console.log('Value:', value);
+    
+    setEditableWelds(prev => {
+      const updated = prev.map((weld, index) => 
+        index === weldIndex ? { ...weld, [field]: value } : weld
+      );
+      console.log('Updated weld data:', updated[weldIndex]);
+      return updated;
+    });
   };
 
   const addNewWeldRow = () => {
@@ -228,6 +291,11 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
       createdAt: existingCard?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
+    
+    console.log('=== SAVING CARD ===');
+    console.log('Card data:', card);
+    console.log('First weld data:', card.welds[0]);
+    console.log('First weld keys:', Object.keys(card.welds[0]));
 
     onSaveCard(card);
     Alert.alert('Success', `Card with ${validWelds.length} welds saved successfully!`);
@@ -268,9 +336,9 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
     Alert.alert('Success', `Duplicate card with ${validWelds.length} welds saved successfully!`);
   };
 
-  const renderEditableCell = (weld: Weld, field: keyof Weld, weldIndex: number, placeholder: string) => {
+  const renderEditableCell = (weld: any, field: string, weldIndex: number, placeholder: string) => {
     // Define the order of fields for tab navigation (excluding the delete button)
-    const fieldOrder = ['weldNumber', 'widNumber', 'pipeSizeInches', 'typeOfWeld', 'capSize', 'passes', 'wpsNumberAndTitle', 'electrodeTypeBrand', 'rt'];
+    const fieldOrder = ['weldNumber', 'widNumber', 'pipeSizeInches', 'typeOfWeld', 'capSize', 'passes', 'wpsNumberAndTitle', 'electrodeTypeBrand', 'rt', 'htNumber'];
     const currentFieldIndex = fieldOrder.indexOf(field);
     
     // Create a unique key for this input field
@@ -335,43 +403,33 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
             <Text style={styles.screenTitle}>
               {existingCard ? 'Edit Weld Card' : 'Add New Weld Card'}
             </Text>
-            <View style={styles.headerSpacer} />
+            <TouchableOpacity 
+              style={styles.fieldManagementButton} 
+              onPress={() => setShowFieldManagement(true)}
+            >
+              <Icon name="settings" size={24} color="#3b82f6" />
+            </TouchableOpacity>
           </View>
 
-          {/* Form Header Section */}
+          {/* Form Header Section - Dynamic */}
           <View style={styles.headerSection}>
             <View style={styles.headerRow}>
-              <View style={styles.dateCell}>
-                <Text style={styles.headerLabel}>Date:</Text>
-                <DatePickerField
-                  label=""
-                  value={headerData.date}
-                  onDateChange={(date) => updateHeaderField('date', date)}
-                />
-              </View>
-              <View style={[styles.imagesContainer, dynamicStyles.imagesContainer]}>
-                <View style={[styles.imageCell, dynamicStyles.imageCell]}>
-                  <Text style={styles.headerLabel}>Weld Sketch:</Text>
-                  <ImageUploadField
-                    label=""
-                    value={headerData.weldSketch || ''}
-                    onImageChange={(imageUri) => updateHeaderField('weldSketch', imageUri)}
-                    description={headerData.weldSketchDescription || ''}
-                    onDescriptionChange={(description) => updateHeaderField('weldSketchDescription', description)}
-                    placeholder="Upload Weld Sketch"
+              {fieldConfigs.header.map((field) => (
+                <View key={field.id} style={[styles.headerCell, { flex: field.width || 1 }]}>
+                  <Text style={styles.headerLabel}>{field.label}:</Text>
+                  <DynamicFieldRenderer
+                    field={field}
+                    value={headerData[field.key as keyof typeof headerData] || ''}
+                    onChange={(value) => updateHeaderField(field.key as keyof typeof headerData, value)}
+                    onDescriptionChange={(description) => {
+                      if (field.key === 'weldSketch') {
+                        updateHeaderField('weldSketchDescription', description);
+                      }
+                    }}
+                    onClear={() => updateHeaderField(field.key as keyof typeof headerData, '')}
                   />
                 </View>
-                <View style={[styles.imageCell, dynamicStyles.imageCell]}>
-                  <Text style={styles.headerLabel}>Welder Signature:</Text>
-                  <SignatureField
-                    label=""
-                    value={headerData.welderSignature || ''}
-                    onSignatureCaptured={(signature) => updateHeaderField('welderSignature', signature)}
-                    onClear={() => updateHeaderField('welderSignature', '')}
-                  />
-                </View>
-
-              </View>
+              ))}
             </View>
           </View>
 
@@ -397,19 +455,21 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
           {/* Table Container */}
           <ScrollView horizontal showsHorizontalScrollIndicator={true} style={styles.tableScrollContainer}>
             <View style={dynamicStyles.tableContainer}>
-            {/* Table Header */}
+            {/* Table Header - Dynamic */}
             <View style={styles.tableHeader}>
               <View style={styles.tableHeaderRow}>
                 <Text style={[styles.tableHeaderCell, dynamicStyles.actionCol]}>Actions</Text>
-                <Text style={[styles.tableHeaderCell, dynamicStyles.weldNumberCol]}>WELD #</Text>
-                <Text style={[styles.tableHeaderCell, dynamicStyles.widCol]}>WID #</Text>
-                <Text style={[styles.tableHeaderCell, dynamicStyles.pipeSizeCol]}>PIPE SIZE</Text>
-                <Text style={[styles.tableHeaderCell, dynamicStyles.typeCol]}>TYPE OF WELD</Text>
-                <Text style={[styles.tableHeaderCell, dynamicStyles.capSizeCol]}>CAP SIZE</Text>
-                <Text style={[styles.tableHeaderCell, dynamicStyles.passesCol]}>PASSES</Text>
-                <Text style={[styles.tableHeaderCell, dynamicStyles.wpsCol]}>WPS</Text>
-                <Text style={[styles.tableHeaderCell, dynamicStyles.electrodeCol]}>ELECTRODE</Text>
-                <Text style={[styles.tableHeaderCell, dynamicStyles.rtCol]}>RT</Text>
+                {fieldConfigs.table.map((field) => (
+                  <Text 
+                    key={field.id} 
+                    style={[
+                      styles.tableHeaderCell, 
+                      { width: Math.max(80, (screenWidth - 32 - 60) * (field.width || 0.1)) }
+                    ]}
+                  >
+                    {field.label}
+                  </Text>
+                ))}
               </View>
             </View>
 
@@ -436,53 +496,18 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
                   </TouchableOpacity>
                 </View>
 
-                {/* WELD # */}
-                <View style={[styles.tableCell, dynamicStyles.weldNumberCol]}>
-                  {renderEditableCell(weld, 'weldNumber', index, 'Weld #')}
-                </View>
-
-                {/* WID # */}
-                <View style={[styles.tableCell, dynamicStyles.widCol]}>
-                  {renderEditableCell(weld, 'widNumber', index, 'WID #')}
-                </View>
-
-                {/* PIPE SIZE */}
-                <View style={[styles.tableCell, dynamicStyles.pipeSizeCol]}>
-                  {renderEditableCell(weld, 'pipeSizeInches', index, 'Size')}
-                </View>
-
-                {/* TYPE OF WELD */}
-                <View style={[styles.tableCell, dynamicStyles.typeCol]}>
-                  {renderEditableCell(weld, 'typeOfWeld', index, 'Type')}
-                </View>
-
-                {/* CAP SIZE */}
-                <View style={[styles.tableCell, dynamicStyles.capSizeCol]}>
-                  {renderEditableCell(weld, 'capSize', index, 'Cap Size')}
-                </View>
-
-                {/* PASSES */}
-                <View style={[styles.tableCell, dynamicStyles.passesCol]}>
-                  {renderEditableCell(weld, 'passes', index, 'Passes')}
-                </View>
-
-                {/* WPS */}
-                <View style={[styles.tableCell, dynamicStyles.wpsCol]}>
-                  {renderEditableCell(weld, 'wpsNumberAndTitle', index, 'WPS #')}
-                </View>
-
-                {/* ELECTRODE */}
-                <View style={[styles.tableCell, dynamicStyles.electrodeCol]}>
-                  {renderEditableCell(weld, 'electrodeTypeBrand', index, 'Electrode')}
-                </View>
-
-                {/* RT */}
-                <View style={[styles.tableCell, dynamicStyles.rtCol]}>
-                  {renderEditableCell(weld, 'rt', index, 'RT')}
-                </View>
-
-
-
+                {/* Dynamic Table Fields */}
+                {fieldConfigs.table.map((field) => (
+                  <View 
+                    key={field.id} 
+                    style={[
+                      styles.tableCell, 
+                      { width: Math.max(80, (screenWidth - 32 - 60) * (field.width || 0.1)) }
+                    ]}
+                  >
+                    {renderEditableCell(weld, field.key, index, field.placeholder)}
+                  </View>
+                ))}
 
               </View>
             ))}
@@ -496,6 +521,28 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
               <Text style={styles.addRowButtonText}>Add New Weld Row</Text>
             </TouchableOpacity>
           </View>
+
+          {/* Footer Section - Dynamic */}
+          {fieldConfigs.footer.length > 0 && (
+            <View style={styles.footerSection}>
+              {fieldConfigs.footer.map((field) => (
+                <View key={field.id} style={styles.footerField}>
+                  <Text style={styles.footerLabel}>{field.label}:</Text>
+                  <DynamicFieldRenderer
+                    field={field}
+                    value={headerData[field.key as keyof typeof headerData] || ''}
+                    onChange={(value) => updateHeaderField(field.key as keyof typeof headerData, value)}
+                    onDescriptionChange={(description) => {
+                      if (field.key === 'weldSketch') {
+                        updateHeaderField('weldSketchDescription', description);
+                      }
+                    }}
+                    onClear={() => updateHeaderField(field.key as keyof typeof headerData, '')}
+                  />
+                </View>
+              ))}
+            </View>
+          )}
 
           {/* Action Buttons */}
           <View style={styles.actionSection}>
@@ -511,6 +558,13 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
           </View>
         </KeyboardAwareScrollView>
       </View>
+
+      {/* Field Management Modal */}
+      <FieldManagementModal
+        visible={showFieldManagement}
+        onClose={() => setShowFieldManagement(false)}
+        onConfigChanged={handleFieldConfigChanged}
+      />
     </SafeAreaView>
   );
 };
@@ -541,8 +595,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#ffffff',
   },
-  headerSpacer: {
-    width: 40, // Same width as back button for centering
+  fieldManagementButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#ffffff',
   },
   searchSection: {
     marginHorizontal: 16,
@@ -717,6 +773,24 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     color: '#3b82f6',
     fontWeight: '600',
+  },
+  footerSection: {
+    backgroundColor: '#ffffff',
+    padding: 16,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
+  },
+  footerField: {
+    marginBottom: 16,
+  },
+  footerLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 4,
   },
   actionSection: {
     flexDirection: 'row',

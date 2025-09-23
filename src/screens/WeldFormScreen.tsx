@@ -12,6 +12,9 @@ import { DatePickerField } from '../components/DatePickerField';
 import { ImageUploadField } from '../components/ImageUploadField';
 import { WeldFormData } from '../types/Weld';
 import KeyboardAwareScrollView from '../components/KeyboardAwareScrollView';
+import { FieldConfig } from '../types/FieldConfig';
+import FieldConfigService from '../services/FieldConfigService';
+import DynamicFieldRenderer from '../components/DynamicFieldRenderer';
 
 interface WeldFormScreenProps {
   formData: WeldFormData;
@@ -32,6 +35,11 @@ export const WeldFormScreen: React.FC<WeldFormScreenProps> = ({
 }) => {
   // State for responsive dimensions
   const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
+  const [fieldConfigs, setFieldConfigs] = useState<{
+    header: FieldConfig[];
+    table: FieldConfig[];
+    footer: FieldConfig[];
+  }>({ header: [], table: [], footer: [] });
 
   // Listen for screen dimension changes (rotation)
   useEffect(() => {
@@ -42,20 +50,45 @@ export const WeldFormScreen: React.FC<WeldFormScreenProps> = ({
     return () => subscription?.remove();
   }, []);
 
+  // Load field configurations
+  useEffect(() => {
+    const loadFieldConfigs = async () => {
+      try {
+        const fieldService = FieldConfigService.getInstance();
+        await fieldService.initialize();
+        
+        const headerFields = fieldService.getVisibleFields('header');
+        const tableFields = fieldService.getVisibleFields('table');
+        const footerFields = fieldService.getVisibleFields('footer');
+        
+        setFieldConfigs({
+          header: headerFields,
+          table: tableFields,
+          footer: footerFields,
+        });
+      } catch (error) {
+        console.error('Error loading field configs:', error);
+      }
+    };
+
+    loadFieldConfigs();
+  }, []);
+
   // Create dynamic styles based on current screen width
   const dynamicStyles = StyleSheet.create({
     // Column widths - distribute width proportionally with reasonable minimums
-    // Total columns: 9 (weldNumber, wid, pipeSize, type, capSize, passes, wps, electrode, rt)
+    // Total columns: 10 (weldNumber, wid, pipeSize, type, capSize, passes, wps, electrode, rt, ht)
     // Use flex for better distribution, with reasonable minimum widths
     weldNumberCol: { flex: 1, minWidth: 70 },
     widCol: { flex: 1, minWidth: 70 },
     pipeSizeCol: { flex: 1.1, minWidth: 80 },
     typeCol: { flex: 1.3, minWidth: 90 },
     capSizeCol: { flex: 1, minWidth: 70 },
-    passesCol: { flex: 0.9, minWidth: 60 },
+    passesCol: { flex: 1.2, minWidth: 80 }, // Made wider
     wpsCol: { flex: 1.3, minWidth: 90 },
     electrodeCol: { flex: 1.4, minWidth: 100 },
     rtCol: { flex: 0.9, minWidth: 60 },
+    htCol: { flex: 1.2, minWidth: 80 }, // Made wider
   });
 
   const handleSave = () => {
@@ -68,146 +101,79 @@ export const WeldFormScreen: React.FC<WeldFormScreenProps> = ({
 
   return (
     <KeyboardAwareScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Header Section - Fixed at top */}
+      {/* Header Section - Dynamic */}
       <View style={styles.headerSection}>
         <View style={styles.headerRow}>
-          <View style={styles.headerCell}>
-            <Text style={styles.headerLabel}>Date:</Text>
-            <DatePickerField
-              label=""
-              value={formData.date || ''}
-              onDateChange={(date) => onUpdateField('date', date)}
-            />
-          </View>
-          <View style={styles.headerCell}>
-            <Text style={styles.headerLabel}>Welder:</Text>
-            <FormField
-              label=""
-              value={formData.weldingContractorName || ''}
-              onChangeText={(value) => onUpdateField('weldingContractorName', value)}
-              placeholder="Name"
-            />
-          </View>
-          <View style={styles.headerCell}>
-            <Text style={styles.headerLabel}>Location:</Text>
-            <FormField
-              label=""
-              value={formData.woJoNumber || ''}
-              onChangeText={(value) => onUpdateField('woJoNumber', value)}
-              placeholder="Job Location"
-            />
-          </View>
+          {fieldConfigs.header.map((field) => (
+            <View key={field.id} style={[styles.headerCell, { flex: field.width || 1 }]}>
+              <Text style={styles.headerLabel}>{field.label}:</Text>
+              <DynamicFieldRenderer
+                field={field}
+                value={formData[field.key as keyof WeldFormData]}
+                onChange={(value) => onUpdateField(field.key as keyof WeldFormData, value)}
+              />
+            </View>
+          ))}
         </View>
       </View>
 
-      {/* Table Header */}
+      {/* Table Header - Dynamic */}
       <View style={styles.tableHeader}>
         <View style={styles.tableHeaderRow}>
-          <Text style={[styles.tableHeaderCell, dynamicStyles.weldNumberCol]}>WELD #</Text>
-          <Text style={[styles.tableHeaderCell, dynamicStyles.widCol]}>WID #</Text>
-          <Text style={[styles.tableHeaderCell, dynamicStyles.pipeSizeCol]}>PIPE SIZE</Text>
-          <Text style={[styles.tableHeaderCell, dynamicStyles.typeCol]}>TYPE OF WELD</Text>
-          <Text style={[styles.tableHeaderCell, dynamicStyles.capSizeCol]}>CAP SIZE</Text>
-          <Text style={[styles.tableHeaderCell, dynamicStyles.passesCol]}>PASSES</Text>
-          <Text style={[styles.tableHeaderCell, dynamicStyles.wpsCol]}>WPS</Text>
-          <Text style={[styles.tableHeaderCell, dynamicStyles.electrodeCol]}>ELECTRODE</Text>
-          <Text style={[styles.tableHeaderCell, dynamicStyles.rtCol]}>RT</Text>
+          {fieldConfigs.table.map((field) => (
+            <Text 
+              key={field.id} 
+              style={[
+                styles.tableHeaderCell, 
+                { flex: field.width || 1, minWidth: 60 }
+              ]}
+            >
+              {field.label}
+            </Text>
+          ))}
         </View>
       </View>
 
-      {/* Table Row - Single row for now, can be expanded */}
+      {/* Table Row - Dynamic */}
       <View style={styles.tableRow}>
-        {/* WELD # */}
-        <View style={[styles.tableCell, dynamicStyles.weldNumberCol]}>
-          <FormField
-            label=""
-            value={formData.weldNumber || ''}
-            onChangeText={(value) => onUpdateField('weldNumber', value)}
-            placeholder="Weld #"
-            required
-          />
-        </View>
-
-        {/* WID # */}
-        <View style={[styles.tableCell, dynamicStyles.widCol]}>
-          <FormField
-            label=""
-            value={formData.widNumber || ''}
-            onChangeText={(value) => onUpdateField('widNumber', value)}
-            placeholder="WID #"
-          />
-        </View>
-
-        {/* PIPE SIZE */}
-        <View style={[styles.tableCell, dynamicStyles.pipeSizeCol]}>
-          <FormField
-            label=""
-            value={formData.pipeSizeInches || ''}
-            onChangeText={(value) => onUpdateField('pipeSizeInches', value)}
-            placeholder="Size"
-          />
-        </View>
-
-        {/* TYPE OF WELD */}
-        <View style={[styles.tableCell, dynamicStyles.typeCol]}>
-          <FormField
-            label=""
-            value={formData.typeOfWeld || ''}
-            onChangeText={(value) => onUpdateField('typeOfWeld', value)}
-            placeholder="Type"
-          />
-        </View>
-
-        {/* CAP SIZE */}
-        <View style={[styles.tableCell, dynamicStyles.capSizeCol]}>
-          <FormField
-            label=""
-            value={formData.capSize || ''}
-            onChangeText={(value) => onUpdateField('capSize', value)}
-            placeholder="Cap Size"
-          />
-        </View>
-
-        {/* PASSES */}
-        <View style={[styles.tableCell, dynamicStyles.passesCol]}>
-          <FormField
-            label=""
-            value={formData.passes || ''}
-            onChangeText={(value) => onUpdateField('passes', value)}
-            placeholder="Passes"
-          />
-        </View>
-
-        {/* WPS */}
-        <View style={[styles.tableCell, dynamicStyles.wpsCol]}>
-          <FormField
-            label=""
-            value={formData.wpsNumberAndTitle || ''}
-            onChangeText={(value) => onUpdateField('wpsNumberAndTitle', value)}
-            placeholder="WPS #"
-          />
-        </View>
-
-        {/* ELECTRODE */}
-        <View style={[styles.tableCell, dynamicStyles.electrodeCol]}>
-          <FormField
-            label=""
-            value={formData.electrodeTypeBrand || ''}
-            onChangeText={(value) => onUpdateField('electrodeTypeBrand', value)}
-            placeholder="Electrode"
-          />
-        </View>
-
-        {/* RT */}
-        <View style={[styles.tableCell, dynamicStyles.rtCol]}>
-          <FormField
-            label=""
-            value={formData.rt || ''}
-            onChangeText={(value) => onUpdateField('rt', value)}
-            placeholder="RT"
-          />
-        </View>
+        {fieldConfigs.table.map((field) => (
+          <View 
+            key={field.id} 
+            style={[
+              styles.tableCell, 
+              { flex: field.width || 1, minWidth: 60 }
+            ]}
+          >
+            <DynamicFieldRenderer
+              field={field}
+              value={formData[field.key as keyof WeldFormData]}
+              onChange={(value) => onUpdateField(field.key as keyof WeldFormData, value)}
+            />
+          </View>
+        ))}
       </View>
+
+      {/* Footer Section - Dynamic */}
+      {fieldConfigs.footer.length > 0 && (
+        <View style={styles.footerSection}>
+          {fieldConfigs.footer.map((field) => (
+            <View key={field.id} style={styles.footerField}>
+              <Text style={styles.footerLabel}>{field.label}:</Text>
+              <DynamicFieldRenderer
+                field={field}
+                value={formData[field.key as keyof WeldFormData]}
+                onChange={(value) => onUpdateField(field.key as keyof WeldFormData, value)}
+                onDescriptionChange={(description) => {
+                  if (field.key === 'weldSketch') {
+                    onUpdateField('weldSketchDescription', description);
+                  }
+                }}
+                onClear={() => onUpdateField(field.key as keyof WeldFormData, '')}
+              />
+            </View>
+          ))}
+        </View>
+      )}
 
       {/* Action Buttons */}
       <View style={styles.actionSection}>
@@ -286,6 +252,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     minWidth: 60, // Ensure minimum cell width
+  },
+  footerSection: {
+    backgroundColor: '#ffffff',
+    padding: 16,
+    marginHorizontal: 8,
+    marginBottom: 8,
+    borderRadius: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  footerField: {
+    marginBottom: 16,
+  },
+  footerLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#495057',
+    marginBottom: 4,
   },
 
   actionSection: {

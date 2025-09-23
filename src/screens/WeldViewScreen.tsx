@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Image } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { Weld } from '../types/Weld';
 import { formatDateToUS } from '../utils/dateUtils';
+import { FieldConfig } from '../types/FieldConfig';
+import FieldConfigService from '../services/FieldConfigService';
 
 interface WeldViewScreenProps {
   weld: Weld;
@@ -11,8 +13,45 @@ interface WeldViewScreenProps {
 }
 
 export const WeldViewScreen: React.FC<WeldViewScreenProps> = ({ weld, onBack, onEdit }) => {
+  const [fieldConfigs, setFieldConfigs] = useState<{
+    header: FieldConfig[];
+    table: FieldConfig[];
+    footer: FieldConfig[];
+  }>({ header: [], table: [], footer: [] });
+
   // Detect if we're on a tablet (width > 768px)
   const isTablet = Dimensions.get('window').width > 768;
+
+  useEffect(() => {
+    loadFieldConfigs();
+  }, []);
+
+  const loadFieldConfigs = async () => {
+    try {
+      const fieldService = FieldConfigService.getInstance();
+      await fieldService.initialize();
+      
+      const headerFields = fieldService.getVisibleFields('header');
+      const tableFields = fieldService.getVisibleFields('table');
+      const footerFields = fieldService.getVisibleFields('footer');
+      
+      setFieldConfigs({
+        header: headerFields,
+        table: tableFields,
+        footer: footerFields,
+      });
+    } catch (error) {
+      console.error('Error loading field configs:', error);
+    }
+  };
+
+  const renderFieldValue = (field: FieldConfig) => {
+    const value = (weld as any)[field.key];
+    if (value === null || value === undefined || value === '') {
+      return 'N/A';
+    }
+    return String(value);
+  };
 
   return (
     <View style={styles.container}>
@@ -34,160 +73,36 @@ export const WeldViewScreen: React.FC<WeldViewScreenProps> = ({ weld, onBack, on
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Header Information</Text>
           
-          <View style={styles.viewRow}>
-            <Text style={styles.viewLabel}>Welder Name:</Text>
-            <Text style={styles.viewValue}>{weld.welderName || 'N/A'}</Text>
-          </View>
-          
-          <View style={styles.viewRow}>
-            <Text style={styles.viewLabel}>Date:</Text>
-            <Text style={styles.viewValue}>{formatDateToUS(weld.date)}</Text>
-          </View>
-          
-          <View style={styles.viewRow}>
-            <Text style={styles.viewLabel}>Welder Type:</Text>
-            <Text style={styles.viewValue}>
-              {weld.welderCompany ? 'Company' : ''}
-              {weld.welderCompany && weld.welderContractor ? ' | ' : ''}
-              {weld.welderContractor ? 'Contractor' : ''}
-              {!weld.welderCompany && !weld.welderContractor ? 'N/A' : ''}
-            </Text>
-          </View>
-          
-          <View style={styles.viewRow}>
-            <Text style={styles.viewLabel}>LOA/TCC/MOD:</Text>
-            <Text style={styles.viewValue}>{weld.loaTccMod || 'N/A'}</Text>
-          </View>
-          
-          <View style={styles.viewRow}>
-            <Text style={styles.viewLabel}>Welding Contractor Name:</Text>
-            <Text style={styles.viewValue}>{weld.weldingContractorName || 'N/A'}</Text>
-          </View>
-          
-          <View style={styles.viewRow}>
-            <Text style={styles.viewLabel}>WO/JO#:</Text>
-            <Text style={styles.viewValue}>{weld.woJoNumber || 'N/A'}</Text>
-          </View>
-          
-          <View style={styles.viewRow}>
-            <Text style={styles.viewLabel}>Welding Inspector Name:</Text>
-            <Text style={styles.viewValue}>{weld.weldingInspectorName || 'N/A'}</Text>
-          </View>
-          
-          <View style={styles.viewRow}>
-            <Text style={styles.viewLabel}>Welding Inspection Company:</Text>
-            <Text style={styles.viewValue}>{weld.weldingInspectionCompany || 'N/A'}</Text>
-          </View>
-          
-          <View style={styles.viewRow}>
-            <Text style={styles.viewLabel}>Job Location:</Text>
-            <Text style={styles.viewValue}>{weld.jobLocation || 'N/A'}</Text>
-          </View>
-          
-          <View style={styles.viewRow}>
-            <Text style={styles.viewLabel}>Number of Welds Made Today:</Text>
-            <Text style={styles.viewValue}>{weld.numberOfWeldsMadeToday || 'N/A'}</Text>
-          </View>
-          
-          <View style={styles.viewRow}>
-            <Text style={styles.viewLabel}>Stencil #:</Text>
-            <Text style={styles.viewValue}>{weld.stencilNumber || 'N/A'}</Text>
-          </View>
-          
-          <View style={styles.viewRow}>
-            <Text style={styles.viewLabel}>Process Used:</Text>
-            <Text style={styles.viewValue}>{weld.processUsed || 'N/A'}</Text>
-          </View>
-          
-          <View style={styles.viewRow}>
-            <Text style={styles.viewLabel}>Status:</Text>
-            <View style={[
-              styles.statusBadge, 
-              weld.status === 'pending' ? styles.statusPending :
-              weld.status === 'approved' ? styles.statusApproved :
-              styles.statusRejected
-            ]}>
-              <Text style={styles.statusText}>{weld.status}</Text>
+          {fieldConfigs.header.map(field => (
+            <View key={field.id} style={styles.viewRow}>
+              <Text style={styles.viewLabel}>{field.label}:</Text>
+              <Text style={styles.viewValue}>{renderFieldValue(field)}</Text>
             </View>
-          </View>
+          ))}
         </View>
 
         {/* Weld Table */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Weld Table</Text>
           
-          <View style={styles.viewRow}>
-            <Text style={styles.viewLabel}>Weld #:</Text>
-            <Text style={styles.viewValue}>{weld.weldNumber || 'N/A'}</Text>
-          </View>
-          
-          <View style={styles.viewRow}>
-            <Text style={styles.viewLabel}>Pipe Size (In.):</Text>
-            <Text style={styles.viewValue}>{weld.pipeSizeInches || 'N/A'}</Text>
-          </View>
-          
-          <View style={styles.viewRow}>
-            <Text style={styles.viewLabel}>Butt:</Text>
-            <Text style={styles.viewValue}>{weld.butt || 'N/A'}</Text>
-          </View>
-          
-          <View style={styles.viewRow}>
-            <Text style={styles.viewLabel}>Fillet (Tee, Sleeve, Other):</Text>
-            <Text style={styles.viewValue}>{weld.fillet || 'N/A'}</Text>
-          </View>
-          
-          <View style={styles.viewRow}>
-            <Text style={styles.viewLabel}>Passes:</Text>
-            <Text style={styles.viewValue}>{weld.passes || 'N/A'}</Text>
-          </View>
-          
-          <View style={styles.viewRow}>
-            <Text style={styles.viewLabel}>Cap Size:</Text>
-            <Text style={styles.viewValue}>{weld.capSize || 'N/A'}</Text>
-          </View>
-          
-          <View style={styles.viewRow}>
-            <Text style={styles.viewLabel}>WPS # and Title Used:</Text>
-            <Text style={styles.viewValue}>{weld.wpsNumberAndTitle || 'N/A'}</Text>
-          </View>
-          
-          <View style={styles.viewRow}>
-            <Text style={styles.viewLabel}>Electrode Type/Brand:</Text>
-            <Text style={styles.viewValue}>{weld.electrodeTypeBrand || 'N/A'}</Text>
-          </View>
+          {fieldConfigs.table.map(field => (
+            <View key={field.id} style={styles.viewRow}>
+              <Text style={styles.viewLabel}>{field.label}:</Text>
+              <Text style={styles.viewValue}>{renderFieldValue(field)}</Text>
+            </View>
+          ))}
         </View>
 
-        {/* Images Section */}
+        {/* Footer Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Images</Text>
+          <Text style={styles.sectionTitle}>Additional Information</Text>
           
-          <View style={styles.viewRow}>
-            <Text style={styles.viewLabel}>Weld Sketch:</Text>
-            <Text style={styles.viewValue}>{weld.weldSketch ? 'Uploaded' : 'Not uploaded'}</Text>
-          </View>
-          
-          {weld.weldSketchDescription && (
-            <View style={styles.viewRow}>
-              <Text style={styles.viewLabel}>Weld Sketch Description:</Text>
-              <Text style={styles.viewValue}>{weld.weldSketchDescription}</Text>
+          {fieldConfigs.footer.map(field => (
+            <View key={field.id} style={styles.viewRow}>
+              <Text style={styles.viewLabel}>{field.label}:</Text>
+              <Text style={styles.viewValue}>{renderFieldValue(field)}</Text>
             </View>
-          )}
-          
-          <View style={styles.viewRow}>
-                    <Text style={styles.viewLabel}>Welder Signature:</Text>
-        <Text style={styles.viewValue}>{weld.welderSignature ? 'Signed' : 'Not signed'}</Text>
-      </View>
-      
-      {weld.welderSignature && (
-        <View style={styles.viewRow}>
-          <Text style={styles.viewLabel}>Signature Image:</Text>
-          <Image 
-            source={{ uri: weld.welderSignature }} 
-            style={styles.signatureImage}
-            resizeMode="contain"
-          />
-        </View>
-      )}
+          ))}
         </View>
       </ScrollView>
     </View>
