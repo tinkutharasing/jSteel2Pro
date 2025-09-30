@@ -62,12 +62,16 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
     if (existingCard) {
       // Initialize with existing card data
       setEditableWelds([...existingCard.welds]);
+      // Load all dynamic fields from the existing card (excluding welds array)
+      const { welds, ...cardDataWithoutWelds } = existingCard;
       setHeaderData({
+        // Include all other dynamic fields from the existing card first (excluding welds)
+        ...cardDataWithoutWelds,
+        // Then override with specific values to ensure they're not overridden
         date: existingCard.date || '',
         weldSketch: existingCard.weldSketch || '',
         weldSketchDescription: existingCard.weldSketchDescription || '',
         welderSignature: existingCard.welderSignature || '',
-  
       });
     } else {
       // Create new card with empty weld rows
@@ -192,6 +196,20 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
       gap: screenWidth < 768 ? 12 : 16,
       flexWrap: 'wrap',
     },
+    // Mobile responsive header row
+    headerRow: {
+      flexDirection: screenWidth < 768 ? 'column' : 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      gap: screenWidth < 768 ? 12 : 0,
+    },
+    // Mobile responsive header cell
+    headerCell: {
+      flex: screenWidth < 768 ? 0 : 1,
+      marginHorizontal: screenWidth < 768 ? 0 : 8,
+      marginBottom: screenWidth < 768 ? 8 : 0,
+      minWidth: screenWidth < 768 ? '100%' : 'auto',
+    },
     imageCell: {
       width: screenWidth < 768 ? '100%' : 'auto',
       minWidth: screenWidth < 768 ? '100%' : 180,
@@ -276,8 +294,11 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
       return;
     }
 
-    // Create card structure
+    // Create card structure with all dynamic fields
     const card: WeldCardData = {
+      // Include all dynamic fields from headerData first (both header and footer fields)
+      ...headerData,
+      // Then override with specific values to ensure they're not overridden
       cardId: existingCard?.cardId || `card-${Date.now()}`,
       date: headerData.date,
       weldSketch: headerData.weldSketch,
@@ -302,6 +323,9 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
   };
 
   const handleSaveAs = () => {
+    console.log('Save As button pressed - FUNCTION CALLED');
+    Alert.alert('Debug', 'Save As button was pressed!');
+    
     // Filter out empty weld rows
     const validWelds = editableWelds.filter(weld => 
       weld.weldNumber.trim() || 
@@ -316,8 +340,12 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
     }
 
     // Create a duplicate card with a new ID and timestamp
+    const newCardId = `duplicate-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const duplicateCard: WeldCardData = {
-      cardId: `duplicate-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      // Include all dynamic fields from headerData first (both header and footer fields)
+      ...headerData,
+      // Then override with specific values for the duplicate card
+      cardId: newCardId,
       date: headerData.date,
       weldSketch: headerData.weldSketch,
       weldSketchDescription: headerData.weldSketchDescription,
@@ -325,13 +353,14 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
       welds: validWelds.map(weld => ({
         ...weld,
         id: `duplicate-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        cardId: `duplicate-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        cardId: newCardId, // Use the same cardId for all welds
         date: headerData.date,
       })),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
+    console.log('Calling onSaveCard with duplicateCard:', duplicateCard.cardId);
     onSaveCard(duplicateCard);
     Alert.alert('Success', `Duplicate card with ${validWelds.length} welds saved successfully!`);
   };
@@ -413,9 +442,9 @@ export const BulkWeldEditorScreen: React.FC<BulkWeldEditorScreenProps> = ({
 
           {/* Form Header Section - Dynamic */}
           <View style={styles.headerSection}>
-            <View style={styles.headerRow}>
+            <View style={dynamicStyles.headerRow}>
               {fieldConfigs.header.map((field) => (
-                <View key={field.id} style={[styles.headerCell, { flex: field.width || 1 }]}>
+                <View key={field.id} style={[dynamicStyles.headerCell, { flex: field.width || 1 }]}>
                   <Text style={styles.headerLabel}>{field.label}:</Text>
                   <DynamicFieldRenderer
                     field={field}
@@ -646,11 +675,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#f1f5f9',
   },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
   dateCell: {
     flex: 0,
     minWidth: 200,
@@ -666,10 +690,6 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 180,
     marginBottom: 16,
-  },
-  headerCell: {
-    flex: 1,
-    marginHorizontal: 8,
   },
   headerLabel: {
     fontSize: 14,

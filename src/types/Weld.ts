@@ -84,7 +84,8 @@ export interface WeldFormData {
   // Signature Fields
   welderSignature: string;
   
-  // Metadata
+  // Allow additional dynamic fields from field management
+  [key: string]: any;
 }
 
 export type Screen = 'home' | 'view' | 'bulk-edit';

@@ -255,7 +255,10 @@ export default function App() {
     try {
       const stored = await AsyncStorage.getItem('weldCards');
       if (stored) {
-        setWeldCards(JSON.parse(stored));
+        const cards = JSON.parse(stored);
+        console.log('Loaded weld cards from storage:', cards.length, 'cards');
+        console.log('Card IDs:', cards.map(c => c.cardId));
+        setWeldCards(cards);
       } else {
         console.log('No weld cards found in storage; leaving state empty');
         setWeldCards([]);
@@ -614,7 +617,9 @@ export default function App() {
     try {
       console.log('Refreshing data from storage...');
       await loadWelds();
+      await loadWeldCards();
       await loadTrashWelds();
+      await loadTrashCards();
       console.log('Data refreshed from storage');
     } catch (error) {
       console.error('Error refreshing data:', error);
@@ -874,6 +879,7 @@ export default function App() {
 
   const handleSaveCard = async (card: WeldCardData) => {
     try {
+      console.log('handleSaveCard called with cardId:', card.cardId);
       // Validate card has welds
       if (card.welds.length === 0) {
         showError('No Welds', 'Please add at least one weld to the card before saving.');
@@ -892,10 +898,12 @@ export default function App() {
       }
 
       // Update or create the weld card
+      console.log('Current weldCards state:', weldCards.length, 'cards');
       const updatedWeldCards = [...weldCards];
+      console.log('UpdatedWeldCards before processing:', updatedWeldCards.length, 'cards');
       
-      // If cardId starts with "new-card-", always create a new card
-      if (card.cardId.startsWith('new-card-')) {
+      // If cardId starts with "new-card-" or "duplicate-", always create a new card
+      if (card.cardId.startsWith('new-card-') || card.cardId.startsWith('duplicate-')) {
         // Create new card with auto-incremental ID
         const newCard: WeldCardData = {
           ...card,
@@ -905,6 +913,7 @@ export default function App() {
         };
         updatedWeldCards.push(newCard);
         console.log('Created new card:', newCard.cardId);
+        console.log('Total cards after adding:', updatedWeldCards.length);
       } else {
         // Check if this is an existing card to update
         const existingCardIndex = updatedWeldCards.findIndex(c => c.cardId === card.cardId);
@@ -930,8 +939,10 @@ export default function App() {
       }
 
       // Update weld cards state and save to storage
+      console.log('Setting weld cards to:', updatedWeldCards.length, 'cards');
       setWeldCards(updatedWeldCards);
       await saveWeldCards(updatedWeldCards);
+      console.log('Weld cards saved to storage');
 
       // Also update individual welds for backward compatibility
       const allWelds: Weld[] = [];

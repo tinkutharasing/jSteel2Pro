@@ -174,13 +174,33 @@ export const DEFAULT_FIELD_CONFIGS: FieldConfig[] = [
   
   // Footer fields
   {
+    id: 'weldSketch',
+    key: 'weldSketch',
+    label: 'Weld Sketch',
+    placeholder: 'Upload sketch image',
+    required: false,
+    visible: true,
+    order: 1,
+    category: 'footer',
+  },
+  {
+    id: 'welderSignature',
+    key: 'welderSignature',
+    label: 'Welder Signature',
+    placeholder: 'Add signature',
+    required: false,
+    visible: true,
+    order: 2,
+    category: 'footer',
+  },
+  {
     id: 'weldSketchDescription',
     key: 'weldSketchDescription',
     label: 'Sketch Description',
     placeholder: 'Describe the sketch',
     required: false,
     visible: true,
-    order: 1,
+    order: 3,
     category: 'footer',
   },
 ];

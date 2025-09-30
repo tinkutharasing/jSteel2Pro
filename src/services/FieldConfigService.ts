@@ -157,6 +157,16 @@ class FieldConfigService {
    * Remove a field from the configuration
    */
   public async removeField(fieldId: string): Promise<void> {
+    // Prevent removal of critical fields
+    if (fieldId === 'weldNumber') {
+      throw new Error('Weld # field cannot be removed as it is required for weld identification');
+    }
+    
+    // Prevent removal of essential footer fields
+    if (fieldId === 'weldSketch' || fieldId === 'welderSignature' || fieldId === 'weldSketchDescription') {
+      throw new Error('Essential footer fields (Weld Sketch, Welder Signature, Description) cannot be removed');
+    }
+    
     const config = this.getConfig();
     
     for (const category of config.categories) {
@@ -175,11 +185,45 @@ class FieldConfigService {
    * Update field visibility
    */
   public async setFieldVisibility(fieldId: string, visible: boolean): Promise<void> {
+    // Prevent hiding critical fields
+    if (fieldId === 'weldNumber' && !visible) {
+      throw new Error('Weld # field cannot be hidden as it is required for weld identification');
+    }
+    
+    // Prevent hiding essential footer fields
+    if ((fieldId === 'weldSketch' || fieldId === 'welderSignature' || fieldId === 'weldSketchDescription') && !visible) {
+      throw new Error('Essential footer fields (Weld Sketch, Welder Signature, Description) cannot be hidden');
+    }
+    
     const config = this.getConfig();
     const field = this.findFieldById(fieldId);
     
     if (field) {
       field.visible = visible;
+      config.lastUpdated = new Date().toISOString();
+      await this.saveConfig();
+    }
+  }
+
+  /**
+   * Toggle field visibility
+   */
+  public async toggleFieldVisibility(fieldId: string): Promise<void> {
+    const config = this.getConfig();
+    const field = this.findFieldById(fieldId);
+    
+    if (field) {
+      // Prevent hiding critical fields
+      if (fieldId === 'weldNumber' && field.visible) {
+        throw new Error('Weld # field cannot be hidden as it is required for weld identification');
+      }
+      
+      // Prevent hiding essential footer fields
+      if ((fieldId === 'weldSketch' || fieldId === 'welderSignature' || fieldId === 'weldSketchDescription') && field.visible) {
+        throw new Error('Essential footer fields (Weld Sketch, Welder Signature, Description) cannot be hidden');
+      }
+      
+      field.visible = !field.visible;
       config.lastUpdated = new Date().toISOString();
       await this.saveConfig();
     }

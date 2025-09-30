@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TextInput, StyleSheet } from 'react-native';
 import { FieldConfig } from '../types/FieldConfig';
+import { DatePickerField } from './DatePickerField';
 
 interface DynamicFieldRendererProps {
   field: FieldConfig;
@@ -22,6 +23,22 @@ export const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
   const fieldPlaceholder = placeholder || field.placeholder;
   const isRequired = required !== undefined ? required : field.required;
 
+  // Check if this is a date field
+  if (field.key === 'date') {
+    return (
+      <View style={[styles.container, style]}>
+        <DatePickerField
+          label=""
+          value={value || ''}
+          onDateChange={onChange}
+          placeholder={fieldPlaceholder}
+          required={isRequired}
+        />
+      </View>
+    );
+  }
+
+  // Default text input for other fields
   return (
     <View style={[styles.container, style]}>
       <TextInput

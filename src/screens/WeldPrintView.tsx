@@ -706,6 +706,21 @@ const WeldPrintView: React.FC<WeldPrintViewProps> = ({ card, onBack }) => {
           </View>
         </View>
 
+        {/* Header Fields Section */}
+        {fieldConfigs.header.length > 0 && (
+          <View style={styles.headerFieldsSection}>
+            <Text style={styles.sectionTitle}>Header Information</Text>
+            <View style={styles.headerFieldsContainer}>
+              {fieldConfigs.header.map((field) => (
+                <View key={field.id} style={styles.fieldRow}>
+                  <Text style={styles.fieldLabel}>{field.label}:</Text>
+                  <Text style={styles.fieldValue}>{renderFieldValue(field, card)}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
         {/* Table Section */}
         <View style={styles.tableSection}>
           <Text style={styles.sectionTitle}>Weld Details</Text>
@@ -759,6 +774,21 @@ const WeldPrintView: React.FC<WeldPrintViewProps> = ({ card, onBack }) => {
             </View>
           </ScrollView>
         </View>
+
+        {/* Footer Fields Section */}
+        {fieldConfigs.footer.length > 0 && (
+          <View style={styles.footerFieldsSection}>
+            <Text style={styles.sectionTitle}>Footer Information</Text>
+            <View style={styles.footerFieldsContainer}>
+              {fieldConfigs.footer.map((field) => (
+                <View key={field.id} style={styles.fieldRow}>
+                  <Text style={styles.fieldLabel}>{field.label}:</Text>
+                  <Text style={styles.fieldValue}>{renderFieldValue(field, card)}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
 
         {/* Images Section - 4 Columns */}
         <View style={styles.imagesSection}>
@@ -1306,6 +1336,52 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     height: '100%',
+  },
+
+  // Header and Footer Field Styles
+  headerFieldsSection: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  headerFieldsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+  },
+  footerFieldsSection: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  footerFieldsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+  },
+  fieldRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minWidth: '45%',
+    marginBottom: 8,
+  },
+  fieldLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginRight: 8,
+    minWidth: 120,
+  },
+  fieldValue: {
+    fontSize: 14,
+    color: '#111827',
+    flex: 1,
   },
 });
 

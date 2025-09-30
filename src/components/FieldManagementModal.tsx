@@ -71,7 +71,8 @@ export const FieldManagementModal: React.FC<FieldManagementModalProps> = ({
       onConfigChanged();
     } catch (error) {
       console.error('Error toggling field visibility:', error);
-      Alert.alert('Error', 'Failed to update field visibility');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update field visibility';
+      Alert.alert('Error', errorMessage);
     }
   };
 
@@ -101,6 +102,26 @@ export const FieldManagementModal: React.FC<FieldManagementModalProps> = ({
   };
 
   const handleRemoveField = async (fieldId: string) => {
+    // Check if this is a protected field
+    if (fieldId === 'weldNumber') {
+      Alert.alert(
+        'Cannot Remove Field',
+        'Weld # field cannot be removed as it is required for weld identification.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+    
+    // Check if this is a protected footer field
+    if (fieldId === 'weldSketch' || fieldId === 'welderSignature' || fieldId === 'weldSketchDescription') {
+      Alert.alert(
+        'Cannot Remove Field',
+        'Essential footer fields (Weld Sketch, Welder Signature, Description) cannot be removed.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
     Alert.alert(
       'Remove Field',
       'Are you sure you want to remove this field? This action cannot be undone.',
@@ -118,7 +139,8 @@ export const FieldManagementModal: React.FC<FieldManagementModalProps> = ({
               Alert.alert('Success', 'Field removed successfully');
             } catch (error) {
               console.error('Error removing field:', error);
-              Alert.alert('Error', 'Failed to remove field');
+              const errorMessage = error instanceof Error ? error.message : 'Failed to remove field';
+              Alert.alert('Error', errorMessage);
             }
           },
         },
@@ -180,28 +202,46 @@ export const FieldManagementModal: React.FC<FieldManagementModalProps> = ({
         {visibleFields.length === 0 ? (
           <Text style={styles.emptyText}>No fields in this category</Text>
         ) : (
-          visibleFields.map(field => (
-            <View key={field.id} style={styles.fieldItem}>
-              <View style={styles.fieldInfo}>
-                <Text style={styles.fieldLabel}>{field.label}</Text>
-                <Text style={styles.fieldKey}>({field.key})</Text>
+          visibleFields.map(field => {
+            const isProtected = field.id === 'weldNumber' || 
+                                field.id === 'weldSketch' || 
+                                field.id === 'welderSignature' || 
+                                field.id === 'weldSketchDescription';
+            return (
+              <View key={field.id} style={styles.fieldItem}>
+                <View style={styles.fieldInfo}>
+                  <View style={styles.fieldLabelContainer}>
+                    <Text style={styles.fieldLabel}>{field.label}</Text>
+                    {isProtected && (
+                      <View style={styles.protectedBadge}>
+                        <Text style={styles.protectedText}>Protected</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={styles.fieldKey}>({field.key})</Text>
+                </View>
+                <View style={styles.fieldActions}>
+                  <TouchableOpacity
+                    style={styles.actionButton}
+                    onPress={() => handleEditField(field)}
+                  >
+                    <Icon name="pencil" size={16} color="#6b7280" />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.actionButton, isProtected && styles.disabledButton]}
+                    onPress={() => handleRemoveField(field.id)}
+                    disabled={isProtected}
+                  >
+                    <Icon 
+                      name="trash" 
+                      size={16} 
+                      color={isProtected ? "#9ca3af" : "#ef4444"} 
+                    />
+                  </TouchableOpacity>
+                </View>
               </View>
-              <View style={styles.fieldActions}>
-                <TouchableOpacity
-                  style={styles.actionButton}
-                  onPress={() => handleEditField(field)}
-                >
-                  <Icon name="pencil" size={16} color="#6b7280" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.actionButton}
-                  onPress={() => handleRemoveField(field.id)}
-                >
-                  <Icon name="trash" size={16} color="#ef4444" />
-                </TouchableOpacity>
-              </View>
-            </View>
-          ))
+            );
+          })
         )}
       </View>
     );
@@ -644,6 +684,27 @@ const styles = StyleSheet.create({
   editFieldScrollContent: {
     padding: 16,
     paddingBottom: 32,
+  },
+  fieldLabelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  protectedBadge: {
+    backgroundColor: '#fef3c7',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#f59e0b',
+  },
+  protectedText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#92400e',
+  },
+  disabledButton: {
+    opacity: 0.5,
   },
 });
 

@@ -9,4 +9,6 @@ export interface WeldCardData {
   welds: Weld[];
   createdAt?: string;
   updatedAt?: string;
+  // Allow additional dynamic fields from field management
+  [key: string]: any;
 }
