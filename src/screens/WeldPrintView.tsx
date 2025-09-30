@@ -13,8 +13,10 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import ViewShot from 'react-native-view-shot';
+import * as RNHTMLtoPDF from 'react-native-html-to-pdf';
+import * as RNFS from 'react-native-fs';
 
-import RNPrint from 'react-native-print';
+import * as RNPrint from 'react-native-print';
 import { WeldCardData } from '../types/WeldCard';
 import { formatDateToUS } from '../utils/dateUtils';
 import { FieldConfig } from '../types/FieldConfig';
@@ -26,7 +28,7 @@ interface WeldPrintViewProps {
 }
 
 const WeldPrintView: React.FC<WeldPrintViewProps> = ({ card, onBack }) => {
-  const [isCapturing, setIsCapturing] = useState(false);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [selectedImageForPreview, setSelectedImageForPreview] = useState<{
     uri: string;
     title: string;
@@ -122,58 +124,215 @@ const WeldPrintView: React.FC<WeldPrintViewProps> = ({ card, onBack }) => {
     );
   }
 
-  const handleScreenshot = async () => {
-    // Determine which image to capture based on availability
-    let imageToCapture: 'weldSketch' | 'welderSignature' | null = null;
-    let refToUse: ViewShot | null = null;
-    
-    if (card.weldSketch) {
-      imageToCapture = 'weldSketch';
-      refToUse = weldSketchRef.current;
-    } else if (card.welderSignature) {
-      imageToCapture = 'welderSignature';
-      refToUse = welderSignatureRef.current;
-    }
-    
-    if (!imageToCapture || !refToUse) {
-      Alert.alert('No Image Available', 'No weld or welder signature drawing field images available to capture. Please add a sketch image first.');
-      return;
-    }
-
-    setIsCapturing(true);
+  const generatePDF = async () => {
+    setIsGeneratingPDF(true);
     try {
-      console.log(`Capturing ${imageToCapture}...`);
-      if (!refToUse) {
-        throw new Error(`Reference for ${imageToCapture} is not available`);
-      }
-      const uri = await refToUse.capture?.();
-      console.log(`${imageToCapture} captured:`, uri);
-
-      // Generate filename with timestamp
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const fileName = `weld_card_${imageToCapture}_${timestamp}.png`;
+      // Generate HTML content for the PDF
+      const htmlContent = generateHTMLContent();
       
-      // Share the captured image
-      try {
-        await Share.share({
-          url: uri,
-          title: `Weld Card ${imageToCapture.charAt(0).toUpperCase() + imageToCapture.slice(1)}`,
-          message: `Weld card ${imageToCapture} screenshot: ${fileName}`,
-        });
-      } catch (shareError) {
-        console.log('Share failed:', shareError);
-        Alert.alert(
-          'Screenshot Captured',
-          `Screenshot captured successfully!\n\nTo save: Use your device's share menu to save to gallery or files.`,
-          [{ text: 'OK' }]
-        );
-      }
+      // PDF options
+      const options = {
+        html: htmlContent,
+        fileName: `WeldCard_${card.cardId}_${new Date().toISOString().split('T')[0]}`,
+        directory: 'Documents',
+        width: 595, // A4 width in points
+        height: 842, // A4 height in points
+        padding: 24,
+        bgColor: '#FFFFFF',
+      };
+
+      const pdf = await RNHTMLtoPDF.convert(options);
+      
+      // Share the PDF
+      await Share.share({
+        url: `file://${pdf.filePath}`,
+        title: 'Weld Card PDF',
+        message: `Weld Card PDF - ${card.cardId}`,
+      });
+      
+      Alert.alert('Success', 'PDF generated and ready to share!');
     } catch (error: any) {
-      console.error('Screenshot error:', error);
-      Alert.alert('Error', 'Failed to capture screenshot: ' + error.message);
+      console.error('PDF generation error:', error);
+      Alert.alert('Error', 'Failed to generate PDF: ' + error.message);
     } finally {
-      setIsCapturing(false);
+      setIsGeneratingPDF(false);
     }
+  };
+
+  const generateHTMLContent = () => {
+    const formatFieldValue = (field: FieldConfig) => {
+      const value = (card as any)[field.key];
+      if (value === null || value === undefined || value === '') {
+        return 'N/A';
+      }
+      return String(value);
+    };
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Weld Card - ${card.cardId}</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #ffffff;
+            color: #333;
+          }
+          .header {
+            text-align: center;
+            border-bottom: 2px solid #3b82f6;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+          }
+          .title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1e293b;
+            margin-bottom: 10px;
+          }
+          .subtitle {
+            font-size: 16px;
+            color: #64748b;
+          }
+          .section {
+            margin-bottom: 30px;
+            page-break-inside: avoid;
+          }
+          .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1e293b;
+            margin-bottom: 15px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #e2e8f0;
+          }
+          .field-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #f1f5f9;
+          }
+          .field-label {
+            font-weight: bold;
+            color: #1e293b;
+            flex: 1;
+          }
+          .field-value {
+            color: #64748b;
+            flex: 1;
+            text-align: right;
+          }
+          .weld-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+          }
+          .weld-table th,
+          .weld-table td {
+            border: 1px solid #e2e8f0;
+            padding: 8px;
+            text-align: left;
+          }
+          .weld-table th {
+            background-color: #f8fafc;
+            font-weight: bold;
+            color: #1e293b;
+          }
+          .image-container {
+            text-align: center;
+            margin: 20px 0;
+          }
+          .image-container img {
+            max-width: 100%;
+            max-height: 300px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+          }
+          .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #e2e8f0;
+            text-align: center;
+            color: #64748b;
+            font-size: 12px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="title">Weld Inspection Card</div>
+          <div class="subtitle">Card ID: ${card.cardId} | Date: ${formatDateToUS(card.date)}</div>
+        </div>
+
+        <!-- Header Fields -->
+        <div class="section">
+          <div class="section-title">Header Information</div>
+          ${fieldConfigs.header.map(field => `
+            <div class="field-row">
+              <div class="field-label">${field.label}:</div>
+              <div class="field-value">${formatFieldValue(field)}</div>
+            </div>
+          `).join('')}
+        </div>
+
+        <!-- Weld Table -->
+        <div class="section">
+          <div class="section-title">Weld Details</div>
+          <table class="weld-table">
+            <thead>
+              <tr>
+                ${fieldConfigs.table.map(field => `<th>${field.label}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${card.welds.map(weld => `
+                <tr>
+                  ${fieldConfigs.table.map(field => `
+                    <td>${(weld as any)[field.key] || 'N/A'}</td>
+                  `).join('')}
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Footer Fields -->
+        <div class="section">
+          <div class="section-title">Additional Information</div>
+          ${fieldConfigs.footer.map(field => `
+            <div class="field-row">
+              <div class="field-label">${field.label}:</div>
+              <div class="field-value">${formatFieldValue(field)}</div>
+            </div>
+          `).join('')}
+        </div>
+
+        <!-- Images -->
+        ${card.weldSketch ? `
+          <div class="image-container">
+            <div class="section-title">Weld Sketch</div>
+            <img src="${card.weldSketch}" alt="Weld Sketch" />
+          </div>
+        ` : ''}
+        
+        ${card.welderSignature ? `
+          <div class="image-container">
+            <div class="section-title">Welder Signature</div>
+            <img src="${card.welderSignature}" alt="Welder Signature" />
+          </div>
+        ` : ''}
+
+        <div class="footer">
+          <p>Generated on ${new Date().toLocaleString()}</p>
+          <p>InspectorSham Pro - Weld Inspection System</p>
+        </div>
+      </body>
+      </html>
+    `;
   };
 
   const handlePrint = async () => {
@@ -686,13 +845,13 @@ const WeldPrintView: React.FC<WeldPrintViewProps> = ({ card, onBack }) => {
           
           <View style={styles.rightActions}>
             <TouchableOpacity
-              style={[styles.headerActionButton, styles.screenshotButton]}
-              onPress={handleScreenshot}
-              disabled={isCapturing}
+              style={[styles.headerActionButton, styles.pdfButton]}
+              onPress={generatePDF}
+              disabled={isGeneratingPDF}
             >
-              <Icon name="camera" size={20} color="#10b981" />
+              <Icon name="document-text" size={20} color="#10b981" />
               <Text style={styles.actionButtonText}>
-                {isCapturing ? 'Capturing...' : 'Screenshot'}
+                {isGeneratingPDF ? 'Generating...' : 'PDF'}
               </Text>
             </TouchableOpacity>
 
@@ -1174,7 +1333,7 @@ const styles = StyleSheet.create({
     borderColor: '#e2e8f0',
   },
   
-  screenshotButton: {
+  pdfButton: {
     borderColor: '#10b981',
   },
   
